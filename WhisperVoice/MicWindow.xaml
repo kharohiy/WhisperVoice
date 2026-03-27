@@ -1,0 +1,16 @@
+﻿<Window x:Class="WhisperVoice.MicWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Выберите микрофон" Height="300" Width="400"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Topmost="True">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ListBox x:Name="LbMics" Grid.Row="0" Margin="0,0,0,10" DisplayMemberPath="Name" MouseDoubleClick="LbMics_MouseDoubleClick"/>
+
+        <Button Grid.Row="1" Content="Выбрать" Height="30" Width="100" HorizontalAlignment="Center" Click="BtnSelect_Click"/>
+    </Grid>
+</Window>

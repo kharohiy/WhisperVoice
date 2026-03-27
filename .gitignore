@@ -1,0 +1,20 @@
+# Папки сборки и мусор VS (рекурсивно)
+.vs/
+[Bb]in/
+[Oo]bj/
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# Временные файлы приложения
+temp.wav
+temp.wav.txt
+whisper_debug.log
+
+# Игнорируем ВСЕ тяжелые зависимости и модели (во всех папках)
+*.bin
+*.dll
+*.exe
+**/models/
+models/

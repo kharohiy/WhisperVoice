@@ -1,0 +1,33 @@
+﻿<Window x:Class="WhisperVoice.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Whisper Control Panel" Height="430" Width="260"
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
+        Topmost="True" Background="#F0F0F0">
+
+    <StackPanel Margin="15" VerticalAlignment="Top">
+
+        <Grid Margin="0,0,0,10">
+            <TextBlock Text="⚙️ Настройки" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Button Content="?" Width="25" Height="25" HorizontalAlignment="Right" Click="BtnHelp_Click"/>
+        </Grid>
+
+        <TextBlock x:Name="LblMicName" Text="⚠️ ВЫБЕРИТЕ МИКРОФОН!" Foreground="Red" 
+                   FontSize="14" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,15" TextWrapping="Wrap" TextAlignment="Center"/>
+
+        <Button Content="📋 Выбрать микрофон (Список)" Height="32" Margin="0,0,0,10" Click="BtnSelectMic_Click" HorizontalContentAlignment="Left" Padding="10,0,5,0" FontSize="13"/>
+        <Button Content="🔊 Звук Windows (Проверка)" Height="32" Margin="0,0,0,10" Click="BtnSound_Click" HorizontalContentAlignment="Left" Padding="10,0,5,0" FontSize="13"/>
+        <Button Content="🏷️ Редактор словаря (Prompt)" Height="32" Margin="0,0,0,10" Click="BtnPrompt_Click" HorizontalContentAlignment="Left" Padding="10,0,5,0" FontSize="13"/>
+
+        <Button Content="📝 Открыть Блокнот (Notepad)" Height="32" Margin="0,0,0,15" Click="BtnOpenNotepad_Click" HorizontalContentAlignment="Left" Padding="10,0,5,0" FontSize="13"/>
+
+        <Separator Margin="0,5,0,15" Background="#CCCCCC"/>
+
+        <StackPanel x:Name="VolumePanel" Margin="0,0,0,10">
+            <TextBlock x:Name="LblVolume" Text="Громкость микрофона:" FontSize="13" FontWeight="Medium" Margin="10,0,0,8"/>
+            <Slider x:Name="SldVolume" Minimum="0" Maximum="100" TickFrequency="1" 
+                    IsSnapToTickEnabled="True" Height="25" Margin="10,0,10,0"/>
+        </StackPanel>
+
+    </StackPanel>
+</Window>

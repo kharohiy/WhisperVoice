@@ -1,0 +1,35 @@
+﻿<Window x:Class="WhisperVoice.PromptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Словарь (Tech Prompt)" Height="450" Width="380"
+        WindowStartupLocation="CenterScreen" Topmost="True" ResizeMode="NoResize"
+        Closing="Window_Closing" Background="#F9F9F9">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Теги-подсказки для нейросети:" FontSize="14" FontWeight="Medium" Margin="0,0,0,10"/>
+
+        <ListBox x:Name="LbTags" Grid.Row="1" Margin="0,0,0,15" FontSize="14" SelectionChanged="LbTags_SelectionChanged"/>
+
+        <Grid Grid.Row="2" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox x:Name="TxtInput" Grid.Column="0" FontSize="14" VerticalContentAlignment="Center" Padding="5,0"/>
+            <Button Grid.Column="2" Content="➕ Добавить" Width="80" Height="30" Click="BtnAdd_Click"/>
+            <Button Grid.Column="4" Content="❌ Удалить" Width="75" Height="30" Click="BtnDelete_Click"/>
+        </Grid>
+
+        <Button Grid.Row="3" Content="💾 Сохранить в файл" Height="40" FontSize="14" FontWeight="Bold" Click="BtnSave_Click"/>
+    </Grid>
+</Window>
