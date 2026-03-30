@@ -1,4 +1,5 @@
 ﻿using NAudio.CoreAudioApi;
+using NAudio.Wave;
 using NHotkey.Wpf;
 using System;
 using System.Diagnostics;
@@ -18,7 +19,6 @@ namespace WhisperVoice
         private string currentMicId = "";
         private string currentMicName = "";
 
-        // Инструменты
         private AudioRecorder recorder = new AudioRecorder();
         private NotepadWindow notepad = new NotepadWindow();
         private HelpWindow helpWindow = new HelpWindow();
@@ -28,13 +28,10 @@ namespace WhisperVoice
         private System.Windows.Forms.NotifyIcon trayIcon;
         private MMDevice? currentDevice;
         private InputSimulator inputSim = new InputSimulator();
-        private System.Windows.Threading.DispatcherTimer meterTimer = new System.Windows.Threading.DispatcherTimer();
 
-        // Защита от спама и блокировка интерфейса
         private DateTime lastActionTime = DateTime.MinValue;
         private bool isProcessing = false;
 
-        // Пути
         private string baseDir = AppDomain.CurrentDomain.BaseDirectory;
         private string tempWavPath => Path.Combine(baseDir, "temp.wav");
         private string tempTxtPath => Path.Combine(baseDir, "temp.wav.txt");
@@ -49,28 +46,18 @@ namespace WhisperVoice
         public MainWindow()
         {
             InitializeComponent();
-
             clearLogs();
             CleanupTempFiles();
             SetupTrayIcon();
+
+            // Подключение индикатора во время активной записи
+            recorder.PeakAvailable += val => Dispatcher.InvokeAsync(() => VuMeter.Value = val);
+
             LoadSettings();
             SetupHotkeys();
 
-            // Настройка таймера
-            meterTimer.Interval = TimeSpan.FromMilliseconds(50);
-
-            // Запуск таймера, если окно уже открыто (фикс IsVisibleChanged)
-            if (this.IsVisible) meterTimer.Start();
-
             this.IsVisibleChanged += (s, e) => {
-                if (this.IsVisible)
-                {
-                    SyncVolumeFromSystem();
-                    meterTimer.Start();
-                }
-                else
-                {
-                    meterTimer.Stop();                }
+                if (this.IsVisible) SyncVolumeFromSystem();
             };
 
             System.Windows.Application.Current.Exit += (s, e) => CleanupTempFiles();
@@ -88,14 +75,7 @@ namespace WhisperVoice
             menu.Items.Add("⚙️ Панель управления (F7)", null, (s, e) => { this.Show(); this.Activate(); });
             menu.Items.Add("📝 Окно Блокнота (Ctrl+F7)", null, (s, e) => { if (notepad.IsVisible) notepad.Hide(); else { notepad.Show(); notepad.Activate(); } });
             menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
-            var infoTitle = menu.Items.Add("--- Горячие клавиши ---");
-            infoTitle.Enabled = false;
-            menu.Items.Add("Запись RU/UA:  F8").Enabled = false;
-            menu.Items.Add("Запись EN:     F9").Enabled = false;
-            menu.Items.Add("Перевод в EN:  Ctrl + F9").Enabled = false;
-            menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
-            menu.Items.Add("❌ Выход", null, (s, e) =>
-            {
+            menu.Items.Add("❌ Выход", null, (s, e) => {
                 CleanupTempFiles();
                 trayIcon.Visible = false;
                 trayIcon.Dispose();
@@ -122,10 +102,7 @@ namespace WhisperVoice
                 HotkeyManager.Current.AddOrReplace("Translate", Key.F9, ModifierKeys.Control, OnTranslate);
                 HotkeyManager.Current.AddOrReplace("Notepad", Key.F7, ModifierKeys.Control, OnOpenNotepad);
             }
-            catch (Exception ex)
-            {
-                WriteLog($"Ошибка бинда хоткеев: {ex.Message}");
-            }
+            catch { }
         }
 
         private bool IsSpam()
@@ -137,18 +114,14 @@ namespace WhisperVoice
 
         private void OnToggleMenu(object? sender, NHotkey.HotkeyEventArgs e)
         {
-            e.Handled = true;
-            if (IsSpam()) return;
-            if (this.IsVisible) this.Hide();
-            else { this.Show(); this.Activate(); }
+            e.Handled = true; if (IsSpam()) return;
+            if (this.IsVisible) this.Hide(); else { this.Show(); this.Activate(); }
         }
 
         private void OnOpenNotepad(object? sender, NHotkey.HotkeyEventArgs e)
         {
-            e.Handled = true;
-            if (IsSpam()) return;
-            if (notepad.IsVisible) notepad.Hide();
-            else { notepad.Show(); notepad.Activate(); }
+            e.Handled = true; if (IsSpam()) return;
+            if (notepad.IsVisible) notepad.Hide(); else { notepad.Show(); notepad.Activate(); }
         }
 
         private void OnRecordRu(object? sender, NHotkey.HotkeyEventArgs e) { e.Handled = true; if (!IsSpam() && !isProcessing) ToggleRecording(RecordMode.Ru, "ru", "F8", false); }
@@ -157,19 +130,13 @@ namespace WhisperVoice
 
         private async void ToggleRecording(RecordMode mode, string lang, string keyName, bool isTranslate)
         {
-            if (string.IsNullOrEmpty(currentMicId))
-            {
-                this.Show();
-                System.Windows.MessageBox.Show("Выберите микрофон!", "Внимание");
-                return;
-            }
+            if (string.IsNullOrEmpty(currentMicId)) { this.Show(); return; }
 
             if (!recorder.IsRecording)
             {
                 activeMode = mode;
                 if (File.Exists(tempWavPath)) File.Delete(tempWavPath);
 
-                // Остановка тихого захвата на время реальной записи
                 _silentCapture?.StopRecording();
 
                 recorder.StartRecording(currentMicId, tempWavPath);
@@ -179,20 +146,21 @@ namespace WhisperVoice
             else
             {
                 if (activeMode != mode) return;
-                recorder.StopRecording();
+
+                await recorder.StopRecordingAsync();
+
                 activeMode = RecordMode.None;
                 isProcessing = true;
 
                 LblMicName.Text = "🧠 ОБРАБОТКА...\n(Подождите)";
                 LblMicName.Foreground = System.Windows.Media.Brushes.Orange;
+                VuMeter.Value = 0; // Сбрасываем индикатор на 0 во время обработки
 
-                await Task.Delay(200);
                 await Task.Run(() => ProcessWhisper(lang, isTranslate));
 
                 isProcessing = false;
                 UpdateMicUI(currentMicName, true);
 
-                // Возвращаем тихий захват для индикатора
                 try { _silentCapture?.StartRecording(); } catch { }
             }
         }
@@ -200,15 +168,6 @@ namespace WhisperVoice
         private void ProcessWhisper(string lang, bool isTranslate)
         {
             if (File.Exists(tempTxtPath)) File.Delete(tempTxtPath);
-            try
-            {
-                using (var reader = new NAudio.Wave.WaveFileReader(tempWavPath))
-                {
-                    if (reader.TotalTime.TotalSeconds < 1.0) return;
-                }
-            }
-            catch { }
-
             string techPrompt = "";
             if (File.Exists(dictPath))
             {
@@ -226,21 +185,16 @@ namespace WhisperVoice
                 {
                     string res = File.ReadAllText(tempTxtPath).Trim();
                     string lowerRes = res.ToLower();
-                    if (lowerRes.Contains("dimatorzok") || lowerRes.Contains("dima torzok") || lowerRes.Contains("amara.org") ||
-                        lowerRes.Contains("thank you for watching") || res.Length <= 2) return;
+                    if (lowerRes.Contains("amara.org") || lowerRes.Contains("dimatorzok") || lowerRes.Contains("dima torzok") || lowerRes.Contains("thank you for watching") || res.Length <= 2) return;
 
-                    if (!string.IsNullOrEmpty(res))
-                    {
-                        System.Windows.Application.Current.Dispatcher.Invoke(async () =>
-                        {
-                            System.Windows.Clipboard.SetText(res);
-                            await Task.Delay(100);
-                            inputSim.Keyboard.ModifiedKeyStroke(VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
-                        });
-                    }
+                    System.Windows.Application.Current.Dispatcher.Invoke(async () => {
+                        System.Windows.Clipboard.SetText(res);
+                        await Task.Delay(100);
+                        inputSim.Keyboard.ModifiedKeyStroke(VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
+                    });
                 }
             }
-            catch (Exception ex) { WriteLog($"Ошибка Whisper: {ex.Message}"); }
+            catch { }
         }
 
         private void LoadSettings()
@@ -250,8 +204,7 @@ namespace WhisperVoice
                 var lines = File.ReadAllLines(settingsPath);
                 if (lines.Length >= 2 && !string.IsNullOrWhiteSpace(lines[0]))
                 {
-                    currentMicId = lines[0];
-                    currentMicName = lines[1];
+                    currentMicId = lines[0]; currentMicName = lines[1];
                     UpdateMicUI(currentMicName, true);
                     SetupVolumeControl();
                     return;
@@ -274,8 +227,8 @@ namespace WhisperVoice
                 var enumerator = new MMDeviceEnumerator();
                 currentDevice = enumerator.GetDevice(currentMicId);
 
-                _silentCapture = new WasapiCapture(currentDevice);
-                _silentCapture.DataAvailable += (s, a) => { };
+                _silentCapture = new WasapiCapture(currentDevice, true, 50);
+                _silentCapture.DataAvailable += _silentCapture_DataAvailable;
                 _silentCapture.StartRecording();
 
                 currentDevice.AudioEndpointVolume.OnVolumeNotification += AudioEndpointVolume_OnVolumeNotification;
@@ -286,6 +239,20 @@ namespace WhisperVoice
                 VolumePanel.Visibility = Visibility.Visible;
             }
             catch (Exception ex) { WriteLog($"Ошибка индикатора: {ex.Message}"); }
+        }
+
+        private DateTime _lastSilentPeakTime = DateTime.MinValue;
+        private void _silentCapture_DataAvailable(object? sender, WaveInEventArgs e)
+        {
+            var now = DateTime.UtcNow;
+            if ((now - _lastSilentPeakTime).TotalMilliseconds < 40) return;
+            _lastSilentPeakTime = now;
+
+            if (_silentCapture != null)
+            {
+                double peak = AudioRecorder.CalculatePeak(e.Buffer, e.BytesRecorded, _silentCapture.WaveFormat);
+                Dispatcher.InvokeAsync(() => VuMeter.Value = peak);
+            }
         }
 
         private void AudioEndpointVolume_OnVolumeNotification(AudioVolumeNotificationData data)
@@ -314,21 +281,20 @@ namespace WhisperVoice
             MicWindow micWindow = new MicWindow { Owner = this };
             if (micWindow.ShowDialog() == true)
             {
-                currentMicId = micWindow.SelectedMicId;
-                currentMicName = micWindow.SelectedMicName;
+                currentMicId = micWindow.SelectedMicId; currentMicName = micWindow.SelectedMicName;
                 File.WriteAllLines(settingsPath, new string[] { currentMicId, currentMicName });
                 UpdateMicUI(currentMicName, true);
                 SetupVolumeControl();
             }
         }
 
-        private void WriteLog(string text) { try { File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss} | {text}\n"); } catch { } }
-        private void clearLogs() { if (File.Exists(logPath)) { try { File.Delete(logPath); } catch { } } }
+        private void clearLogs() { if (File.Exists(logPath)) try { File.Delete(logPath); } catch { } }
         private void CleanupTempFiles() { try { if (File.Exists(tempWavPath)) File.Delete(tempWavPath); if (File.Exists(tempTxtPath)) File.Delete(tempTxtPath); } catch { } }
         private void BtnSound_Click(object sender, RoutedEventArgs e) => Process.Start(new ProcessStartInfo { FileName = "rundll32.exe", Arguments = "shell32.dll,Control_RunDLL mmsys.cpl,,1", UseShellExecute = true });
         private void BtnPrompt_Click(object sender, RoutedEventArgs e) { if (promptWindow.IsVisible) promptWindow.Hide(); else { promptWindow.LoadTags(); promptWindow.Show(); promptWindow.Activate(); } }
         private void BtnHelp_Click(object sender, RoutedEventArgs e) { if (helpWindow.IsVisible) helpWindow.Hide(); else { helpWindow.Show(); helpWindow.Activate(); } }
         private void BtnOpenNotepad_Click(object sender, RoutedEventArgs e) { if (notepad.IsVisible) notepad.Hide(); else { notepad.Show(); notepad.Activate(); } }
         private void SyncVolumeFromSystem() { if (currentDevice != null) { SldVolume.ValueChanged -= SldVolume_ValueChanged; SldVolume.Value = currentDevice.AudioEndpointVolume.MasterVolumeLevelScalar * 100; SldVolume.ValueChanged += SldVolume_ValueChanged; } }
+        private void WriteLog(string text) { try { File.AppendAllText(logPath, $"{DateTime.Now:HH:mm:ss} | {text}\n"); } catch { } }
     }
 }
