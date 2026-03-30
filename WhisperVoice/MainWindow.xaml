@@ -1,37 +1,23 @@
-﻿<Window x:Class="WhisperVoice.MainWindow"
+<Window x:Class="WhisperVoice.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Whisper Control Panel" Height="470" Width="260"
+        Title="Whisper Control Panel" Height="700" Width="295"
         ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
         Topmost="True" Background="#F0F0F0">
 
     <Window.Resources>
 
-        <!--
-            VU Meter style. Uses a simple working template:
-            - Track: grey rounded background
-            - Fill:  a Border whose Width is bound to the ProgressBar's Value
-                     via a simple ScaleTransform on a Canvas clip.
-            WPF's built-in PART_Track / PART_Indicator names are used so the
-            framework wires up the width automatically — no converter needed.
-        -->
+        <!-- ═══ VU Meter — horizontal segmented bar ═══════════════════════ -->
         <Style x:Key="VuMeterStyle" TargetType="ProgressBar">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ProgressBar">
                         <Grid x:Name="Root" Height="{TemplateBinding Height}">
-
-                            <!-- Track (background) -->
-                            <Border Background="#DDDDDD" CornerRadius="3"
-                                    x:Name="PART_Track"/>
-
-                            <!-- Filled indicator — WPF resizes this automatically -->
+                            <Border Background="#DDDDDD" CornerRadius="3" x:Name="PART_Track"/>
                             <Border x:Name="PART_Indicator"
-                                    HorizontalAlignment="Left"
-                                    CornerRadius="3"
+                                    HorizontalAlignment="Left" CornerRadius="3"
                                     Background="{TemplateBinding Foreground}"/>
-
-                            <!-- Segment grid lines drawn on top -->
+                            <!-- 16-segment overlay -->
                             <ItemsControl IsHitTestVisible="False">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -39,23 +25,10 @@
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.Items>
-                                    <!-- 15 separators for 16 segments -->
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
+                                    <Border/><Border/><Border/><Border/>
+                                    <Border/><Border/><Border/><Border/>
+                                    <Border/><Border/><Border/><Border/>
+                                    <Border/><Border/><Border/><Border/>
                                 </ItemsControl.Items>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -63,17 +36,33 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-
                         </Grid>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
+        <!-- ═══ History list item style ══════════════════════════════════ -->
+        <Style x:Key="HistoryItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding"  Value="6,4"/>
+            <Setter Property="Cursor"   Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush"     Value="#E8E8E8"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E8F4FD"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#CCE8F7"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
     </Window.Resources>
 
-    <StackPanel Margin="15" VerticalAlignment="Top">
+    <StackPanel Margin="13" VerticalAlignment="Top">
 
+        <!-- ── Header ──────────────────────────────────────────────────── -->
         <Grid Margin="0,0,0,10">
             <TextBlock Text="⚙️ Настройки" FontSize="14" FontWeight="SemiBold"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -81,44 +70,118 @@
                     HorizontalAlignment="Right" Click="BtnHelp_Click"/>
         </Grid>
 
-        <TextBlock x:Name="LblMicName" Text="⚠️ ВЫБЕРИТЕ МИКРОФОН!" Foreground="Red"
-                   FontSize="14" FontWeight="Bold" HorizontalAlignment="Center"
-                   Margin="0,0,0,15" TextWrapping="Wrap" TextAlignment="Center"/>
+        <!-- ── Mic status label ────────────────────────────────────────── -->
+        <TextBlock x:Name="LblMicName" Text="⚠️ ВЫБЕРИТЕ МИКРОФОН!"
+                   Foreground="Red" FontSize="14" FontWeight="Bold"
+                   HorizontalAlignment="Center" Margin="0,0,0,10"
+                   TextWrapping="Wrap" TextAlignment="Center"/>
 
-        <Button Content="📋 Выбрать микрофон (Список)" Height="32" Margin="0,0,0,10"
+        <!-- ── Model selector ─────────────────────────────────────────── -->
+        <TextBlock Text="🤖 Модель Whisper:" FontSize="12" Foreground="#555"
+                   Margin="0,0,0,4"/>
+        <Grid Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="36"/>
+            </Grid.ColumnDefinitions>
+            <ComboBox x:Name="ModelCombo" Grid.Column="0" Height="28"
+                      FontSize="12" VerticalContentAlignment="Center"
+                      SelectionChanged="ModelCombo_SelectionChanged"
+                      ToolTip="Выберите модель из папки /models"/>
+            <Button Grid.Column="1" Content="🔄" Width="32" Height="28"
+                    Margin="4,0,0,0" ToolTip="Обновить список моделей"
+                    Click="BtnRefreshModels_Click"/>
+        </Grid>
+
+        <!-- ── Action buttons ─────────────────────────────────────────── -->
+        <Button Content="📋 Выбрать микрофон (Список)" Height="32" Margin="0,0,0,8"
                 Click="BtnSelectMic_Click" HorizontalContentAlignment="Left"
                 Padding="10,0,5,0" FontSize="13"/>
-        <Button Content="🔊 Звук Windows (Проверка)" Height="32" Margin="0,0,0,10"
+        <Button Content="🔊 Звук Windows (Проверка)" Height="32" Margin="0,0,0,8"
                 Click="BtnSound_Click" HorizontalContentAlignment="Left"
                 Padding="10,0,5,0" FontSize="13"/>
-        <Button Content="🏷️ Редактор словаря (Prompt)" Height="32" Margin="0,0,0,10"
+        <Button Content="🏷️ Редактор словаря (Prompt)" Height="32" Margin="0,0,0,8"
                 Click="BtnPrompt_Click" HorizontalContentAlignment="Left"
                 Padding="10,0,5,0" FontSize="13"/>
-        <Button Content="📝 Открыть Блокнот (Notepad)" Height="32" Margin="0,0,0,15"
+        <Button Content="📝 Открыть Блокнот (Notepad)" Height="32" Margin="0,0,0,10"
                 Click="BtnOpenNotepad_Click" HorizontalContentAlignment="Left"
                 Padding="10,0,5,0" FontSize="13"/>
 
-        <Separator Margin="0,5,0,15" Background="#CCCCCC"/>
+        <Separator Margin="0,0,0,10" Background="#CCCCCC"/>
 
-        <StackPanel x:Name="VolumePanel" Margin="0,0,0,10" Visibility="Collapsed">
-
-            <TextBlock Text="Уровень сигнала:" FontSize="12" Foreground="#555555"
-                       Margin="10,0,0,4"/>
-
-            <ProgressBar x:Name="VuMeter"
-                         Style="{StaticResource VuMeterStyle}"
-                         Height="16"
-                         Minimum="0" Maximum="100" Value="0"
-                         Foreground="LimeGreen"
-                         Margin="10,0,10,10"/>
-
+        <!-- ── Volume + VU meter ───────────────────────────────────────── -->
+        <StackPanel x:Name="VolumePanel" Margin="0,0,0,8" Visibility="Collapsed">
+            <TextBlock Text="Уровень сигнала:" FontSize="12" Foreground="#555"
+                       Margin="0,0,0,4"/>
+            <ProgressBar x:Name="VuMeter" Style="{StaticResource VuMeterStyle}"
+                         Height="16" Minimum="0" Maximum="100" Value="0"
+                         Foreground="LimeGreen" Margin="0,0,0,10"/>
             <TextBlock x:Name="LblVolume" Text="Громкость микрофона:"
-                       FontSize="13" FontWeight="Medium" Margin="10,0,0,8"/>
+                       FontSize="13" FontWeight="Medium" Margin="0,0,0,6"/>
             <Slider x:Name="SldVolume" Minimum="0" Maximum="100"
                     TickFrequency="1" IsSnapToTickEnabled="True"
-                    Height="25" Margin="10,0,10,0"/>
-
+                    Height="25" Margin="0,0,0,4"/>
         </StackPanel>
+
+        <!-- ── VAD indicator ─────────────────────────────────────────── -->
+        <StackPanel x:Name="VadPanel" Orientation="Horizontal"
+                    HorizontalAlignment="Center" Margin="0,0,0,6"
+                    Visibility="Collapsed">
+            <Ellipse x:Name="VadDot" Width="11" Height="11"
+                     Fill="LimeGreen" Opacity="1"
+                     VerticalAlignment="Center" Margin="0,0,6,0"/>
+            <TextBlock Text="VAD: ожидание паузы..."
+                       FontSize="11" Foreground="#555"
+                       VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- ── Processing panel (status + cancel) ────────────────────── -->
+        <StackPanel x:Name="ProcessingPanel" Visibility="Collapsed" Margin="0,0,0,6">
+            <TextBlock x:Name="LblStatus" FontSize="11" Foreground="#444"
+                       TextWrapping="Wrap" Margin="0,0,0,4"/>
+            <Button x:Name="BtnCancel" Content="⛔ Отменить обработку" Height="28"
+                    Background="#FFE4E4" Foreground="DarkRed"
+                    FontWeight="Bold" FontSize="12"
+                    Click="BtnCancel_Click"/>
+        </StackPanel>
+
+        <Separator Margin="0,4,0,8" Background="#CCCCCC"/>
+
+        <!-- ── Transcription history ──────────────────────────────────── -->
+        <Grid Margin="0,0,0,4">
+            <TextBlock Text="📋 История (нажми — скопировать):"
+                       FontSize="12" Foreground="#444"
+                       VerticalAlignment="Center"/>
+            <Button x:Name="BtnClearHistory" Content="🗑" Width="24" Height="22"
+                    HorizontalAlignment="Right" FontSize="11"
+                    ToolTip="Очистить историю"
+                    Click="BtnClearHistory_Click"/>
+        </Grid>
+
+        <ListBox x:Name="HistoryList" Height="152"
+                 ItemContainerStyle="{StaticResource HistoryItemStyle}"
+                 SelectionChanged="HistoryList_SelectionChanged"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 Background="White" BorderBrush="#CCC" BorderThickness="1">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                        <TextBlock Text="{Binding TimeLabel}"
+                                   FontSize="9" Foreground="#999"/>
+                        <TextBlock Text="{Binding ShortText}"
+                                   TextWrapping="Wrap" FontSize="11"
+                                   Foreground="#222"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Copy-feedback tooltip-style overlay -->
+        <Border x:Name="CopyFeedback" Background="#4CAF50" CornerRadius="4"
+                Padding="10,4" HorizontalAlignment="Center" Margin="0,4,0,0"
+                Visibility="Collapsed">
+            <TextBlock Text="✓ Скопировано в буфер" Foreground="White" FontSize="11"/>
+        </Border>
 
     </StackPanel>
 </Window>
