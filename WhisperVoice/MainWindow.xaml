@@ -7,7 +7,7 @@
 
     <Window.Resources>
 
-        <!-- ═══ VU Meter — horizontal segmented bar ═══════════════════════ -->
+        <!-- ═══ VU Meter — horizontal segmented bar ═════════════════════════ -->
         <Style x:Key="VuMeterStyle" TargetType="ProgressBar">
             <Setter Property="Template">
                 <Setter.Value>
@@ -25,10 +25,22 @@
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.Items>
-                                    <Border/><Border/><Border/><Border/>
-                                    <Border/><Border/><Border/><Border/>
-                                    <Border/><Border/><Border/><Border/>
-                                    <Border/><Border/><Border/><Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
                                 </ItemsControl.Items>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -103,6 +115,10 @@
         <Button Content="🏷️ Редактор словаря (Prompt)" Height="32" Margin="0,0,0,8"
                 Click="BtnPrompt_Click" HorizontalContentAlignment="Left"
                 Padding="10,0,5,0" FontSize="13"/>
+        <Button x:Name="BtnLanguageSettings" Content="⚙️ Язык для F8" Height="32" Margin="0,0,0,8"
+                Click="BtnLanguageSettings_Click" HorizontalContentAlignment="Left"
+                Padding="10,0,5,0" FontSize="13"
+                ToolTip="Выбрать язык для записи по F8"/>
         <Button Content="📝 Открыть Блокнот (Notepad)" Height="32" Margin="0,0,0,10"
                 Click="BtnOpenNotepad_Click" HorizontalContentAlignment="Left"
                 Padding="10,0,5,0" FontSize="13"/>

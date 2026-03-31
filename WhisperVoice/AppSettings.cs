@@ -12,23 +12,27 @@ namespace WhisperVoice
     public class AppSettings
     {
         // ── Microphone ─────────────────────────────────────────────────────
-        public string MicId   { get; set; } = "";
+        public string MicId { get; set; } = "";
         public string MicName { get; set; } = "";
 
         // ── Model ──────────────────────────────────────────────────────────
         /// <summary>Full path of the last selected .bin model file.</summary>
         public string LastModelPath { get; set; } = "";
 
+        // ── Language for F8 hotkey (transcription) ──────────────────────────
+        /// <summary>Language code for F8 direct transcription (default: "en").</summary>
+        public string LanguageF8 { get; set; } = "en";
+
         // ── Hotkeys (display names only – actual binding is in MainWindow) ──
-        public string HotkeyRu        { get; set; } = "F8";
-        public string HotkeyEn        { get; set; } = "F9";
+        public string HotkeyRu { get; set; } = "F8";
+        public string HotkeyEn { get; set; } = "F9";
         public string HotkeyTranslate { get; set; } = "Ctrl+F9";
-        public string HotkeyMenu      { get; set; } = "F7";
-        public string HotkeyNotepad   { get; set; } = "Ctrl+F7";
+        public string HotkeyMenu { get; set; } = "F7";
+        public string HotkeyNotepad { get; set; } = "Ctrl+F7";
 
         // ── VAD ────────────────────────────────────────────────────────────
         /// <summary>Peak percentage below which the microphone is considered silent.</summary>
-        public double VadThreshold      { get; set; } = 5.0;
+        public double VadThreshold { get; set; } = 5.0;
         /// <summary>Continuous silence duration (seconds) that auto-triggers stop.</summary>
         public double VadSilenceSeconds { get; set; } = 1.8;
 
@@ -69,7 +73,7 @@ namespace WhisperVoice
                     string[] lines = File.ReadAllLines(LegacyIniPath);
                     var migrated = new AppSettings
                     {
-                        MicId   = lines.Length > 0 ? lines[0].Trim() : "",
+                        MicId = lines.Length > 0 ? lines[0].Trim() : "",
                         MicName = lines.Length > 1 ? lines[1].Trim() : ""
                     };
                     migrated.Save();   // persist as JSON immediately
