@@ -1,13 +1,13 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 
 namespace WhisperVoice
 {
-    // ── ModelEntry moved here from MainWindow ───────────────────────────────
+    // ── ModelEntry ─────────────────────────────────────────────────────────
     public class ModelEntry
     {
         public string Name { get; set; } = "";
@@ -22,11 +22,10 @@ namespace WhisperVoice
 
         private string BaseDir => AppDomain.CurrentDomain.BaseDirectory;
 
-        // Valid hotkey options shown in the ComboBoxes
         private static readonly string[] HotkeyOptions =
             { "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12" };
 
-        // Display name ↔ Whisper language code
+        // Display name ↔ whisper.cpp language code
         private static readonly Dictionary<string, string> LanguageMap = new()
         {
             { "English",    "en" },
@@ -48,7 +47,7 @@ namespace WhisperVoice
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // Model selector  (moved from MainWindow)
+        // Model selector
         // ══════════════════════════════════════════════════════════════════
         internal void LoadModels()
         {
@@ -67,7 +66,6 @@ namespace WhisperVoice
                 }
             }
 
-            // Always guarantee at least one entry
             if (ModelCombo.Items.Count == 0)
                 ModelCombo.Items.Add(new ModelEntry
                 {
@@ -75,7 +73,6 @@ namespace WhisperVoice
                     Path = System.IO.Path.Combine(BaseDir, "models", "ggml-large-v3.bin")
                 });
 
-            // Restore last-used model
             if (!string.IsNullOrEmpty(_settings.LastModelPath))
             {
                 var saved = ModelCombo.Items.Cast<ModelEntry>()
@@ -88,7 +85,6 @@ namespace WhisperVoice
 
         private void ModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Track selection in _settings but do not write to disk until Save is clicked
             if (ModelCombo.SelectedItem is ModelEntry entry)
                 _settings.LastModelPath = entry.Path;
         }
@@ -96,17 +92,17 @@ namespace WhisperVoice
         private void BtnRefreshModels_Click(object sender, RoutedEventArgs e) => LoadModels();
 
         // ══════════════════════════════════════════════════════════════════
-        // Load all settings into UI controls
+        // Load settings → UI
         // ══════════════════════════════════════════════════════════════════
         private void LoadSettings()
         {
             // ── Language ──────────────────────────────────────────────────
             LanguageCombo.ItemsSource = LanguageMap.Keys;
 
-            string displayName = "Русский";   // fallback
+            string displayName = "Русский";
             foreach (var kvp in LanguageMap)
             {
-                if (kvp.Value == _settings.LanguageF8)
+                if (kvp.Value == _settings.LanguagePrimary)
                 {
                     displayName = kvp.Key;
                     break;
@@ -115,31 +111,32 @@ namespace WhisperVoice
             LanguageCombo.SelectedItem = displayName;
 
             // ── VAD ───────────────────────────────────────────────────────
-            SldVadThreshold.Value = Math.Clamp(_settings.VadThreshold, 1.0, 20.0);
-            SldVadSilence.Value   = Math.Clamp(_settings.VadSilenceSeconds, 0.5, 5.0);
-            // Labels are refreshed via the ValueChanged handlers triggered above
+            SldVadThreshold.Value = Math.Clamp(_settings.VadThreshold,     1.0, 20.0);
+            SldVadSilence.Value   = Math.Clamp(_settings.VadSilenceSeconds, 0.5,  5.0);
 
             // ── Hotkeys ───────────────────────────────────────────────────
-            ComboHotkeyRu.ItemsSource = HotkeyOptions;
-            ComboHotkeyEn.ItemsSource = HotkeyOptions;
+            ComboHotkeyPrimary.ItemsSource   = HotkeyOptions;
+            ComboHotkeyTranslate.ItemsSource = HotkeyOptions;
 
-            ComboHotkeyRu.SelectedItem = HotkeyOptions.Contains(_settings.HotkeyRu)
-                ? _settings.HotkeyRu : "F8";
+            ComboHotkeyPrimary.SelectedItem = HotkeyOptions.Contains(_settings.HotkeyPrimary)
+                ? _settings.HotkeyPrimary : "F8";
 
-            ComboHotkeyEn.SelectedItem = HotkeyOptions.Contains(_settings.HotkeyEn)
-                ? _settings.HotkeyEn : "F9";
+            ComboHotkeyTranslate.SelectedItem = HotkeyOptions.Contains(_settings.HotkeyTranslate)
+                ? _settings.HotkeyTranslate : "F9";
         }
 
         // ══════════════════════════════════════════════════════════════════
         // VAD slider live-label updates
         // ══════════════════════════════════════════════════════════════════
-        private void SldVadThreshold_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void SldVadThreshold_ValueChanged(
+            object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (TxtVadThreshold != null)
                 TxtVadThreshold.Text = $"{SldVadThreshold.Value:F1}";
         }
 
-        private void SldVadSilence_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        private void SldVadSilence_ValueChanged(
+            object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (TxtVadSilence != null)
                 TxtVadSilence.Text = $"{SldVadSilence.Value:F1} с";
@@ -158,10 +155,10 @@ namespace WhisperVoice
         {
             // Language
             if (LanguageCombo.SelectedItem is string lang &&
-                LanguageMap.TryGetValue(lang, out string code))
-                _settings.LanguageF8 = code;
+                LanguageMap.TryGetValue(lang, out string? code))
+                _settings.LanguagePrimary = code;
 
-            // Model  (also updated live via ModelCombo_SelectionChanged)
+            // Model (also updated live via ModelCombo_SelectionChanged)
             if (ModelCombo.SelectedItem is ModelEntry entry)
                 _settings.LastModelPath = entry.Path;
 
@@ -169,11 +166,12 @@ namespace WhisperVoice
             _settings.VadThreshold      = SldVadThreshold.Value;
             _settings.VadSilenceSeconds = SldVadSilence.Value;
 
-            // Hotkeys
-            if (ComboHotkeyRu.SelectedItem is string hkRu)
-                _settings.HotkeyRu = hkRu;
-            if (ComboHotkeyEn.SelectedItem is string hkEn)
-                _settings.HotkeyEn = hkEn;
+            // Hotkeys — renamed Primary / Translate
+            if (ComboHotkeyPrimary.SelectedItem is string hkPrimary)
+                _settings.HotkeyPrimary = hkPrimary;
+
+            if (ComboHotkeyTranslate.SelectedItem is string hkTranslate)
+                _settings.HotkeyTranslate = hkTranslate;
 
             _settings.Save();
         }

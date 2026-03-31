@@ -1,0 +1,71 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ══ MainWindow ════════════════════════════════════════════════════ -->
+    <sys:String x:Key="AppTitle">Whisper Control Panel</sys:String>
+    <sys:String x:Key="MainHeaderText">⚙️ Настройки</sys:String>
+
+    <sys:String x:Key="LblNoMicSelected">⚠️ ВЫБЕРИТЕ МИКРОФОН!</sys:String>
+    <sys:String x:Key="LblRecording">🔴 ЗАПИСЬ...</sys:String>
+    <sys:String x:Key="LblProcessing">🧠 ОБРАБОТКА...&#x0a;(Подождите)</sys:String>
+
+    <sys:String x:Key="BtnSelectMicText">📋 Выбрать микрофон (Список)</sys:String>
+    <sys:String x:Key="BtnSoundText">🔊 Звук Windows (Проверка)</sys:String>
+    <sys:String x:Key="BtnPromptText">🏷️ Редактор словаря (Prompt)</sys:String>
+    <sys:String x:Key="BtnLanguageSettingsText">⚙️ Язык записи</sys:String>
+    <sys:String x:Key="BtnOpenNotepadText">📝 Открыть Блокнот (Notepad)</sys:String>
+
+    <sys:String x:Key="LblSignalLevel">Уровень сигнала:</sys:String>
+    <sys:String x:Key="LblMicVolume">Громкость микрофона:</sys:String>
+
+    <sys:String x:Key="VadStatusText">VAD: ожидание паузы...</sys:String>
+    <sys:String x:Key="BtnCancelText">⛔ Отменить обработку</sys:String>
+    <sys:String x:Key="LblCancelled">⛔ Отменено</sys:String>
+
+    <sys:String x:Key="LblHistoryHeader">📋 История (нажми — скопировать):</sys:String>
+    <sys:String x:Key="BtnClearHistoryTooltip">Очистить историю</sys:String>
+    <sys:String x:Key="CopyFeedbackText">✓ Скопировано в буфер</sys:String>
+
+    <!-- Tray menu -->
+    <sys:String x:Key="TrayMenuControl">⚙️ Панель управления (F7)</sys:String>
+    <sys:String x:Key="TrayMenuNotepad">📝 Блокнот (Ctrl+F7)</sys:String>
+    <sys:String x:Key="TrayMenuExit">❌ Выход</sys:String>
+    <sys:String x:Key="TrayIconText">Whisper Voice</sys:String>
+
+    <!-- MessageBox captions -->
+    <sys:String x:Key="MsgLowResourcesTitle">⚠️ Недостаточно ресурсов</sys:String>
+    <sys:String x:Key="MsgVramTitle">⚠️ VRAM</sys:String>
+    <sys:String x:Key="MsgVramContinue">&#x0a;&#x0a;Продолжить всё равно?</sys:String>
+    <sys:String x:Key="MsgWhisperErrorTitle">Ошибка Whisper</sys:String>
+    <sys:String x:Key="MsgErrorTitle">Ошибка</sys:String>
+    <sys:String x:Key="MsgHallucinationFiltered">⚠️ Результат отфильтрован</sys:String>
+    <sys:String x:Key="MsgWhisperDone">✅ Готово!</sys:String>
+    <sys:String x:Key="MsgWhisperStarting">🔍 Запуск Whisper...</sys:String>
+
+    <!-- ══ SettingsWindow ═════════════════════════════════════════════════ -->
+    <sys:String x:Key="SettingsTitle">Параметры</sys:String>
+    <sys:String x:Key="SettingsSectionLanguage">🌐 Язык и модель</sys:String>
+    <sys:String x:Key="SettingsLblLanguage">Язык для основной записи (Primary):</sys:String>
+    <sys:String x:Key="SettingsLblLanguageTooltip">Выберите язык для записи основной горячей клавишей</sys:String>
+    <sys:String x:Key="SettingsLblModel">🤖 Модель Whisper:</sys:String>
+    <sys:String x:Key="SettingsModelComboTooltip">Выберите модель из папки /models</sys:String>
+    <sys:String x:Key="SettingsBtnRefreshTooltip">Обновить список моделей</sys:String>
+
+    <sys:String x:Key="SettingsSectionVad">🎙️ VAD — Автодетекция тишины</sys:String>
+    <sys:String x:Key="SettingsLblVadThreshold">Порог шума (порог → стоп):</sys:String>
+    <sys:String x:Key="SettingsHintVadThreshold">Меньше = чувствительнее к тишине  |  Больше = терпит шум</sys:String>
+    <sys:String x:Key="SettingsLblVadSilence">Пауза тишины (секунд до стопа):</sys:String>
+    <sys:String x:Key="SettingsHintVadSilence">Длительность тишины перед автоматической остановкой записи</sys:String>
+
+    <sys:String x:Key="SettingsSectionHotkeys">⌨️ Горячие клавиши</sys:String>
+    <sys:String x:Key="SettingsLblHotkeyPrimary">Запись — основной язык (Primary):</sys:String>
+    <sys:String x:Key="SettingsTooltipHotkeyPrimary">Клавиша для запуска/остановки записи на основном языке</sys:String>
+    <sys:String x:Key="SettingsLblHotkeyTranslate">Запись — перевод на English (Translate):</sys:String>
+    <sys:String x:Key="SettingsTooltipHotkeyTranslate">Клавиша для записи с принудительным переводом на английский</sys:String>
+
+    <sys:String x:Key="BtnSaveCloseText">💾 Сохранить и закрыть</sys:String>
+    <sys:String x:Key="BtnSaveCloseTooltip">Сохранить все изменения и закрыть окно</sys:String>
+
+</ResourceDictionary>
