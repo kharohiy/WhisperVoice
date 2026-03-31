@@ -29,12 +29,7 @@ namespace WhisperVoice
             Text.Length > 120 ? Text[..117] + "..." : Text;
     }
 
-    public class ModelEntry
-    {
-        public string Name { get; set; } = "";
-        public string Path { get; set; } = "";
-        public override string ToString() => Name;
-    }
+    // NOTE: ModelEntry class has been moved to SettingsWindow.xaml.cs
 
     // ── MainWindow ─────────────────────────────────────────────────────────
     public partial class MainWindow : Window
@@ -100,11 +95,10 @@ namespace WhisperVoice
 
             HistoryList.ItemsSource = _history;
 
-            LoadModels();
             LoadMicFromSettings();
             SetupHotkeys();
 
-            // 🔥 Сразу обновляем текст кнопки при запуске программы
+            // Обновляем текст кнопки при запуске программы
             UpdateLanguageButton();
 
             this.IsVisibleChanged += (s, e) =>
@@ -170,17 +164,22 @@ namespace WhisperVoice
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // Hotkeys
+        // Hotkeys  — reads HotkeyRu / HotkeyEn dynamically from settings
         // ══════════════════════════════════════════════════════════════════
         private void SetupHotkeys()
         {
             try
             {
-                HotkeyManager.Current.AddOrReplace("ToggleMenu", Key.F7, ModifierKeys.None, OnToggleMenu);
-                HotkeyManager.Current.AddOrReplace("RecordRu", Key.F8, ModifierKeys.None, OnRecordRu);
-                HotkeyManager.Current.AddOrReplace("RecordEn", Key.F9, ModifierKeys.None, OnRecordEn);
-                HotkeyManager.Current.AddOrReplace("Translate", Key.F9, ModifierKeys.Control, OnTranslate);
-                HotkeyManager.Current.AddOrReplace("Notepad", Key.F7, ModifierKeys.Control, OnOpenNotepad);
+                _settings = AppSettings.Load();
+
+                var keyRu = (Key)Enum.Parse(typeof(Key), _settings.HotkeyRu, ignoreCase: true);
+                var keyEn = (Key)Enum.Parse(typeof(Key), _settings.HotkeyEn, ignoreCase: true);
+
+                HotkeyManager.Current.AddOrReplace("ToggleMenu", Key.F7,  ModifierKeys.None,    OnToggleMenu);
+                HotkeyManager.Current.AddOrReplace("RecordRu",   keyRu,   ModifierKeys.None,    OnRecordRu);
+                HotkeyManager.Current.AddOrReplace("RecordEn",   keyEn,   ModifierKeys.None,    OnRecordEn);
+                HotkeyManager.Current.AddOrReplace("Translate",  Key.F9,  ModifierKeys.Control, OnTranslate);
+                HotkeyManager.Current.AddOrReplace("Notepad",    Key.F7,  ModifierKeys.Control, OnOpenNotepad);
             }
             catch (Exception ex) { WriteLog($"Hotkey setup error: {ex.Message}"); }
         }
@@ -205,12 +204,12 @@ namespace WhisperVoice
             if (!IsSpam() && !isProcessing)
             {
                 _settings = AppSettings.Load();
-                ToggleRecording(RecordMode.Ru, _settings.LanguageF8, "F8", false);
+                ToggleRecording(RecordMode.Ru, _settings.LanguageF8, _settings.HotkeyRu, false);
             }
         }
 
         private void OnRecordEn(object? s, NHotkey.HotkeyEventArgs e)
-        { e.Handled = true; if (!IsSpam() && !isProcessing) ToggleRecording(RecordMode.En, "en", "F9", false); }
+        { e.Handled = true; if (!IsSpam() && !isProcessing) ToggleRecording(RecordMode.En, "en", _settings.HotkeyEn, false); }
 
         private void OnTranslate(object? s, NHotkey.HotkeyEventArgs e)
         { e.Handled = true; if (!IsSpam() && !isProcessing) ToggleRecording(RecordMode.Translate, "ru", "Ctrl+F9", true); }
@@ -329,9 +328,15 @@ namespace WhisperVoice
                 if (File.Exists(tempTxtPath)) File.Delete(tempTxtPath);
 
                 string techPrompt = LoadDictPrompt();
-                string model = await Dispatcher.InvokeAsync(
-                    () => (ModelCombo.SelectedItem as ModelEntry)?.Path
-                          ?? System.IO.Path.Combine(baseDir, "models", "ggml-large-v3.bin"));
+
+                // ── Model path read from AppSettings (ModelCombo lives in SettingsWindow) ──
+                string model = await Dispatcher.InvokeAsync(() =>
+                {
+                    string saved = AppSettings.Load().LastModelPath;
+                    return !string.IsNullOrEmpty(saved)
+                        ? saved
+                        : System.IO.Path.Combine(baseDir, "models", "ggml-large-v3.bin");
+                });
 
                 int threads = Math.Max(2, Environment.ProcessorCount - 1);
 
@@ -538,42 +543,8 @@ namespace WhisperVoice
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // Model selector & History
+        // History
         // ══════════════════════════════════════════════════════════════════
-        private void LoadModels()
-        {
-            string modelsDir = System.IO.Path.Combine(baseDir, "models");
-            ModelCombo.Items.Clear();
-
-            if (Directory.Exists(modelsDir))
-            {
-                foreach (string file in Directory.GetFiles(modelsDir, "*.bin").OrderBy(f => f))
-                {
-                    ModelCombo.Items.Add(new ModelEntry { Name = System.IO.Path.GetFileNameWithoutExtension(file), Path = file });
-                }
-            }
-            if (ModelCombo.Items.Count == 0)
-                ModelCombo.Items.Add(new ModelEntry { Name = "ggml-large-v3 (по умолчанию)", Path = System.IO.Path.Combine(baseDir, "models", "ggml-large-v3.bin") });
-
-            if (!string.IsNullOrEmpty(_settings.LastModelPath))
-            {
-                var saved = ModelCombo.Items.Cast<ModelEntry>().FirstOrDefault(m => m.Path == _settings.LastModelPath);
-                if (saved != null) { ModelCombo.SelectedItem = saved; return; }
-            }
-            ModelCombo.SelectedIndex = 0;
-        }
-
-        private void ModelCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-        {
-            if (ModelCombo.SelectedItem is ModelEntry entry)
-            {
-                _settings.LastModelPath = entry.Path;
-                _settings.Save();
-            }
-        }
-
-        private void BtnRefreshModels_Click(object sender, RoutedEventArgs e) => LoadModels();
-
         private void AddToHistory(string text)
         {
             _history.Insert(0, new TranscriptionEntry { Text = text, TimeLabel = DateTime.Now.ToString("HH:mm:ss") });
@@ -711,10 +682,10 @@ namespace WhisperVoice
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // Settings Window Call & UI Updates
+        // Settings Window — open, close, refresh hotkeys & label
         // ══════════════════════════════════════════════════════════════════
 
-        // 🔥 Этот метод обновляет текст кнопки в главном окне
+        // Updates the button text in MainWindow to show the current F8 language
         private void UpdateLanguageButton()
         {
             _settings = AppSettings.Load();
@@ -726,13 +697,11 @@ namespace WhisperVoice
                 "de" => "Deutsch",
                 "es" => "Español",
                 "fr" => "Français",
-                _ => "Русский"
+                _    => "Русский"
             };
 
             if (BtnLanguageSettings != null)
-            {
                 BtnLanguageSettings.Content = $"⚙️ Язык для F8 ({langName})";
-            }
         }
 
         private void BtnLanguageSettings_Click(object sender, RoutedEventArgs e)
@@ -744,8 +713,14 @@ namespace WhisperVoice
             else
             {
                 settingsWindow = new SettingsWindow { Owner = this };
-                // Подписываемся на закрытие окна, чтобы обновить кнопку
-                settingsWindow.Closed += (s, args) => UpdateLanguageButton();
+
+                // On close: refresh language button label AND re-register hotkeys
+                settingsWindow.Closed += (s, args) =>
+                {
+                    UpdateLanguageButton();
+                    SetupHotkeys();
+                };
+
                 settingsWindow.Show();
                 settingsWindow.Activate();
             }

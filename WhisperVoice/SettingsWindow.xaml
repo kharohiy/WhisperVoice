@@ -1,29 +1,117 @@
 <Window x:Class="WhisperVoice.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Параметры языка" Height="250" Width="350"
+        Title="Параметры" Height="600" Width="390"
         ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
         Background="#F0F0F0" WindowStyle="SingleBorderWindow">
 
-    <StackPanel Margin="20" VerticalAlignment="Top">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+        <StackPanel Margin="20" VerticalAlignment="Top">
 
-        <TextBlock Text="Язык для F8 (Транскрипция)" FontSize="14" FontWeight="SemiBold"
-                   Margin="0,0,0,16" Foreground="#333"/>
+            <!-- ══ SECTION: Language & Model ══════════════════════════════ -->
+            <TextBlock Text="🌐 Язык и модель" FontSize="14" FontWeight="SemiBold"
+                       Margin="0,0,0,14" Foreground="#333"/>
 
-        <StackPanel Margin="0,0,0,20">
-            <TextBlock Text="Язык для F8 (Транскрипция):" FontSize="12" Foreground="#555"
-                       Margin="0,0,0,6"/>
+            <!-- Language for F8 -->
+            <StackPanel Margin="0,0,0,12">
+                <TextBlock Text="Язык для F8 (Транскрипция):" FontSize="12" Foreground="#555"
+                           Margin="0,0,0,6"/>
+                <ComboBox x:Name="LanguageCombo" Height="32" FontSize="12"
+                          VerticalContentAlignment="Center"
+                          ToolTip="Выберите язык для записи по F8"/>
+            </StackPanel>
 
-            <ComboBox x:Name="LanguageCombo" Height="32" FontSize="12" 
-                      VerticalContentAlignment="Center"
-                      ToolTip="Выберите язык для записи по F8"/>
+            <!-- Model selector (moved from MainWindow) -->
+            <StackPanel Margin="0,0,0,4">
+                <TextBlock Text="🤖 Модель Whisper:" FontSize="12" Foreground="#555"
+                           Margin="0,0,0,6"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="36"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox x:Name="ModelCombo" Grid.Column="0" Height="32"
+                              FontSize="12" VerticalContentAlignment="Center"
+                              SelectionChanged="ModelCombo_SelectionChanged"
+                              ToolTip="Выберите модель из папки /models"/>
+                    <Button x:Name="BtnRefreshModels" Grid.Column="1"
+                            Content="🔄" Width="32" Height="32" Margin="4,0,0,0"
+                            ToolTip="Обновить список моделей"
+                            Click="BtnRefreshModels_Click"/>
+                </Grid>
+            </StackPanel>
+
+            <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
+
+            <!-- ══ SECTION: VAD ════════════════════════════════════════════ -->
+            <TextBlock Text="🎙️ VAD — Автодетекция тишины" FontSize="14" FontWeight="SemiBold"
+                       Margin="0,0,0,14" Foreground="#333"/>
+
+            <!-- VAD Threshold -->
+            <StackPanel Margin="0,0,0,14">
+                <Grid Margin="0,0,0,6">
+                    <TextBlock Text="Порог шума (порог → стоп):" FontSize="12" Foreground="#555"
+                               VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtVadThreshold" HorizontalAlignment="Right"
+                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0"
+                               VerticalAlignment="Center"/>
+                </Grid>
+                <Slider x:Name="SldVadThreshold"
+                        Minimum="1.0" Maximum="20.0" TickFrequency="0.5"
+                        IsSnapToTickEnabled="True" Height="28"
+                        ValueChanged="SldVadThreshold_ValueChanged"/>
+                <TextBlock Text="Меньше = чувствительнее к тишине  |  Больше = терпит шум"
+                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+            </StackPanel>
+
+            <!-- VAD Silence Timeout -->
+            <StackPanel Margin="0,0,0,4">
+                <Grid Margin="0,0,0,6">
+                    <TextBlock Text="Пауза тишины (секунд до стопа):" FontSize="12" Foreground="#555"
+                               VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtVadSilence" HorizontalAlignment="Right"
+                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0"
+                               VerticalAlignment="Center"/>
+                </Grid>
+                <Slider x:Name="SldVadSilence"
+                        Minimum="0.5" Maximum="5.0" TickFrequency="0.1"
+                        IsSnapToTickEnabled="True" Height="28"
+                        ValueChanged="SldVadSilence_ValueChanged"/>
+                <TextBlock Text="Длительность тишины перед автоматической остановкой записи"
+                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+            </StackPanel>
+
+            <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
+
+            <!-- ══ SECTION: Hotkeys ════════════════════════════════════════ -->
+            <TextBlock Text="⌨️ Горячие клавиши" FontSize="14" FontWeight="SemiBold"
+                       Margin="0,0,0,14" Foreground="#333"/>
+
+            <!-- HotkeyRu -->
+            <StackPanel Margin="0,0,0,12">
+                <TextBlock Text="Запись — основной язык (HotkeyRu):" FontSize="12" Foreground="#555"
+                           Margin="0,0,0,6"/>
+                <ComboBox x:Name="ComboHotkeyRu" Height="32" FontSize="12"
+                          VerticalContentAlignment="Center"
+                          ToolTip="Клавиша для запуска/остановки записи на основном языке"/>
+            </StackPanel>
+
+            <!-- HotkeyEn -->
+            <StackPanel Margin="0,0,0,20">
+                <TextBlock Text="Запись — English (HotkeyEn):" FontSize="12" Foreground="#555"
+                           Margin="0,0,0,6"/>
+                <ComboBox x:Name="ComboHotkeyEn" Height="32" FontSize="12"
+                          VerticalContentAlignment="Center"
+                          ToolTip="Клавиша для запуска/остановки записи на английском"/>
+            </StackPanel>
+
+            <!-- Save button -->
+            <Button x:Name="BtnSaveClose" Content="💾 Сохранить и закрыть" Height="38"
+                    Click="BtnSaveClose_Click"
+                    Background="#4CAF50" Foreground="White"
+                    FontSize="13" FontWeight="SemiBold" Cursor="Hand"
+                    ToolTip="Сохранить все изменения и закрыть окно"/>
+
         </StackPanel>
-
-        <Button x:Name="BtnSaveClose" Content="💾 Сохранить и закрыть" Height="36"
-                Click="BtnSaveClose_Click" 
-                Background="#4CAF50" Foreground="White" FontSize="12" FontWeight="SemiBold"
-                Cursor="Hand"
-                ToolTip="Сохранить изменения и закрыть окно"/>
-
-    </StackPanel>
+    </ScrollViewer>
 </Window>
