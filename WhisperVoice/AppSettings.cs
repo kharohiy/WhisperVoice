@@ -66,8 +66,13 @@ namespace WhisperVoice
         private static readonly JsonSerializerOptions _jsonOpts =
             new() { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.Never };
 
+        /// <summary>%LocalAppData%\WhisperVoice — the single writable root for all user data.</summary>
+        public static string AppDataDir =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                         "WhisperVoice");
+
         private static string SettingsPath =>
-            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+            Path.Combine(AppDataDir, "settings.json");
 
         private static string LegacyIniPath =>
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.ini");
@@ -129,6 +134,7 @@ namespace WhisperVoice
         {
             try
             {
+                Directory.CreateDirectory(AppDataDir);
                 File.WriteAllText(SettingsPath,
                     JsonSerializer.Serialize(this, _jsonOpts));
             }

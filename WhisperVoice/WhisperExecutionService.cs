@@ -17,8 +17,8 @@ namespace WhisperVoice.Services
     {
         private readonly string _baseDir;
         private string WhisperExe => Path.Combine(_baseDir, "whisper-cli.exe");
-        private string TempWavPath => Path.Combine(_baseDir, "temp.wav");
-        private string TempTxtPath => Path.Combine(_baseDir, "temp.wav.txt");
+        private string TempWavPath => Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav");
+        private string TempTxtPath => Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav.txt");
 
         public WhisperExecutionService(string baseDir) => _baseDir = baseDir;
 

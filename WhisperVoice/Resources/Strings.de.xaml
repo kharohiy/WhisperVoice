@@ -71,4 +71,11 @@
     <sys:String x:Key="WindowTitleMicSelection">Mikrofon auswählen</sys:String>
     <sys:String x:Key="WindowTitleNotepad">Whisper: Notizblock</sys:String>
     <sys:String x:Key="WindowTitlePrompt">Wörterbuch (Tech Prompt)</sys:String>
+
+    <!-- ══ MissingModelWindow ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="MissingModelTitle">⚠️ KI-Modell nicht gefunden</sys:String>
+    <sys:String x:Key="MissingModelBody">KI-Modell nicht gefunden. Laden Sie das Modell herunter und geben Sie den Pfad in den Einstellungen an.</sys:String>
+    <sys:String x:Key="MissingModelDownloadBtn">⬇️ Modell herunterladen (Hugging Face)</sys:String>
+    <sys:String x:Key="MissingModelSettingsBtn">⚙️ Einstellungen öffnen</sys:String>
+    <sys:String x:Key="WindowTitleMissingModel">KI-Modell nicht gefunden</sys:String>
 </ResourceDictionary>

@@ -29,9 +29,11 @@ namespace WhisperVoice
     {
         // ── Paths ──────────────────────────────────────────────────────────
         private string BaseDir    => AppDomain.CurrentDomain.BaseDirectory;
-        private string TempWavPath => Path.Combine(BaseDir, "temp.wav");
-        private string LogPath     => Path.Combine(BaseDir, "whisper_debug.log");
-        private string DictPath    => Path.Combine(BaseDir, "dictionary", "dictionary.txt");
+        private string AppDataDir => AppSettings.AppDataDir;
+        private string DictDir    => Path.Combine(AppDataDir, "dictionary");
+        private string TempWavPath => Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav");
+        private string LogPath     => Path.Combine(AppDataDir, "whisper_debug.log");
+        private string DictPath    => Path.Combine(DictDir, "dictionary.txt");
 
         // ── Services ───────────────────────────────────────────────────────
         private readonly AudioCaptureService    _audio;
@@ -86,8 +88,7 @@ namespace WhisperVoice
             _audio               = new AudioCaptureService();
             _whisper             = new WhisperExecutionService(BaseDir);
             _hardware            = new HardwareCheckService();
-            _hallucinationFilter = new HallucinationFilter(
-                                       Path.Combine(BaseDir, "dictionary"));
+            _hallucinationFilter = new HallucinationFilter(DictDir);
 
             ClearLogs();
             CleanupTempFiles();
@@ -234,6 +235,15 @@ namespace WhisperVoice
            RecordMode mode, string lang, string keyName, bool isTranslate)
         {
             if (string.IsNullOrEmpty(_settings.MicId)) { Show(); return; }
+
+            // Block recording when the model file is missing (first run or moved/deleted)
+            if (string.IsNullOrEmpty(_settings.LastModelPath) ||
+                !File.Exists(_settings.LastModelPath))
+            {
+                Show();
+                new MissingModelWindow { Owner = this }.ShowDialog();
+                return;
+            }
 
             if (!_audio.IsRecording)
             {
@@ -620,7 +630,7 @@ namespace WhisperVoice
         {
             try
             {
-                string txt = Path.Combine(BaseDir, "temp.wav.txt");
+                string txt = Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav.txt");
                 if (File.Exists(TempWavPath)) File.Delete(TempWavPath);
                 if (File.Exists(txt))         File.Delete(txt);
             }

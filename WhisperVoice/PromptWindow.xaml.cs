@@ -8,7 +8,8 @@ namespace WhisperVoice
 {
     public partial class PromptWindow : Window
     {
-        private string dictPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dictionary", "dictionary.txt");
+        private string dictPath = Path.Combine(
+            AppSettings.AppDataDir, "dictionary", "dictionary.txt");
         public ObservableCollection<string> Tags { get; set; } = new ObservableCollection<string>();
 
         public PromptWindow()

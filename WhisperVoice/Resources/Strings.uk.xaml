@@ -71,4 +71,11 @@
     <sys:String x:Key="WindowTitleMicSelection">Оберіть мікрофон</sys:String>
     <sys:String x:Key="WindowTitleNotepad">Whisper: Блокнот</sys:String>
     <sys:String x:Key="WindowTitlePrompt">Словник (Tech Prompt)</sys:String>
+
+    <!-- ══ MissingModelWindow ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="MissingModelTitle">⚠️ Модель ШІ не знайдена</sys:String>
+    <sys:String x:Key="MissingModelBody">Модель ШІ не знайдена. Завантажте модель і вкажіть шлях у Налаштуваннях.</sys:String>
+    <sys:String x:Key="MissingModelDownloadBtn">⬇️ Завантажити модель (Hugging Face)</sys:String>
+    <sys:String x:Key="MissingModelSettingsBtn">⚙️ Відкрити налаштування</sys:String>
+    <sys:String x:Key="WindowTitleMissingModel">Модель ШІ не знайдена</sys:String>
 </ResourceDictionary>
