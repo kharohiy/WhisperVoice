@@ -64,4 +64,11 @@
     <sys:String x:Key="BtnSaveCloseText">💾 Speichern und schließen</sys:String>
     <sys:String x:Key="BtnSaveCloseTooltip">Alle Änderungen speichern und Fenster schließen</sys:String>
 
+
+    <!-- ══ Errors ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="ErrMicUnplugged">Mikrofon nicht verfügbar oder getrennt. Bitte Verbindung prüfen.</sys:String>
+    <!-- ══ WindowTitles ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="WindowTitleMicSelection">Mikrofon auswählen</sys:String>
+    <sys:String x:Key="WindowTitleNotepad">Whisper: Notizblock</sys:String>
+    <sys:String x:Key="WindowTitlePrompt">Wörterbuch (Tech Prompt)</sys:String>
 </ResourceDictionary>

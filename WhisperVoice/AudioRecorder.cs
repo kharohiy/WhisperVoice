@@ -38,7 +38,12 @@ namespace WhisperVoice
         public TimeSpan  VadSilenceTimeout { get; set; } = TimeSpan.FromSeconds(1.8);
         public TimeSpan  VadGracePeriod    { get; set; } = TimeSpan.FromSeconds(1.0);
 
-        public void StartRecording(string deviceId, string filePath)
+        /// <summary>
+        /// Returns <c>true</c> if capture started successfully.
+        /// Returns <c>false</c> on any failure (e.g. 0x88890004 — device unplugged).
+        /// Never throws; all exceptions are swallowed and logged to IsRecording=false.
+        /// </summary>
+        public bool StartRecording(string deviceId, string filePath)
         {
             try
             {
@@ -59,13 +64,16 @@ namespace WhisperVoice
 
                 _capture.StartRecording();
                 IsRecording = true;
+                return true;
             }
-            catch (Exception ex)
+            catch
             {
+                // Device unavailable (0x88890004), unplugged, or any other COM error.
                 IsRecording = false;
                 _stopTcs?.TrySetResult(false);
-                throw new InvalidOperationException(
-                    $"Не удалось запустить запись: {ex.Message}", ex);
+                _writer?.Dispose();  _writer  = null;
+                _capture?.Dispose(); _capture = null;
+                return false;
             }
         }
 

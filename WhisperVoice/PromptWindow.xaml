@@ -1,7 +1,7 @@
 ﻿<Window x:Class="WhisperVoice.PromptWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Словарь (Tech Prompt)" Height="450" Width="380"
+        Title="{DynamicResource WindowTitlePrompt}" Height="450" Width="380"
         WindowStartupLocation="CenterScreen" Topmost="True" ResizeMode="NoResize"
         Closing="Window_Closing" Background="#F9F9F9">
     <Grid Margin="15">

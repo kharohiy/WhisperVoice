@@ -64,4 +64,11 @@
     <sys:String x:Key="BtnSaveCloseText">💾 Save and Close</sys:String>
     <sys:String x:Key="BtnSaveCloseTooltip">Save all changes and close</sys:String>
 
+
+    <!-- ══ Errors ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="ErrMicUnplugged">Microphone unavailable or unplugged. Please check your connection.</sys:String>
+    <!-- ══ WindowTitles ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="WindowTitleMicSelection">Select Microphone</sys:String>
+    <sys:String x:Key="WindowTitleNotepad">Whisper: Notepad</sys:String>
+    <sys:String x:Key="WindowTitlePrompt">Dictionary (Tech Prompt)</sys:String>
 </ResourceDictionary>

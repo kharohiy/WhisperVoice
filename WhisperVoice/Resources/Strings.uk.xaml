@@ -64,4 +64,11 @@
     <sys:String x:Key="BtnSaveCloseText">💾 Зберегти і закрити</sys:String>
     <sys:String x:Key="BtnSaveCloseTooltip">Зберегти всі зміни та закрити вікно</sys:String>
 
+
+    <!-- ══ Errors ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="ErrMicUnplugged">Мікрофон недоступний або відключений. Перевірте підключення.</sys:String>
+    <!-- ══ WindowTitles ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="WindowTitleMicSelection">Оберіть мікрофон</sys:String>
+    <sys:String x:Key="WindowTitleNotepad">Whisper: Блокнот</sys:String>
+    <sys:String x:Key="WindowTitlePrompt">Словник (Tech Prompt)</sys:String>
 </ResourceDictionary>

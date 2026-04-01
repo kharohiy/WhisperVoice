@@ -107,16 +107,21 @@ namespace WhisperVoice.Services
         }
 
         // ── Active recording ───────────────────────────────────────────────
-        public void StartRecording(
+        /// <summary>
+        /// Returns <c>true</c> if the recorder started successfully.
+        /// Returns <c>false</c> if the device is unavailable (e.g. unplugged).
+        /// _silentCapture restart after recording is silently swallowed.
+        /// </summary>
+        public bool StartRecording(
             string micId, string outputPath,
             double vadThreshold, double vadSilenceSeconds)
         {
-            _silentCapture?.StopRecording();
+            try { _silentCapture?.StopRecording(); } catch { }
 
             _recorder.VadEnabled        = true;
             _recorder.VadThreshold      = vadThreshold;
             _recorder.VadSilenceTimeout = TimeSpan.FromSeconds(vadSilenceSeconds);
-            _recorder.StartRecording(micId, outputPath);
+            return _recorder.StartRecording(micId, outputPath);
         }
 
         public async System.Threading.Tasks.Task StopRecordingAsync()

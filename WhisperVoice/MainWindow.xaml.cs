@@ -231,25 +231,32 @@ namespace WhisperVoice
         // Recording toggle
         // ══════════════════════════════════════════════════════════════════
         private async void ToggleRecording(
-            RecordMode mode, string lang, string keyName, bool isTranslate)
+           RecordMode mode, string lang, string keyName, bool isTranslate)
         {
             if (string.IsNullOrEmpty(_settings.MicId)) { Show(); return; }
 
             if (!_audio.IsRecording)
             {
-                _activeMode       = mode;
-                _currentLang      = lang;
+                _activeMode = mode;
+                _currentLang = lang;
                 _currentTranslate = isTranslate;
 
                 if (File.Exists(TempWavPath)) File.Delete(TempWavPath);
 
-                _audio.StartRecording(
+                // Проверяем, успешно ли запустилась запись (например, не выдернут ли микрофон)
+                bool started = _audio.StartRecording(
                     _settings.MicId, TempWavPath,
                     _settings.VadThreshold, _settings.VadSilenceSeconds);
 
+                if (!started)
+                {
+                    ShowErrorPopup("ErrMicUnplugged");
+                    return; // Прерываем выполнение, так как запись не пошла
+                }
+
                 StartVadAnimation();
 
-                LblMicName.Text       = $"{(string)FindResource("LblRecording")}\n(VAD авто-стоп, или {keyName})";
+                LblMicName.Text = $"{(string)FindResource("LblRecording")}\n(VAD авто-стоп, или {keyName})";
                 LblMicName.Foreground = System.Windows.Media.Brushes.Red;
             }
             else
@@ -624,6 +631,28 @@ namespace WhisperVoice
         {
             try { File.AppendAllText(LogPath, $"{DateTime.Now:HH:mm:ss} | {text}\n"); }
             catch { }
+        }
+
+        // Вспомогательные методы для попапа с ошибкой
+        private void ShowErrorPopup(string resourceKey)
+        {
+            // Запускаем в главном UI-потоке, так как вызов может прийти из фонового потока
+            Dispatcher.InvokeAsync(() =>
+            {
+                string message = TryGetResource(resourceKey, resourceKey);
+                string title = TryGetResource("MsgErrorTitle", "Внимание"); // Fallback
+
+                System.Windows.MessageBox.Show(
+                    this, message, title,
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            });
+        }
+
+        private string TryGetResource(string key, string fallback)
+        {
+            try { return (string)FindResource(key); }
+            catch { return fallback; }
         }
     }
 }

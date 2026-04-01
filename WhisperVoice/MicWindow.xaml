@@ -1,7 +1,7 @@
 <Window x:Class="WhisperVoice.MicWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Выберите микрофон" Height="340" Width="400"
+        Title="{DynamicResource WindowTitleMicSelection}" Height="340" Width="400"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Topmost="True">
     <Grid Margin="10">
         <Grid.RowDefinitions>

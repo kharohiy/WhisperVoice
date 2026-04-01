@@ -1,7 +1,7 @@
 ﻿<Window x:Class="WhisperVoice.NotepadWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Whisper: Блокнот" Height="350" Width="500"
+        Title="{DynamicResource WindowTitleNotepad}" Height="350" Width="500"
         WindowStartupLocation="CenterScreen" Topmost="True"
         Closing="Window_Closing" Background="#F9F9F9">
 
