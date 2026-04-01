@@ -1,4 +1,5 @@
-﻿using NAudio.CoreAudioApi;
+using NAudio.CoreAudioApi;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 
@@ -6,18 +7,17 @@ namespace WhisperVoice
 {
     public partial class MicWindow : Window
     {
-        public string SelectedMicId { get; private set; } = "";
+        public string SelectedMicId   { get; private set; } = "";
         public string SelectedMicName { get; private set; } = "";
 
         public MicWindow()
         {
             InitializeComponent();
-            LoadMicrophones();
+            LoadDevices();
         }
 
-        private void LoadMicrophones()
+        private void LoadDevices()
         {
-            // BUG FIX: MMDeviceEnumerator was never disposed — resource leak.
             using var enumerator = new MMDeviceEnumerator();
             var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
 
@@ -30,12 +30,27 @@ namespace WhisperVoice
             if (LbMics.SelectedItem == null) return;
 
             dynamic selected = LbMics.SelectedItem;
-            SelectedMicId = selected.Id;
-            SelectedMicName = selected.Name;
-            DialogResult = true;
+            SelectedMicId    = selected.Id;
+            SelectedMicName  = selected.Name;
+            DialogResult     = true;
         }
 
         private void BtnSelect_Click(object sender, RoutedEventArgs e) => SelectAndClose();
         private void LbMics_MouseDoubleClick(object sender, MouseButtonEventArgs e) => SelectAndClose();
+
+        private void BtnWinSound_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Opens the classic Windows Sound Control Panel directly to the "Recording" tab
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName        = "mmsys.cpl",
+                    Arguments       = ",1",
+                    UseShellExecute = true
+                });
+            }
+            catch { }
+        }
     }
 }

@@ -110,6 +110,22 @@
                           ToolTip="{DynamicResource SettingsTooltipHotkeyTranslate}"/>
             </StackPanel>
 
+            <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
+
+            <!-- ══ SECTION: App Interface Language ═══════════════════════ -->
+            <TextBlock Text="{DynamicResource SettingsSectionAppLanguage}"
+                       FontSize="14" FontWeight="SemiBold"
+                       Margin="0,0,0,14" Foreground="#333"/>
+
+            <StackPanel Margin="0,0,0,20">
+                <TextBlock Text="{DynamicResource SettingsLblAppLanguage}"
+                           FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
+                <ComboBox x:Name="AppLanguageCombo" Height="32" FontSize="12"
+                          VerticalContentAlignment="Center"
+                          SelectionChanged="AppLanguageCombo_SelectionChanged"
+                          ToolTip="{DynamicResource SettingsLblAppLanguageTooltip}"/>
+            </StackPanel>
+
             <!-- Save button -->
             <Button x:Name="BtnSaveClose"
                     Content="{DynamicResource BtnSaveCloseText}"

@@ -77,6 +77,9 @@ namespace WhisperVoice
         // ══════════════════════════════════════════════════════════════════
         public MainWindow()
         {
+            // Apply saved interface language before XAML resources are resolved
+            App.ApplyInterfaceLanguage(AppSettings.Load().AppInterfaceLanguage);
+
             InitializeComponent();
 
             // Instantiate services
@@ -435,9 +438,9 @@ namespace WhisperVoice
         {
             if (_settings.HasMic)
             {
-                _audio.AttachDevice(_settings.MicId);
-                UpdateMicLabel(_settings.MicName, ok: true);
-                SetupVolumeSlider();
+                bool attached = _audio.AttachDevice(_settings.MicId);
+                UpdateMicLabel(_settings.MicName, ok: attached);
+                if (attached) SetupVolumeSlider();
             }
             else
             {
@@ -466,10 +469,17 @@ namespace WhisperVoice
 
         private void UpdateMicLabel(string text, bool ok)
         {
-            LblMicName.Text       = text;
-            LblMicName.Foreground = ok
-                ? System.Windows.Media.Brushes.Blue
-                : System.Windows.Media.Brushes.Red;
+            // When ok: hide the top warning label and show device name inside VolumePanel instead.
+            LblMicName.Visibility = ok ? Visibility.Collapsed : Visibility.Visible;
+            if (!ok)
+            {
+                LblMicName.Text       = text;
+                LblMicName.Foreground = System.Windows.Media.Brushes.Red;
+            }
+
+            if (LblSelectedDeviceName != null)
+                LblSelectedDeviceName.Text = text;
+
             VolumePanel.Visibility = ok ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -483,6 +493,7 @@ namespace WhisperVoice
                 _settings.Save();
 
                 _audio.AttachDevice(_settings.MicId);
+
                 UpdateMicLabel(_settings.MicName, ok: true);
                 SetupVolumeSlider();
             }
@@ -504,8 +515,10 @@ namespace WhisperVoice
                 "fr" => "Français",
                 _    => "Русский"
             };
-            if (BtnLanguageSettings != null)
-                BtnLanguageSettings.Content = $"⚙️ Язык записи ({langName})";
+
+            // Task 2: top header shows active recording language
+            if (LblCurrentLanguage != null)
+                LblCurrentLanguage.Text = $"🌐 {langName}";
         }
 
         private void BtnLanguageSettings_Click(object sender, RoutedEventArgs e)

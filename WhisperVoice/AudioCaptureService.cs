@@ -29,7 +29,7 @@ namespace WhisperVoice.Services
         // ── Constructor ────────────────────────────────────────────────────
         public AudioCaptureService()
         {
-            _recorder.PeakAvailable  += val => PeakAvailable?.Invoke(val);
+            _recorder.PeakAvailable   += val => PeakAvailable?.Invoke(val);
             _recorder.SilenceDetected += ()  => SilenceDetected?.Invoke();
         }
 
@@ -65,6 +65,7 @@ namespace WhisperVoice.Services
             if (_device != null)
             {
                 _device.AudioEndpointVolume.OnVolumeNotification -= OnVolumeNotification;
+                _device = null;
             }
 
             _silentCapture?.StopRecording();
@@ -112,8 +113,8 @@ namespace WhisperVoice.Services
         {
             _silentCapture?.StopRecording();
 
-            _recorder.VadEnabled       = true;
-            _recorder.VadThreshold     = vadThreshold;
+            _recorder.VadEnabled        = true;
+            _recorder.VadThreshold      = vadThreshold;
             _recorder.VadSilenceTimeout = TimeSpan.FromSeconds(vadSilenceSeconds);
             _recorder.StartRecording(micId, outputPath);
         }

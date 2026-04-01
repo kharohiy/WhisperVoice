@@ -1,0 +1,67 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ══ MainWindow ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="AppTitle">Whisper Control Panel</sys:String>
+    <sys:String x:Key="MainHeaderText">⚙️ Ustawienia</sys:String>
+    <sys:String x:Key="LblNoMicSelected">⚠️ WYBIERZ MIKROFON!</sys:String>
+    <sys:String x:Key="LblRecording">🔴 NAGRYWANIE...</sys:String>
+    <sys:String x:Key="LblProcessing">🧠 PRZETWARZANIE...&#x0a;(Proszę czekać)</sys:String>
+    <sys:String x:Key="BtnSelectMicText">📋 Wybierz mikrofon (Lista)</sys:String>
+    <sys:String x:Key="BtnPromptText">🏷️ Edytor słownika (Prompt)</sys:String>
+    <sys:String x:Key="BtnSettingsText">⚙️ Ustawienia</sys:String>
+    <sys:String x:Key="BtnSettingsTooltip">Ustawienia języka, modelu, VAD i skrótów</sys:String>
+    <sys:String x:Key="BtnOpenNotepadText">📝 Otwórz notatnik</sys:String>
+    <sys:String x:Key="LblSignalLevel">Poziom sygnału:</sys:String>
+    <sys:String x:Key="LblMicVolume">Głośność mikrofonu:</sys:String>
+    <sys:String x:Key="LblSelectedDevice">Urządzenie: </sys:String>
+    <sys:String x:Key="VadStatusText">VAD: czekanie na pauzę...</sys:String>
+    <sys:String x:Key="BtnCancelText">⛔ Anuluj przetwarzanie</sys:String>
+    <sys:String x:Key="LblCancelled">⛔ Anulowano</sys:String>
+    <sys:String x:Key="LblHistoryHeader">📋 Historia (kliknij, aby skopiować):</sys:String>
+    <sys:String x:Key="BtnClearHistoryTooltip">Wyczyść historię</sys:String>
+    <sys:String x:Key="CopyFeedbackText">✓ Skopiowano</sys:String>
+
+    <!-- ══ Tray ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="TrayMenuControl">⚙️ Panel sterowania (F7)</sys:String>
+    <sys:String x:Key="TrayMenuNotepad">📝 Notatnik (Ctrl+F7)</sys:String>
+    <sys:String x:Key="TrayMenuExit">❌ Wyjście</sys:String>
+    <sys:String x:Key="TrayIconText">Whisper Voice</sys:String>
+
+    <!-- ══ MessageBox ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="MsgLowResourcesTitle">⚠️ Niewystarczające zasoby</sys:String>
+    <sys:String x:Key="MsgVramTitle">⚠️ VRAM</sys:String>
+    <sys:String x:Key="MsgVramContinue">&#x0a;&#x0a;Kontynuować mimo to?</sys:String>
+    <sys:String x:Key="MsgWhisperErrorTitle">Błąd Whisper</sys:String>
+    <sys:String x:Key="MsgErrorTitle">Błąd</sys:String>
+    <sys:String x:Key="MsgHallucinationFiltered">⚠️ Wynik odfiltrowany</sys:String>
+    <sys:String x:Key="MsgWhisperDone">✅ Gotowe!</sys:String>
+    <sys:String x:Key="MsgWhisperStarting">🔍 Uruchamianie Whisper...</sys:String>
+
+    <!-- ══ SettingsWindow ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="SettingsTitle">Parametry</sys:String>
+    <sys:String x:Key="SettingsSectionLanguage">🌐 Język i model</sys:String>
+    <sys:String x:Key="SettingsLblLanguage">Język podstawowego nagrywania (Primary):</sys:String>
+    <sys:String x:Key="SettingsLblLanguageTooltip">Wybierz język dla podstawowego skrótu nagrywania</sys:String>
+    <sys:String x:Key="SettingsLblModel">🤖 Model Whisper:</sys:String>
+    <sys:String x:Key="SettingsModelComboTooltip">Wybierz model z folderu /models</sys:String>
+    <sys:String x:Key="SettingsBtnRefreshTooltip">Odśwież listę modeli</sys:String>
+    <sys:String x:Key="SettingsSectionVad">🎙️ VAD — Autodetekcja ciszy</sys:String>
+    <sys:String x:Key="SettingsLblVadThreshold">Próg szumów (próg → stop):</sys:String>
+    <sys:String x:Key="SettingsHintVadThreshold">Mniej = czulszy na ciszę  |  Więcej = toleruje szum</sys:String>
+    <sys:String x:Key="SettingsLblVadSilence">Pauza ciszy (sekund do zatrzymania):</sys:String>
+    <sys:String x:Key="SettingsHintVadSilence">Czas ciszy przed automatycznym zatrzymaniem nagrywania</sys:String>
+    <sys:String x:Key="SettingsSectionHotkeys">⌨️ Skróty klawiszowe</sys:String>
+    <sys:String x:Key="SettingsLblHotkeyPrimary">Nagrywanie — język podstawowy (Primary):</sys:String>
+    <sys:String x:Key="SettingsTooltipHotkeyPrimary">Klawisz do uruchamiania/zatrzymywania nagrywania</sys:String>
+    <sys:String x:Key="SettingsLblHotkeyTranslate">Nagrywanie — tłumacz na English (Translate):</sys:String>
+    <sys:String x:Key="SettingsTooltipHotkeyTranslate">Klawisz do nagrywania z wymuszonym tłumaczeniem</sys:String>
+    <sys:String x:Key="SettingsSectionAppLanguage">🖥️ Język interfejsu</sys:String>
+    <sys:String x:Key="SettingsLblAppLanguage">Język interfejsu aplikacji:</sys:String>
+    <sys:String x:Key="SettingsLblAppLanguageTooltip">Natychmiast zmienia język interfejsu</sys:String>
+    <sys:String x:Key="BtnSaveCloseText">💾 Zapisz i zamknij</sys:String>
+    <sys:String x:Key="BtnSaveCloseTooltip">Zapisz wszystkie zmiany i zamknij okno</sys:String>
+
+</ResourceDictionary>

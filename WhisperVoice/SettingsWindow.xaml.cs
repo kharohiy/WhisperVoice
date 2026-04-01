@@ -25,8 +25,20 @@ namespace WhisperVoice
         private static readonly string[] HotkeyOptions =
             { "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12" };
 
-        // Display name ↔ whisper.cpp language code
+        // Display name ↔ whisper.cpp language code (transcription language)
         private static readonly Dictionary<string, string> LanguageMap = new()
+        {
+            { "English",    "en" },
+            { "Русский",    "ru" },
+            { "Українська", "uk" },
+            { "Polski",     "pl" },
+            { "Deutsch",    "de" },
+            { "Español",    "es" },
+            { "Français",   "fr" }
+        };
+
+        // Display name ↔ interface language code (same 7 languages, reused)
+        private static readonly Dictionary<string, string> AppLangMap = new()
         {
             { "English",    "en" },
             { "Русский",    "ru" },
@@ -114,6 +126,17 @@ namespace WhisperVoice
             SldVadThreshold.Value = Math.Clamp(_settings.VadThreshold,     1.0, 20.0);
             SldVadSilence.Value   = Math.Clamp(_settings.VadSilenceSeconds, 0.5,  5.0);
 
+            // ── App interface language ────────────────────────────────────
+            AppLanguageCombo.ItemsSource = AppLangMap.Keys;
+
+            string currentAppLang = _settings.AppInterfaceLanguage;
+            string appLangDisplay = "English";
+            foreach (var kvp in AppLangMap)
+            {
+                if (kvp.Value == currentAppLang) { appLangDisplay = kvp.Key; break; }
+            }
+            AppLanguageCombo.SelectedItem = appLangDisplay;
+
             // ── Hotkeys ───────────────────────────────────────────────────
             ComboHotkeyPrimary.ItemsSource   = HotkeyOptions;
             ComboHotkeyTranslate.ItemsSource = HotkeyOptions;
@@ -123,6 +146,20 @@ namespace WhisperVoice
 
             ComboHotkeyTranslate.SelectedItem = HotkeyOptions.Contains(_settings.HotkeyTranslate)
                 ? _settings.HotkeyTranslate : "F9";
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // App interface language — live runtime switch
+        // ══════════════════════════════════════════════════════════════════
+        private void AppLanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (AppLanguageCombo.SelectedItem is string displayName &&
+                AppLangMap.TryGetValue(displayName, out string? langCode))
+            {
+                _settings.AppInterfaceLanguage = langCode;
+                // Swap ResourceDictionary immediately — no restart required.
+                App.ApplyInterfaceLanguage(langCode);
+            }
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -153,10 +190,15 @@ namespace WhisperVoice
 
         private void SaveSettings()
         {
-            // Language
+            // Transcription language
             if (LanguageCombo.SelectedItem is string lang &&
                 LanguageMap.TryGetValue(lang, out string? code))
                 _settings.LanguagePrimary = code;
+
+            // App interface language (already applied live; persist to disk)
+            if (AppLanguageCombo.SelectedItem is string appLang &&
+                AppLangMap.TryGetValue(appLang, out string? appCode))
+                _settings.AppInterfaceLanguage = appCode;
 
             // Model (also updated live via ModelCombo_SelectionChanged)
             if (ModelCombo.SelectedItem is ModelEntry entry)

@@ -31,6 +31,30 @@ namespace WhisperVoice
         public string HotkeyMenu { get; set; } = "F7";
         public string HotkeyNotepad { get; set; } = "Ctrl+F7";
 
+        // ── App interface language ─────────────────────────────────────────
+        /// <summary>
+        /// BCP-47-like language code that controls which Strings.xaml variant is loaded.
+        /// Supported values: "en", "ru", "uk", "pl", "de", "es", "fr".
+        /// Defaults to the OS UI culture, falling back to "en".
+        /// </summary>
+        public string AppInterfaceLanguage { get; set; } =
+            DefaultInterfaceLanguage();
+
+        private static string DefaultInterfaceLanguage()
+        {
+            string culture = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+            return culture switch
+            {
+                "ru" => "ru",
+                "uk" => "uk",
+                "pl" => "pl",
+                "de" => "de",
+                "es" => "es",
+                "fr" => "fr",
+                _    => "en"
+            };
+        }
+
         // ── VAD ────────────────────────────────────────────────────────────
         /// <summary>Peak percentage below which the microphone is considered silent.</summary>
         public double VadThreshold { get; set; } = 5.0;
