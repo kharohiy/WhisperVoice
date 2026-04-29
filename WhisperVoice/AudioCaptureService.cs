@@ -1,58 +1,58 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
+using System.Runtime.InteropServices;
 
 namespace WhisperVoice.Services
 {
-    /// <summary>
-    /// Manages the active recording capture (via <see cref="AudioRecorder"/>)
-    /// and the always-on silent capture used for the VU meter when idle.
-    /// Raises events; never touches the UI directly.
-    /// </summary>
     public class AudioCaptureService : IDisposable
     {
         private readonly AudioRecorder _recorder = new();
-        private WasapiCapture?  _silentCapture;
-        private MMDevice?       _device;
-        private DateTime        _lastSilentPeak = DateTime.MinValue;
+        private WasapiCapture? _silentCapture;
+        private MMDevice? _device;
+        private DateTime _lastSilentPeak = DateTime.MinValue;
 
-        // ── Public state ───────────────────────────────────────────────────
         public bool IsRecording => _recorder.IsRecording;
+        public bool IsDeviceAttached => _device != null;
 
-        // ── Events ─────────────────────────────────────────────────────────
-        /// <summary>Fires on background thread — use Dispatcher.InvokeAsync.</summary>
         public event Action<double>? PeakAvailable;
-
-        /// <summary>Fires on background thread — use Dispatcher.InvokeAsync.</summary>
         public event Action? SilenceDetected;
+        public event Action<float>? VolumeChanged;
+        public event Action? DeviceDisconnected;
 
-        // ── Constructor ────────────────────────────────────────────────────
         public AudioCaptureService()
         {
-            _recorder.PeakAvailable   += val => PeakAvailable?.Invoke(val);
-            _recorder.SilenceDetected += ()  => SilenceDetected?.Invoke();
+            _recorder.PeakAvailable += val => PeakAvailable?.Invoke(val);
+            _recorder.SilenceDetected += () => SilenceDetected?.Invoke();
         }
 
-        // ── Device initialisation ──────────────────────────────────────────
-        /// <summary>
-        /// Connects to <paramref name="micId"/> and starts the silent VU capture.
-        /// Returns <c>false</c> if the device cannot be opened.
-        /// </summary>
         public bool AttachDevice(string micId)
         {
             try
             {
                 DetachDevice();
 
-                var enumerator = new MMDeviceEnumerator();
+                // ВАЖНО: Всегда создаем новый энумератор, чтобы сбросить мертвый COM-кэш!
+                // Именно это происходит, когда ты открываешь свои настройки.
+                using var enumerator = new MMDeviceEnumerator();
                 _device = enumerator.GetDevice(micId);
+
+                if (_device.State != DeviceState.Active) return false;
 
                 _silentCapture = new WasapiCapture(_device, true, 50);
                 _silentCapture.DataAvailable += SilentCapture_DataAvailable;
                 _silentCapture.StartRecording();
 
                 _device.AudioEndpointVolume.OnVolumeNotification += OnVolumeNotification;
+
+                VolumeChanged?.Invoke(_device.AudioEndpointVolume.MasterVolumeLevelScalar);
+
                 return true;
+            }
+            catch (COMException)
+            {
+                HandleDeviceFailure();
+                return false;
             }
             catch
             {
@@ -64,35 +64,48 @@ namespace WhisperVoice.Services
         {
             if (_device != null)
             {
-                _device.AudioEndpointVolume.OnVolumeNotification -= OnVolumeNotification;
+                try { _device.AudioEndpointVolume.OnVolumeNotification -= OnVolumeNotification; } catch { }
                 _device = null;
             }
 
-            _silentCapture?.StopRecording();
-            _silentCapture?.Dispose();
-            _silentCapture = null;
+            try
+            {
+                if (_silentCapture != null)
+                {
+                    _silentCapture.StopRecording();
+                    _silentCapture.Dispose();
+                    _silentCapture = null;
+                }
+            }
+            catch { }
         }
-
-        // ── Volume control ─────────────────────────────────────────────────
-        /// <summary>Fires on audio thread — use Dispatcher.InvokeAsync.</summary>
-        public event Action<float>? VolumeChanged;
 
         private void OnVolumeNotification(AudioVolumeNotificationData data)
             => VolumeChanged?.Invoke(data.MasterVolume);
 
         public float GetVolume()
-            => _device?.AudioEndpointVolume.MasterVolumeLevelScalar ?? 0f;
+        {
+            try { return _device?.AudioEndpointVolume.MasterVolumeLevelScalar ?? 0f; }
+            catch (COMException) { HandleDeviceFailure(); return 0f; }
+            catch { return 0f; }
+        }
 
         public void SetVolume(float scalar)
         {
-            if (_device != null)
-                _device.AudioEndpointVolume.MasterVolumeLevelScalar = scalar;
+            try { if (_device != null) _device.AudioEndpointVolume.MasterVolumeLevelScalar = scalar; }
+            catch (COMException) { HandleDeviceFailure(); }
+            catch { }
         }
 
-        // ── Silent VU capture ──────────────────────────────────────────────
+        private void HandleDeviceFailure()
+        {
+            DetachDevice();
+            DeviceDisconnected?.Invoke();
+        }
+
         private void SilentCapture_DataAvailable(object? sender, WaveInEventArgs e)
         {
-            if (_recorder.IsRecording) return;   // active recording owns the meter
+            if (_recorder.IsRecording) return;
 
             var now = DateTime.UtcNow;
             if ((now - _lastSilentPeak).TotalMilliseconds < 40) return;
@@ -100,26 +113,21 @@ namespace WhisperVoice.Services
 
             if (_silentCapture != null)
             {
-                double peak = AudioRecorder.CalculatePeak(
-                    e.Buffer, e.BytesRecorded, _silentCapture.WaveFormat);
-                PeakAvailable?.Invoke(peak);
+                try
+                {
+                    double peak = AudioRecorder.CalculatePeak(e.Buffer, e.BytesRecorded, _silentCapture.WaveFormat);
+                    PeakAvailable?.Invoke(peak);
+                }
+                catch { }
             }
         }
 
-        // ── Active recording ───────────────────────────────────────────────
-        /// <summary>
-        /// Returns <c>true</c> if the recorder started successfully.
-        /// Returns <c>false</c> if the device is unavailable (e.g. unplugged).
-        /// _silentCapture restart after recording is silently swallowed.
-        /// </summary>
-        public bool StartRecording(
-            string micId, string outputPath,
-            double vadThreshold, double vadSilenceSeconds)
+        public bool StartRecording(string micId, string outputPath, double vadThreshold, double vadSilenceSeconds)
         {
             try { _silentCapture?.StopRecording(); } catch { }
 
-            _recorder.VadEnabled        = true;
-            _recorder.VadThreshold      = vadThreshold;
+            _recorder.VadEnabled = true;
+            _recorder.VadThreshold = vadThreshold;
             _recorder.VadSilenceTimeout = TimeSpan.FromSeconds(vadSilenceSeconds);
             return _recorder.StartRecording(micId, outputPath);
         }
@@ -128,7 +136,6 @@ namespace WhisperVoice.Services
         {
             _recorder.VadEnabled = false;
             await _recorder.StopRecordingAsync();
-
             try { _silentCapture?.StartRecording(); } catch { }
         }
 
@@ -136,11 +143,9 @@ namespace WhisperVoice.Services
         {
             _recorder.VadEnabled = false;
             _recorder.StopRecording();
-
             try { _silentCapture?.StartRecording(); } catch { }
         }
 
-        // ── IDisposable ────────────────────────────────────────────────────
         public void Dispose()
         {
             DetachDevice();

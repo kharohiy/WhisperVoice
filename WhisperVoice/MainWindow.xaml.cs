@@ -11,6 +11,7 @@ using System.Windows.Media.Animation;
 using WhisperVoice.Services;
 using WindowsInput;
 using WindowsInput.Native;
+using System.Windows.Interop;
 
 namespace WhisperVoice
 {
@@ -104,6 +105,8 @@ namespace WhisperVoice
                 SldVolume.ValueChanged += SldVolume_ValueChanged;
             });
 
+            _audio.DeviceDisconnected += OnDeviceDisconnected;
+
             HistoryList.ItemsSource = _history;
 
             LoadMicFromSettings();
@@ -112,6 +115,56 @@ namespace WhisperVoice
 
             IsVisibleChanged += (_, _) => { if (IsVisible) SyncVolumeFromSystem(); };
             System.Windows.Application.Current.Exit += (_, _) => FullShutdown();
+        }
+
+        // ── Переменная для таймера авто-реконнекта ──
+        private DateTime _lastDeviceChange = DateTime.MinValue;
+
+        // ── Системный хук Windows: ловит любые изменения железа (USB/Jack) ──
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            HwndSource source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+            source?.AddHook(HwndHook);
+        }
+
+        private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            const int WM_DEVICECHANGE = 0x0219; // Код события ОС: изменилось оборудование
+
+            if (msg == WM_DEVICECHANGE)
+            {
+                if ((DateTime.Now - _lastDeviceChange).TotalMilliseconds > 1500)
+                {
+                    _lastDeviceChange = DateTime.Now;
+
+                    if (!_audio.IsDeviceAttached && !string.IsNullOrEmpty(_settings.MicId))
+                    {
+                        Task.Run(async () =>
+                        {
+                            await Task.Delay(2000);
+
+                            Dispatcher.Invoke(() =>
+                            {
+                                // === ТЕСТОВЫЙ БЛОК НАЧАЛО ===
+                                bool success = _audio.AttachDevice(_settings.MicId);
+
+                                System.Windows.MessageBox.Show(
+                                    $"Windows увидела событие оборудования!\n" +
+                                    $"Пытаемся подключить ID: {_settings.MicId}\n" +
+                                    $"Результат: {success}");
+                                // === ТЕСТОВЫЙ БЛОК КОНЕЦ ===
+
+                                if (success)
+                                {
+                                    UpdateMicLabel(TryGetResource("LblMicReady", "Микрофон готов"), ok: true);
+                                }
+                            });
+                        });
+                    }
+                }
+            }
+            return IntPtr.Zero;
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -231,14 +284,11 @@ namespace WhisperVoice
         // ══════════════════════════════════════════════════════════════════
         // Recording toggle
         // ══════════════════════════════════════════════════════════════════
-        private async void ToggleRecording(
-           RecordMode mode, string lang, string keyName, bool isTranslate)
+        private async void ToggleRecording(RecordMode mode, string lang, string keyName, bool isTranslate)
         {
             if (string.IsNullOrEmpty(_settings.MicId)) { Show(); return; }
 
-            // Block recording when the model file is missing (first run or moved/deleted)
-            if (string.IsNullOrEmpty(_settings.LastModelPath) ||
-                !File.Exists(_settings.LastModelPath))
+            if (string.IsNullOrEmpty(_settings.LastModelPath) || !File.Exists(_settings.LastModelPath))
             {
                 Show();
                 new MissingModelWindow { Owner = this }.ShowDialog();
@@ -253,7 +303,8 @@ namespace WhisperVoice
 
                 if (File.Exists(TempWavPath)) File.Delete(TempWavPath);
 
-                // Проверяем, успешно ли запустилась запись (например, не выдернут ли микрофон)
+                // Сервис всё делает сам в фоне. Просто стартуем.
+
                 bool started = _audio.StartRecording(
                     _settings.MicId, TempWavPath,
                     _settings.VadThreshold, _settings.VadSilenceSeconds);
@@ -261,7 +312,7 @@ namespace WhisperVoice
                 if (!started)
                 {
                     ShowErrorPopup("ErrMicUnplugged");
-                    return; // Прерываем выполнение, так как запись не пошла
+                    return;
                 }
 
                 StartVadAnimation();
@@ -663,6 +714,16 @@ namespace WhisperVoice
         {
             try { return (string)FindResource(key); }
             catch { return fallback; }
+        }
+
+        private void OnDeviceDisconnected()
+        {
+            Dispatcher.InvokeAsync(async () =>
+            {
+                if (_activeMode != RecordMode.None) await StopAndProcessAsync();
+                ShowErrorPopup("ErrMicUnplugged");
+                UpdateMicLabel(TryGetResource("LblNoMicSelected", "Микрофон отключен"), ok: false);
+            });
         }
     }
 }
