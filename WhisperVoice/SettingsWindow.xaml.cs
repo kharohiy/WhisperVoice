@@ -61,38 +61,36 @@ namespace WhisperVoice
         // ══════════════════════════════════════════════════════════════════
         // Model selector
         // ══════════════════════════════════════════════════════════════════
-        internal void LoadModels()
+        private void LoadModels()
         {
-            string modelsDir = System.IO.Path.Combine(BaseDir, "models");
-            ModelCombo.Items.Clear();
-
-            if (Directory.Exists(modelsDir))
+            try
             {
-                foreach (string file in Directory.GetFiles(modelsDir, "*.bin").OrderBy(f => f))
+                ModelCombo.Items.Clear();
+                string modelsDir = Path.Combine(BaseDir, "models");
+
+                // Безопасно проверяем существование, ничего не пытаемся создавать  
+                if (Directory.Exists(modelsDir))
                 {
-                    ModelCombo.Items.Add(new ModelEntry
+                    string[] files = Directory.GetFiles(modelsDir, "*.bin");
+                    foreach (var file in files)
                     {
-                        Name = System.IO.Path.GetFileNameWithoutExtension(file),
-                        Path = file
-                    });
+                        ModelCombo.Items.Add(new ModelEntry { Name = Path.GetFileName(file), Path = file });
+                    }
+                }
+
+                // Пытаемся выбрать сохраненную модель  
+                if (!string.IsNullOrEmpty(_settings.LastModelPath))
+                {
+                    var match = ModelCombo.Items.Cast<ModelEntry>().FirstOrDefault(m => m.Path == _settings.LastModelPath);
+                    if (match != null) ModelCombo.SelectedItem = match;
                 }
             }
-
-            if (ModelCombo.Items.Count == 0)
-                ModelCombo.Items.Add(new ModelEntry
-                {
-                    Name = "ggml-large-v3 (по умолчанию)",
-                    Path = System.IO.Path.Combine(BaseDir, "models", "ggml-large-v3.bin")
-                });
-
-            if (!string.IsNullOrEmpty(_settings.LastModelPath))
+            catch (Exception)
             {
-                var saved = ModelCombo.Items.Cast<ModelEntry>()
-                    .FirstOrDefault(m => m.Path == _settings.LastModelPath);
-                if (saved != null) { ModelCombo.SelectedItem = saved; return; }
+                // Глушим АБСОЛЮТНО все ошибки (включая UnauthorizedAccessException).  
+                // Если папки нет или нет прав, список моделей просто останется пустым,   
+                // и сработает логика MissingModelWindow.  
             }
-
-            ModelCombo.SelectedIndex = 0;
         }
 
         private void ModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)

@@ -63,6 +63,9 @@ Source: "bin\Release\net8.0-windows\*"; \
 ; If you use dotnet publish --self-contained, change the Source path to:
 ;   Source: "bin\Release\net8.0-windows\win-x64\publish\*"; \
 
+[Dirs]
+Name: "{app}\models"; Permissions: users-modify
+
 [Icons]
 ; Start Menu
 Name: "{group}\WhisperVoice";              Filename: "{app}\WhisperVoice.exe"
