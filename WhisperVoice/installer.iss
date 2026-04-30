@@ -13,8 +13,11 @@ AppPublisherURL=https://github.com/your-repo/WhisperVoice
 AppSupportURL=https://github.com/your-repo/WhisperVoice/issues
 
 ; Install to Program Files without requiring admin — uses user-level AppData for writable data
+; User selects install directory
 DefaultDirName={autopf}\WhisperVoice
-DefaultGroupName=WhisperVoice
+; Enable directory selection dialog
+DisableDirPage=no
+; Allow user-level install (no admin required)
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 
@@ -71,8 +74,8 @@ Name: "{app}\models"; Permissions: users-modify
 Name: "{group}\WhisperVoice";              Filename: "{app}\WhisperVoice.exe"
 Name: "{group}\Uninstall WhisperVoice";   Filename: "{uninstallexe}"
 
-; Desktop shortcut (optional — user can deselect)
-Name: "{commondesktop}\WhisperVoice";     Filename: "{app}\WhisperVoice.exe"; \
+; Desktop shortcut — use {userdesktop} instead of {commondesktop}
+Name: "{userdesktop}\WhisperVoice"; Filename: "{app}\WhisperVoice.exe"; \
   Tasks: desktopicon
 
 [Tasks]

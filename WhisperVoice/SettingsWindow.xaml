@@ -22,25 +22,41 @@
                           ToolTip="{DynamicResource SettingsLblLanguageTooltip}"/>
             </StackPanel>
 
-            <!-- Model selector -->
-            <StackPanel Margin="0,0,0,4">
-                <TextBlock Text="{DynamicResource SettingsLblModel}"
-                           FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="36"/>
-                    </Grid.ColumnDefinitions>
-                    <ComboBox x:Name="ModelCombo" Grid.Column="0" Height="32"
-                              FontSize="12" VerticalContentAlignment="Center"
-                              SelectionChanged="ModelCombo_SelectionChanged"
-                              ToolTip="{DynamicResource SettingsModelComboTooltip}"/>
-                    <Button x:Name="BtnRefreshModels" Grid.Column="1"
-                            Content="🔄" Width="32" Height="32" Margin="4,0,0,0"
-                            ToolTip="{DynamicResource SettingsBtnRefreshTooltip}"
-                            Click="BtnRefreshModels_Click"/>
-                </Grid>
-            </StackPanel>
+            <!-- Model Whisper -->
+            <TextBlock Text="Модель Whisper:" Margin="0,12,0,4" FontWeight="SemiBold"/>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Model ComboBox -->
+                <ComboBox x:Name="ModelCombo" 
+              Grid.Column="0"
+              Margin="0,0,8,0"
+              SelectionChanged="ModelCombo_SelectionChanged"/>
+
+                <!-- Add Button -->
+                <Button x:Name="BtnAddModel" 
+            Grid.Column="1"
+            Content="➕" 
+            Width="32" 
+            Height="32"
+            Margin="0,0,4,0"
+            ToolTip="Add model from file"
+            Click="BtnAddModel_Click"/>
+
+                <!-- Refresh Button -->
+                <Button x:Name="BtnRefreshModels" 
+            Grid.Column="2"
+            Content="🔄" 
+            Width="32" 
+            Height="32"
+            ToolTip="Refresh models list"
+            Click="BtnRefreshModels_Click"/>
+            </Grid>
 
             <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
 

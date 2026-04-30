@@ -63,43 +63,148 @@ namespace WhisperVoice
         // ══════════════════════════════════════════════════════════════════
         private void LoadModels()
         {
+            ModelCombo.Items.Clear();
+            string modelsDir = Path.Combine(BaseDir, "models");
+
             try
             {
-                ModelCombo.Items.Clear();
-                string modelsDir = Path.Combine(BaseDir, "models");
-
-                // Безопасно проверяем существование, ничего не пытаемся создавать  
-                if (Directory.Exists(modelsDir))
+                if (!Directory.Exists(modelsDir))
                 {
-                    string[] files = Directory.GetFiles(modelsDir, "*.bin");
-                    foreach (var file in files)
+                    // Show placeholder when folder doesn't exist
+                    ModelCombo.Items.Add(new ModelEntry
                     {
-                        ModelCombo.Items.Add(new ModelEntry { Name = Path.GetFileName(file), Path = file });
-                    }
+                        Name = "No models found — click Add to import",
+                        Path = ""
+                    });
+                    return;
                 }
 
-                // Пытаемся выбрать сохраненную модель  
+                string[] files = Directory.GetFiles(modelsDir, "*.bin");
+
+                if (files.Length == 0)
+                {
+                    ModelCombo.Items.Add(new ModelEntry
+                    {
+                        Name = "No models found — click Add to import",
+                        Path = ""
+                    });
+                    return;
+                }
+
+                foreach (var file in files)
+                {
+                    ModelCombo.Items.Add(new ModelEntry
+                    {
+                        Name = Path.GetFileName(file),
+                        Path = file
+                    });
+                }
+
+                // Auto-select saved model
                 if (!string.IsNullOrEmpty(_settings.LastModelPath))
                 {
-                    var match = ModelCombo.Items.Cast<ModelEntry>().FirstOrDefault(m => m.Path == _settings.LastModelPath);
-                    if (match != null) ModelCombo.SelectedItem = match;
+                    var match = ModelCombo.Items.Cast<ModelEntry>()
+                        .FirstOrDefault(m => m.Path == _settings.LastModelPath);
+                    if (match != null)
+                        ModelCombo.SelectedItem = match;
                 }
             }
-            catch (Exception)
+            catch (UnauthorizedAccessException)
             {
-                // Глушим АБСОЛЮТНО все ошибки (включая UnauthorizedAccessException).  
-                // Если папки нет или нет прав, список моделей просто останется пустым,   
-                // и сработает логика MissingModelWindow.  
+                ModelCombo.Items.Add(new ModelEntry
+                {
+                    Name = "Access denied — check permissions",
+                    Path = ""
+                });
+            }
+            catch (Exception ex)
+            {
+                ModelCombo.Items.Add(new ModelEntry
+                {
+                    Name = $"Error: {ex.Message}",
+                    Path = ""
+                });
             }
         }
 
         private void ModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (ModelCombo.SelectedItem is ModelEntry entry)
+            if (ModelCombo.SelectedItem is ModelEntry entry && !string.IsNullOrEmpty(entry.Path))
                 _settings.LastModelPath = entry.Path;
         }
 
         private void BtnRefreshModels_Click(object sender, RoutedEventArgs e) => LoadModels();
+
+        private void BtnAddModel_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Select Whisper Model",
+                Filter = "Whisper Models (*.bin)|*.bin|All Files (*.*)|*.*",
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            string sourceFile = dialog.FileName;
+            string modelsDir = Path.Combine(BaseDir, "models");
+
+            try
+            {
+                // Create models folder if missing
+                if (!Directory.Exists(modelsDir))
+                    Directory.CreateDirectory(modelsDir);
+
+                string fileName = Path.GetFileName(sourceFile);
+                string destPath = Path.Combine(modelsDir, fileName);
+
+                // Check if already exists
+                if (File.Exists(destPath))
+                {
+                    var result = System.Windows.MessageBox.Show(
+                        $"Model '{fileName}' already exists.\nOverwrite?",
+                        "Model exists",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Question);
+
+                    if (result != MessageBoxResult.Yes)
+                        return;
+                }
+
+                // Copy model file
+                File.Copy(sourceFile, destPath, overwrite: true);
+
+                // Refresh list and auto-select new model
+                LoadModels();
+                var newEntry = ModelCombo.Items.Cast<ModelEntry>()
+                    .FirstOrDefault(m => m.Path == destPath);
+                if (newEntry != null)
+                    ModelCombo.SelectedItem = newEntry;
+
+                System.Windows.MessageBox.Show(
+                    $"Model '{fileName}' added successfully.",
+                    "Success",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                System.Windows.MessageBox.Show(
+                    "Access denied. Run as administrator or choose different destination.",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(
+                    $"Failed to add model:\n{ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
 
         // ══════════════════════════════════════════════════════════════════
         // Load settings → UI
@@ -121,8 +226,8 @@ namespace WhisperVoice
             LanguageCombo.SelectedItem = displayName;
 
             // ── VAD ───────────────────────────────────────────────────────
-            SldVadThreshold.Value = Math.Clamp(_settings.VadThreshold,     1.0, 20.0);
-            SldVadSilence.Value   = Math.Clamp(_settings.VadSilenceSeconds, 0.5,  5.0);
+            SldVadThreshold.Value = Math.Clamp(_settings.VadThreshold, 1.0, 20.0);
+            SldVadSilence.Value = Math.Clamp(_settings.VadSilenceSeconds, 0.5, 5.0);
 
             // ── App interface language ────────────────────────────────────
             AppLanguageCombo.ItemsSource = AppLangMap.Keys;
@@ -136,7 +241,7 @@ namespace WhisperVoice
             AppLanguageCombo.SelectedItem = appLangDisplay;
 
             // ── Hotkeys ───────────────────────────────────────────────────
-            ComboHotkeyPrimary.ItemsSource   = HotkeyOptions;
+            ComboHotkeyPrimary.ItemsSource = HotkeyOptions;
             ComboHotkeyTranslate.ItemsSource = HotkeyOptions;
 
             ComboHotkeyPrimary.SelectedItem = HotkeyOptions.Contains(_settings.HotkeyPrimary)
@@ -203,7 +308,7 @@ namespace WhisperVoice
                 _settings.LastModelPath = entry.Path;
 
             // VAD
-            _settings.VadThreshold      = SldVadThreshold.Value;
+            _settings.VadThreshold = SldVadThreshold.Value;
             _settings.VadSilenceSeconds = SldVadSilence.Value;
 
             // Hotkeys — renamed Primary / Translate

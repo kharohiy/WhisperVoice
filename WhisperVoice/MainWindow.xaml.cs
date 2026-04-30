@@ -18,7 +18,7 @@ namespace WhisperVoice
     // ── Data models ────────────────────────────────────────────────────────
     public class TranscriptionEntry
     {
-        public string Text      { get; set; } = "";
+        public string Text { get; set; } = "";
         public string TimeLabel { get; set; } = "";
 
         public string ShortText =>
@@ -29,38 +29,38 @@ namespace WhisperVoice
     public partial class MainWindow : Window
     {
         // ── Paths ──────────────────────────────────────────────────────────
-        private string BaseDir    => AppDomain.CurrentDomain.BaseDirectory;
+        private string BaseDir => AppDomain.CurrentDomain.BaseDirectory;
         private string AppDataDir => AppSettings.AppDataDir;
-        private string DictDir    => Path.Combine(AppDataDir, "dictionary");
+        private string DictDir => Path.Combine(AppDataDir, "dictionary");
         private string TempWavPath => Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav");
-        private string LogPath     => Path.Combine(AppDataDir, "whisper_debug.log");
-        private string DictPath    => Path.Combine(DictDir, "dictionary.txt");
+        private string LogPath => Path.Combine(AppDataDir, "whisper_debug.log");
+        private string DictPath => Path.Combine(DictDir, "dictionary.txt");
 
         // ── Services ───────────────────────────────────────────────────────
-        private readonly AudioCaptureService    _audio;
+        private readonly AudioCaptureService _audio;
         private readonly WhisperExecutionService _whisper;
-        private readonly HardwareCheckService   _hardware;
-        private readonly HallucinationFilter    _hallucinationFilter;
+        private readonly HardwareCheckService _hardware;
+        private readonly HallucinationFilter _hallucinationFilter;
 
         // ── Settings ───────────────────────────────────────────────────────
         private AppSettings _settings = AppSettings.Load();
 
         // ── UI helpers ─────────────────────────────────────────────────────
         private System.Windows.Forms.NotifyIcon _trayIcon = null!;
-        private readonly InputSimulator         _inputSim = new();
+        private readonly InputSimulator _inputSim = new();
 
-        private readonly NotepadWindow  _notepad       = new();
-        private readonly PromptWindow   _promptWindow  = new();
-        private          SettingsWindow _settingsWindow = new();
+        private readonly NotepadWindow _notepad = new();
+        private readonly PromptWindow _promptWindow = new();
+        private SettingsWindow _settingsWindow = new();
 
         // ── Recording state ────────────────────────────────────────────────
         private enum RecordMode { None, Primary, Translate }
         private RecordMode _activeMode = RecordMode.None;
 
-        private string _currentLang      = "ru";
-        private bool   _currentTranslate = false;
-        private bool   _isProcessing     = false;
-        private int    _stopGuard        = 0;  // Interlocked double-stop guard
+        private string _currentLang = "ru";
+        private bool _currentTranslate = false;
+        private bool _isProcessing = false;
+        private int _stopGuard = 0;  // Interlocked double-stop guard
 
         // ── Async / cancellation ───────────────────────────────────────────
         private CancellationTokenSource? _whisperCts;
@@ -86,9 +86,9 @@ namespace WhisperVoice
             InitializeComponent();
 
             // Instantiate services
-            _audio               = new AudioCaptureService();
-            _whisper             = new WhisperExecutionService(BaseDir);
-            _hardware            = new HardwareCheckService();
+            _audio = new AudioCaptureService();
+            _whisper = new WhisperExecutionService(BaseDir);
+            _hardware = new HardwareCheckService();
             _hallucinationFilter = new HallucinationFilter(DictDir);
 
             ClearLogs();
@@ -96,9 +96,9 @@ namespace WhisperVoice
             SetupTrayIcon();
 
             // Wire audio service events — these fire on background threads
-            _audio.PeakAvailable  += val => Dispatcher.InvokeAsync(() => VuMeter.Value = val);
-            _audio.SilenceDetected += ()  => Dispatcher.InvokeAsync(OnVadSilenceDetected);
-            _audio.VolumeChanged   += vol => Dispatcher.Invoke(() =>
+            _audio.PeakAvailable += val => Dispatcher.InvokeAsync(() => VuMeter.Value = val);
+            _audio.SilenceDetected += () => Dispatcher.InvokeAsync(OnVadSilenceDetected);
+            _audio.VolumeChanged += vol => Dispatcher.Invoke(() =>
             {
                 SldVolume.ValueChanged -= SldVolume_ValueChanged;
                 SldVolume.Value = vol * 100;
@@ -174,15 +174,15 @@ namespace WhisperVoice
         {
             _trayIcon = new System.Windows.Forms.NotifyIcon
             {
-                Icon    = System.Drawing.SystemIcons.Information,
-                Text    = (string)FindResource("TrayIconText"),
+                Icon = System.Drawing.SystemIcons.Information,
+                Text = (string)FindResource("TrayIconText"),
                 Visible = true
             };
             _trayIcon.DoubleClick += (_, _) => { Show(); Activate(); };
 
             var menu = new System.Windows.Forms.ContextMenuStrip();
-            menu.Items.Add((string)FindResource("TrayMenuControl"),  null, (_, _) => { Show(); Activate(); });
-            menu.Items.Add((string)FindResource("TrayMenuNotepad"),  null, (_, _) => ToggleWindow(_notepad));
+            menu.Items.Add((string)FindResource("TrayMenuControl"), null, (_, _) => { Show(); Activate(); });
+            menu.Items.Add((string)FindResource("TrayMenuNotepad"), null, (_, _) => ToggleWindow(_notepad));
             menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
             menu.Items.Add((string)FindResource("TrayMenuExit"), null, (_, _) =>
             {
@@ -228,14 +228,14 @@ namespace WhisperVoice
             {
                 _settings = AppSettings.Load();
 
-                var keyPrimary   = (Key)Enum.Parse(typeof(Key), _settings.HotkeyPrimary,   ignoreCase: true);
+                var keyPrimary = (Key)Enum.Parse(typeof(Key), _settings.HotkeyPrimary, ignoreCase: true);
                 var keyTranslate = (Key)Enum.Parse(typeof(Key), _settings.HotkeyTranslate, ignoreCase: true);
 
-                HotkeyManager.Current.AddOrReplace("ToggleMenu",  Key.F7,       ModifierKeys.None,    OnToggleMenu);
-                HotkeyManager.Current.AddOrReplace("Primary",     keyPrimary,   ModifierKeys.None,    OnRecordPrimary);
-                HotkeyManager.Current.AddOrReplace("Translate",   keyTranslate, ModifierKeys.None,    OnRecordTranslate);
-                HotkeyManager.Current.AddOrReplace("TranslateCtrl", Key.F9,     ModifierKeys.Control, OnTranslateWithPrompt);
-                HotkeyManager.Current.AddOrReplace("Notepad",     Key.F7,       ModifierKeys.Control, OnOpenNotepad);
+                HotkeyManager.Current.AddOrReplace("ToggleMenu", Key.F7, ModifierKeys.None, OnToggleMenu);
+                HotkeyManager.Current.AddOrReplace("Primary", keyPrimary, ModifierKeys.None, OnRecordPrimary);
+                HotkeyManager.Current.AddOrReplace("Translate", keyTranslate, ModifierKeys.None, OnRecordTranslate);
+                HotkeyManager.Current.AddOrReplace("TranslateCtrl", Key.F9, ModifierKeys.Control, OnTranslateWithPrompt);
+                HotkeyManager.Current.AddOrReplace("Notepad", Key.F7, ModifierKeys.Control, OnOpenNotepad);
             }
             catch (Exception ex) { WriteLog($"Hotkey setup error: {ex.Message}"); }
         }
@@ -342,12 +342,12 @@ namespace WhisperVoice
                 await _audio.StopRecordingAsync();
                 StopVadAnimation();
 
-                var lang      = _currentLang;
+                var lang = _currentLang;
                 var translate = _currentTranslate;
-                _activeMode   = RecordMode.None;
+                _activeMode = RecordMode.None;
                 _isProcessing = true;
 
-                LblMicName.Text       = (string)FindResource("LblProcessing");
+                LblMicName.Text = (string)FindResource("LblProcessing");
                 LblMicName.Foreground = System.Windows.Media.Brushes.Orange;
                 VuMeter.Value = 0;
                 ShowProcessingPanel(true);
@@ -466,7 +466,7 @@ namespace WhisperVoice
         {
             _history.Insert(0, new TranscriptionEntry
             {
-                Text      = text,
+                Text = text,
                 TimeLabel = DateTime.Now.ToString("HH:mm:ss")
             });
             while (_history.Count > MaxHistory)
@@ -541,7 +541,7 @@ namespace WhisperVoice
             LblMicName.Visibility = ok ? Visibility.Collapsed : Visibility.Visible;
             if (!ok)
             {
-                LblMicName.Text       = text;
+                LblMicName.Text = text;
                 LblMicName.Foreground = System.Windows.Media.Brushes.Red;
             }
 
@@ -556,7 +556,7 @@ namespace WhisperVoice
             var mic = new MicWindow { Owner = this };
             if (mic.ShowDialog() == true)
             {
-                _settings.MicId   = mic.SelectedMicId;
+                _settings.MicId = mic.SelectedMicId;
                 _settings.MicName = mic.SelectedMicName;
                 _settings.Save();
 
@@ -581,7 +581,7 @@ namespace WhisperVoice
                 "de" => "Deutsch",
                 "es" => "Español",
                 "fr" => "Français",
-                _    => "Русский"
+                _ => "Русский"
             };
 
             // Task 2: top header shows active recording language
@@ -614,11 +614,11 @@ namespace WhisperVoice
         {
             _vadAnim ??= new DoubleAnimation
             {
-                From            = 1.0,
-                To              = 0.1,
-                Duration        = TimeSpan.FromSeconds(0.75),
-                AutoReverse     = true,
-                RepeatBehavior  = RepeatBehavior.Forever
+                From = 1.0,
+                To = 0.1,
+                Duration = TimeSpan.FromSeconds(0.75),
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever
             };
             VadDot.BeginAnimation(UIElement.OpacityProperty, _vadAnim);
             VadPanel.Visibility = Visibility.Visible;
@@ -627,7 +627,7 @@ namespace WhisperVoice
         private void StopVadAnimation()
         {
             VadDot.BeginAnimation(UIElement.OpacityProperty, null);
-            VadDot.Opacity      = 0;
+            VadDot.Opacity = 0;
             VadPanel.Visibility = Visibility.Collapsed;
         }
 
@@ -643,9 +643,9 @@ namespace WhisperVoice
         private void BtnSound_Click(object sender, RoutedEventArgs e) =>
             Process.Start(new ProcessStartInfo
             {
-                FileName         = "rundll32.exe",
-                Arguments        = "shell32.dll,Control_RunDLL mmsys.cpl,,1",
-                UseShellExecute  = true
+                FileName = "rundll32.exe",
+                Arguments = "shell32.dll,Control_RunDLL mmsys.cpl,,1",
+                UseShellExecute = true
             });
 
         private void BtnPrompt_Click(object sender, RoutedEventArgs e)
@@ -683,7 +683,7 @@ namespace WhisperVoice
             {
                 string txt = Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav.txt");
                 if (File.Exists(TempWavPath)) File.Delete(TempWavPath);
-                if (File.Exists(txt))         File.Delete(txt);
+                if (File.Exists(txt)) File.Delete(txt);
             }
             catch { }
         }
