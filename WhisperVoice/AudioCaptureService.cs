@@ -13,7 +13,39 @@ namespace WhisperVoice.Services
         private DateTime _lastSilentPeak = DateTime.MinValue;
 
         public bool IsRecording => _recorder.IsRecording;
-        public bool IsDeviceAttached => _device != null;
+
+        public bool IsDeviceAttached
+        {
+            get
+            {
+                if (_device == null) return false;
+
+                try
+                {
+                    // Check if device is actually active (not unplugged)
+                    var state = _device.State;
+                    if (state != DeviceState.Active)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[IsDeviceAttached] Device state is {state}, cleaning up");
+                        DetachDevice();
+                        return false;
+                    }
+                    return true;
+                }
+                catch (COMException ex)
+                {
+                    // Device was unplugged - COM object invalid
+                    System.Diagnostics.Debug.WriteLine($"[IsDeviceAttached] COMException: {ex.Message}, cleaning up");
+                    DetachDevice();
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[IsDeviceAttached] Exception: {ex.Message}");
+                    return false;
+                }
+            }
+        }
 
         public event Action<double>? PeakAvailable;
         public event Action? SilenceDetected;
@@ -32,12 +64,15 @@ namespace WhisperVoice.Services
             {
                 DetachDevice();
 
-                // ВАЖНО: Всегда создаем новый энумератор, чтобы сбросить мертвый COM-кэш!
-                // Именно это происходит, когда ты открываешь свои настройки.
+                // CRITICAL: Always create fresh enumerator to invalidate stale COM cache
                 using var enumerator = new MMDeviceEnumerator();
                 _device = enumerator.GetDevice(micId);
 
-                if (_device.State != DeviceState.Active) return false;
+                if (_device.State != DeviceState.Active)
+                {
+                    _device = null;
+                    return false;
+                }
 
                 _silentCapture = new WasapiCapture(_device, true, 50);
                 _silentCapture.DataAvailable += SilentCapture_DataAvailable;
@@ -49,13 +84,15 @@ namespace WhisperVoice.Services
 
                 return true;
             }
-            catch (COMException)
+            catch (COMException ex)
             {
+                System.Diagnostics.Debug.WriteLine($"AttachDevice COMException: {ex.Message}");
                 HandleDeviceFailure();
                 return false;
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"AttachDevice Exception: {ex.Message}");
                 return false;
             }
         }
@@ -111,14 +148,28 @@ namespace WhisperVoice.Services
             if ((now - _lastSilentPeak).TotalMilliseconds < 40) return;
             _lastSilentPeak = now;
 
-            if (_silentCapture != null)
+            // Safety: ensure capture is still valid
+            if (_silentCapture != null && _device != null)
             {
                 try
                 {
                     double peak = AudioRecorder.CalculatePeak(e.Buffer, e.BytesRecorded, _silentCapture.WaveFormat);
                     PeakAvailable?.Invoke(peak);
+
+                    // Log only occasionally to avoid spam
+                    if (peak > 0.01)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[SilentCapture] Peak={peak:F3}");
+                    }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[SilentCapture] Peak calculation failed: {ex.Message}");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[SilentCapture] DataAvailable fired but capture/device is NULL");
             }
         }
 
@@ -136,20 +187,79 @@ namespace WhisperVoice.Services
         {
             _recorder.VadEnabled = false;
             await _recorder.StopRecordingAsync();
-            try { _silentCapture?.StartRecording(); } catch { }
+
+            // Try to restart silent capture, recreate if failed
+            try
+            {
+                if (_silentCapture != null && _device != null)
+                {
+                    _silentCapture.StartRecording();
+                }
+            }
+            catch
+            {
+                // Stale capture - recreate
+                RestartSilentCapture();
+            }
         }
 
         public void StopRecordingSync()
         {
             _recorder.VadEnabled = false;
             _recorder.StopRecording();
-            try { _silentCapture?.StartRecording(); } catch { }
+
+            // Try to restart silent capture, recreate if failed
+            try
+            {
+                if (_silentCapture != null && _device != null)
+                {
+                    _silentCapture.StartRecording();
+                }
+            }
+            catch
+            {
+                // Stale capture - recreate
+                RestartSilentCapture();
+            }
         }
 
         public void Dispose()
         {
             DetachDevice();
             _recorder.StopRecording();
+        }
+
+        /// <summary>Force restart silent capture (call after USB reconnect when idle)</summary>
+        public void RestartSilentCapture()
+        {
+            System.Diagnostics.Debug.WriteLine($"[RestartSilentCapture] Called. IsRecording={IsRecording}, _device={((_device != null) ? "EXISTS" : "NULL")}");
+
+            if (IsRecording || _device == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RestartSilentCapture] Skipped (recording or no device)");
+                return;
+            }
+
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[RestartSilentCapture] Stopping old capture...");
+                _silentCapture?.StopRecording();
+                _silentCapture?.Dispose();
+                _silentCapture = null;
+
+                System.Diagnostics.Debug.WriteLine($"[RestartSilentCapture] Creating new WasapiCapture...");
+                _silentCapture = new WasapiCapture(_device, true, 50);
+                _silentCapture.DataAvailable += SilentCapture_DataAvailable;
+
+                System.Diagnostics.Debug.WriteLine($"[RestartSilentCapture] Starting recording...");
+                _silentCapture.StartRecording();
+
+                System.Diagnostics.Debug.WriteLine($"[RestartSilentCapture] SUCCESS - silent capture restarted");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RestartSilentCapture] FAILED: {ex.Message}");
+            }
         }
     }
 }

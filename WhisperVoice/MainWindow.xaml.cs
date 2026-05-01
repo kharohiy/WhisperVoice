@@ -130,13 +130,15 @@ namespace WhisperVoice
 
         private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            const int WM_DEVICECHANGE = 0x0219; // Код события ОС: изменилось оборудование
+            const int WM_DEVICECHANGE = 0x0219;
 
             if (msg == WM_DEVICECHANGE)
             {
                 if ((DateTime.Now - _lastDeviceChange).TotalMilliseconds > 1500)
                 {
                     _lastDeviceChange = DateTime.Now;
+
+                    System.Diagnostics.Debug.WriteLine($"[USB] WM_DEVICECHANGE detected. IsAttached={_audio.IsDeviceAttached}, SavedMicId={_settings.MicId}");
 
                     if (!_audio.IsDeviceAttached && !string.IsNullOrEmpty(_settings.MicId))
                     {
@@ -146,25 +148,76 @@ namespace WhisperVoice
 
                             Dispatcher.Invoke(() =>
                             {
-                                // === ТЕСТОВЫЙ БЛОК НАЧАЛО ===
-                                bool success = _audio.AttachDevice(_settings.MicId);
+                                System.Diagnostics.Debug.WriteLine($"[USB] Searching for device by name: {_settings.MicName}");
 
-                                System.Windows.MessageBox.Show(
-                                    $"Windows увидела событие оборудования!\n" +
-                                    $"Пытаемся подключить ID: {_settings.MicId}\n" +
-                                    $"Результат: {success}");
-                                // === ТЕСТОВЫЙ БЛОК КОНЕЦ ===
+                                // Find device by friendly name since ID may have changed
+                                string? newId = FindDeviceIdByName(_settings.MicName);
 
-                                if (success)
+                                System.Diagnostics.Debug.WriteLine($"[USB] FindDeviceIdByName result: {newId ?? "NULL"}");
+
+                                if (newId != null)
                                 {
-                                    UpdateMicLabel(TryGetResource("LblMicReady", "Микрофон готов"), ok: true);
+                                    bool success = _audio.AttachDevice(newId);
+
+                                    System.Diagnostics.Debug.WriteLine($"[USB] AttachDevice result: {success}");
+
+                                    if (success)
+                                    {
+                                        // Update ID if it changed
+                                        if (newId != _settings.MicId)
+                                        {
+                                            System.Diagnostics.Debug.WriteLine($"[USB] ID changed: {_settings.MicId} -> {newId}");
+                                            _settings.MicId = newId;
+                                            _settings.Save();
+                                        }
+
+                                        UpdateMicLabel(_settings.MicName, ok: true);
+                                        SetupVolumeSlider();
+
+                                        System.Diagnostics.Debug.WriteLine($"[USB] Calling RestartSilentCapture...");
+                                        // CRITICAL: Restart silent capture for peak meter
+                                        _audio.RestartSilentCapture();
+                                        System.Diagnostics.Debug.WriteLine($"[USB] RestartSilentCapture completed");
+                                    }
+                                }
+                                else
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"[USB] Device not found by name '{_settings.MicName}'");
                                 }
                             });
                         });
                     }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[USB] Skipping reconnect (already attached or no saved mic)");
+                    }
                 }
             }
             return IntPtr.Zero;
+        }
+
+        /// <summary>Find device ID by friendly name (handles USB ID changes)</summary>
+        private string? FindDeviceIdByName(string targetName)
+        {
+            if (string.IsNullOrEmpty(targetName))
+                return null;
+
+            try
+            {
+                using var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+                var devices = enumerator.EnumerateAudioEndPoints(
+                    NAudio.CoreAudioApi.DataFlow.Capture,
+                    NAudio.CoreAudioApi.DeviceState.Active);
+
+                foreach (var device in devices)
+                {
+                    if (device.FriendlyName == targetName)
+                        return device.ID;
+                }
+            }
+            catch { }
+
+            return null;
         }
 
         // ══════════════════════════════════════════════════════════════════
