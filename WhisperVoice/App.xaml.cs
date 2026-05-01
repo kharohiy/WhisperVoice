@@ -1,13 +1,53 @@
 using System;
+using System.Threading;
 using System.Windows;
 
 namespace WhisperVoice
 {
     public partial class App : System.Windows.Application
     {
+        // Unique GUID-based mutex name for single-instance enforcement
+        private const string MutexName = "Global\\{8F6F3D9A-2B4C-4E1A-9A7B-3C5D6E7F8A9B}";
+        private static Mutex? _instanceMutex;
+
         // Supported interface language codes (must match Strings.{lang}.xaml filenames)
         private static readonly string[] SupportedLangs =
             { "en", "ru", "uk", "pl", "de", "es", "fr" };
+
+        /// <summary>
+        /// Called when the application starts. Enforces single-instance behavior.
+        /// </summary>
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            _instanceMutex = new Mutex(true, MutexName, out bool createdNew);
+
+            if (!createdNew)
+            {
+                System.Windows.MessageBox.Show(
+                    "Application is already running.",
+                    "Whisper Voice",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                Current.Shutdown();
+                return;
+            }
+
+            base.OnStartup(e);
+
+            var mainWindow = new MainWindow();
+            mainWindow.Show();
+        }
+
+        /// <summary>
+        /// Called when the application exits. Ensures proper Mutex cleanup.
+        /// </summary>
+        protected override void OnExit(ExitEventArgs e)
+        {
+            _instanceMutex?.ReleaseMutex();
+            _instanceMutex?.Dispose();
+            base.OnExit(e);
+        }
 
         /// <summary>
         /// Swaps the merged ResourceDictionary for localised strings at runtime.
