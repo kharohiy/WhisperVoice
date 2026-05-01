@@ -1,5 +1,3 @@
-using System;
-using System.Threading;
 using System.Windows;
 
 namespace WhisperVoice
@@ -19,10 +17,12 @@ namespace WhisperVoice
         /// </summary>
         protected override void OnStartup(StartupEventArgs e)
         {
+            // CRITICAL: Check mutex BEFORE base.OnStartup to prevent ANY WPF initialization
             _instanceMutex = new Mutex(true, MutexName, out bool createdNew);
 
             if (!createdNew)
             {
+                // Another instance already running - exit immediately without initializing WPF resources
                 System.Windows.MessageBox.Show(
                     "Application is already running.",
                     "Whisper Voice",
@@ -33,6 +33,7 @@ namespace WhisperVoice
                 return;
             }
 
+            // Only initialize WPF if we are the first instance
             base.OnStartup(e);
 
             var mainWindow = new MainWindow();

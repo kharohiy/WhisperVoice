@@ -227,9 +227,9 @@ namespace WhisperVoice
         {
             _trayIcon = new System.Windows.Forms.NotifyIcon
             {
-                Icon = System.Drawing.SystemIcons.Information,
-                Text = (string)FindResource("TrayIconText"),
-                Visible = true
+                Icon = new System.Drawing.Icon("WhisperVoice.ico"), // Custom icon
+                Visible = true,
+                Text = "Whisper Voice"
             };
             _trayIcon.DoubleClick += (_, _) => { Show(); Activate(); };
 
