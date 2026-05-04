@@ -16,6 +16,7 @@ namespace WhisperVoice
         {
             InitializeComponent();
             LbTags.ItemsSource = Tags;
+            LoadTags();
         }
 
         public void LoadTags()
@@ -34,7 +35,7 @@ namespace WhisperVoice
 
         private void BtnAdd_Click(object sender, RoutedEventArgs e)
         {
-            var text = TxtInput.Text.Trim();
+            var text = TxtInput.Text.Trim().Replace(",", ""); // guard against delimiter collision
             if (!string.IsNullOrEmpty(text) && !Tags.Contains(text))
             {
                 Tags.Add(text);

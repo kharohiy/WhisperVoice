@@ -51,7 +51,7 @@ namespace WhisperVoice
                 "de" => "de",
                 "es" => "es",
                 "fr" => "fr",
-                _    => "en"
+                _ => "en"
             };
         }
 
@@ -66,10 +66,20 @@ namespace WhisperVoice
         private static readonly JsonSerializerOptions _jsonOpts =
             new() { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.Never };
 
-        /// <summary>%LocalAppData%\WhisperVoice — the single writable root for all user data.</summary>
-        public static string AppDataDir =>
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                         "WhisperVoice");
+        /// <summary>App data directory: exe folder in DEBUG, AppData in RELEASE.</summary>
+        public static string AppDataDir
+        {
+            get
+            {
+#if DEBUG
+                return AppDomain.CurrentDomain.BaseDirectory;
+#else
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WhisperVoice");
+#endif
+            }
+        }
 
         private static string SettingsPath =>
             Path.Combine(AppDataDir, "settings.json");
@@ -84,16 +94,12 @@ namespace WhisperVoice
         /// </summary>
         public static AppSettings Load()
         {
-            // 1 – Try settings.json
             if (File.Exists(SettingsPath))
             {
                 try
                 {
                     string json = File.ReadAllText(SettingsPath);
 
-                    // ── Legacy property migration ──────────────────────────
-                    // Old JSON may still contain "HotkeyRu" / "HotkeyEn".
-                    // Rename them before deserialising so no data is lost.
                     json = json
                         .Replace("\"HotkeyRu\"", "\"HotkeyPrimary\"")
                         .Replace("\"HotkeyEn\"", "\"HotkeyTranslate\"")
@@ -102,14 +108,12 @@ namespace WhisperVoice
                     var loaded = JsonSerializer.Deserialize<AppSettings>(json, _jsonOpts)
                                  ?? new AppSettings();
 
-                    // Persist migrated names immediately so the old keys disappear
                     loaded.Save();
                     return loaded;
                 }
-                catch { /* corrupt JSON — fall through to defaults */ }
+                catch { }
             }
 
-            // 2 – Migrate legacy settings.ini
             if (File.Exists(LegacyIniPath))
             {
                 try
@@ -123,7 +127,7 @@ namespace WhisperVoice
                     migrated.Save();
                     return migrated;
                 }
-                catch { /* bad INI — return defaults */ }
+                catch { }
             }
 
             return new AppSettings();
@@ -138,7 +142,7 @@ namespace WhisperVoice
                 File.WriteAllText(SettingsPath,
                     JsonSerializer.Serialize(this, _jsonOpts));
             }
-            catch { /* non-critical */ }
+            catch { }
         }
 
         /// <summary>Convenience: returns true if a microphone has been configured.</summary>

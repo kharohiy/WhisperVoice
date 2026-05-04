@@ -1,17 +1,31 @@
 <Window x:Class="WhisperVoice.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{DynamicResource SettingsTitle}" Height="600" Width="390"
+        Title="{DynamicResource SettingsTitle}" Height="650" Width="390"
         ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
         Background="#F0F0F0" WindowStyle="SingleBorderWindow">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
         <StackPanel Margin="20" VerticalAlignment="Top">
 
+            <!-- ══ SECTION: App Interface Language ═══════════════════════ -->
+            <TextBlock Text="{DynamicResource SettingsSectionAppLanguage}"
+                 FontSize="14" FontWeight="SemiBold"
+                 Margin="0,0,0,14" Foreground="#333"/>
+
+            <StackPanel Margin="0,0,0,20">
+                <TextBlock Text="{DynamicResource SettingsLblAppLanguage}"
+                     FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
+                <ComboBox x:Name="AppLanguageCombo" Height="32" FontSize="12"
+                    VerticalContentAlignment="Center"
+                    SelectionChanged="AppLanguageCombo_SelectionChanged"
+                    ToolTip="{DynamicResource SettingsLblAppLanguageTooltip}"/>
+            </StackPanel>
+
             <!-- ══ SECTION: Language & Model ══════════════════════════════ -->
             <TextBlock Text="{DynamicResource SettingsSectionLanguage}"
-                       FontSize="14" FontWeight="SemiBold"
-                       Margin="0,0,0,14" Foreground="#333"/>
+                    FontSize="14" FontWeight="SemiBold"
+                    Margin="0,0,0,14" Foreground="#333"/>
 
             <!-- Language for Primary hotkey -->
             <StackPanel Margin="0,0,0,12">
@@ -22,8 +36,10 @@
                           ToolTip="{DynamicResource SettingsLblLanguageTooltip}"/>
             </StackPanel>
 
+            <Separator Margin="0,10,0,10" Background="#CCCCCC"/>
+
             <!-- Model Whisper -->
-            <TextBlock Text="Модель Whisper:" Margin="0,12,0,4" FontWeight="SemiBold"/>
+            <TextBlock Text="Модель Whisper:" Margin="0,12,0,4" FontSize="12" FontWeight="SemiBold"/>
 
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -124,22 +140,6 @@
                 <ComboBox x:Name="ComboHotkeyTranslate" Height="32" FontSize="12"
                           VerticalContentAlignment="Center"
                           ToolTip="{DynamicResource SettingsTooltipHotkeyTranslate}"/>
-            </StackPanel>
-
-            <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
-
-            <!-- ══ SECTION: App Interface Language ═══════════════════════ -->
-            <TextBlock Text="{DynamicResource SettingsSectionAppLanguage}"
-                       FontSize="14" FontWeight="SemiBold"
-                       Margin="0,0,0,14" Foreground="#333"/>
-
-            <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="{DynamicResource SettingsLblAppLanguage}"
-                           FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
-                <ComboBox x:Name="AppLanguageCombo" Height="32" FontSize="12"
-                          VerticalContentAlignment="Center"
-                          SelectionChanged="AppLanguageCombo_SelectionChanged"
-                          ToolTip="{DynamicResource SettingsLblAppLanguageTooltip}"/>
             </StackPanel>
 
             <!-- Save button -->

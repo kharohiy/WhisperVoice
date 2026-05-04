@@ -14,7 +14,10 @@
 
         <TextBlock Text="Теги-подсказки для нейросети:" FontSize="14" FontWeight="Medium" Margin="0,0,0,10"/>
 
-        <ListBox x:Name="LbTags" Grid.Row="1" Margin="0,0,0,15" FontSize="14" SelectionChanged="LbTags_SelectionChanged"/>
+        <ListBox x:Name="LbTags" Grid.Row="1" 
+         ItemsSource="{Binding Tags}" 
+         Margin="0,0,0,15" FontSize="14" 
+         SelectionChanged="LbTags_SelectionChanged"/>
 
         <Grid Grid.Row="2" Margin="0,0,0,15">
             <Grid.ColumnDefinitions>

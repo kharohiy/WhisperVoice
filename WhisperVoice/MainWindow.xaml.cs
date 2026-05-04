@@ -409,7 +409,7 @@ namespace WhisperVoice
                 var progress = new Progress<string>(msg =>
                 {
                     if (!string.IsNullOrWhiteSpace(msg))
-                        LblStatus.Text = msg.Length > 90 ? msg[..87] + "..." : msg;
+                        LblStatus.Text = msg;
                 });
 
                 await ProcessWhisperAsync(lang, translate, progress, _whisperCts.Token);
