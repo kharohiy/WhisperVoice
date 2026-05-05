@@ -3,6 +3,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Media;
 using System.Threading;
 using System.Threading.Tasks;
@@ -80,6 +81,9 @@ namespace WhisperVoice
 
         // ── Post-processor ─────────────────────────────────────────────────
         private readonly TextPostProcessorService _postProcessor = new();
+
+        // ── History export ─────────────────────────────────────────────────
+        private readonly HistoryExportService _historyExport = new();
 
         // ── Anti-spam ──────────────────────────────────────────────────────
         private DateTime _lastAction = DateTime.MinValue;
@@ -558,6 +562,46 @@ namespace WhisperVoice
         private void BtnClearHistory_Click(object sender, RoutedEventArgs e) =>
             _history.Clear();
 
+        private void BtnExportHistory_Click(object sender, RoutedEventArgs e)
+        {
+            if (_history.Count == 0)
+            {
+                ShowErrorPopup("No history to export.");
+                return;
+            }
+
+            var dialog = new System.Windows.Forms.SaveFileDialog
+            {
+                Filter = "CSV files (*.csv)|*.csv|Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                DefaultExt = "csv",
+                FileName = _historyExport.GenerateTimestampedFilename("csv"),
+                InitialDirectory = AppDataDir
+            };
+
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                try
+                {
+                    var entries = _history
+                        .Select(e => (e.TimeLabel, e.Text))
+                        .ToList();
+
+                    if (dialog.FileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+                        _historyExport.ExportToTxt(entries, dialog.FileName);
+                    else
+                        _historyExport.ExportToCsv(entries, dialog.FileName);
+
+                    WriteLog($"History exported to: {dialog.FileName}");
+                    ShowInfoPopup($"✓ Exported {_history.Count} entries to {Path.GetFileName(dialog.FileName)}");
+                }
+                catch (Exception ex)
+                {
+                    WriteLog($"Export failed: {ex.Message}");
+                    ShowErrorPopup($"Export failed: {ex.Message}");
+                }
+            }
+        }
+
         private async void ShowCopyFeedback()
         {
             CopyFeedback.Visibility = Visibility.Visible;
@@ -803,6 +847,19 @@ namespace WhisperVoice
                     this, message, title,
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning);
+            });
+        }
+
+        private void ShowInfoPopup(string message)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                string title = TryGetResource("MsgInfoTitle", ""); // Или «Инфо»
+
+                System.Windows.MessageBox.Show(
+                    this, message, title,
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
             });
         }
 

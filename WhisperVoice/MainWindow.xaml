@@ -25,10 +25,22 @@
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.Items>
-                                    <Border/><Border/><Border/><Border/>
-                                    <Border/><Border/><Border/><Border/>
-                                    <Border/><Border/><Border/><Border/>
-                                    <Border/><Border/><Border/><Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
+                                    <Border/>
                                 </ItemsControl.Items>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -71,6 +83,7 @@
 
         <!-- ── Mic status label (moved; see VolumePanel for device name) ── -->
         <TextBlock x:Name="LblMicName"
+                   Text="{DynamicResource LblNoMicSelected}"
                    Foreground="Red" FontSize="14" FontWeight="Bold"
                    HorizontalAlignment="Center" Margin="0,0,0,10"
                    TextWrapping="Wrap" TextAlignment="Center"/>
@@ -158,6 +171,10 @@
             <TextBlock Text="{DynamicResource LblHistoryHeader}"
                        FontSize="12" Foreground="#444"
                        VerticalAlignment="Center"/>
+            <Button x:Name="BtnExportHistory" Content="💾" Width="24" Height="22"
+                    HorizontalAlignment="Right" FontSize="11" Margin="0,0,30,0"
+                    ToolTip="Export history to file"
+                    Click="BtnExportHistory_Click"/>
             <Button x:Name="BtnClearHistory" Content="🗑" Width="24" Height="22"
                     HorizontalAlignment="Right" FontSize="11"
                     ToolTip="{DynamicResource BtnClearHistoryTooltip}"
