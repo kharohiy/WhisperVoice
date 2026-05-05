@@ -78,6 +78,9 @@ namespace WhisperVoice
         private DispatcherTimer? _recTimer;
         private int _recSeconds = 0;
 
+        // ── Post-processor ─────────────────────────────────────────────────
+        private readonly TextPostProcessorService _postProcessor = new();
+
         // ── Anti-spam ──────────────────────────────────────────────────────
         private DateTime _lastAction = DateTime.MinValue;
 
@@ -495,12 +498,16 @@ namespace WhisperVoice
                     return;
                 }
 
+                // ── Post-processor ─────────────────────────────────────────
+                string finalResult = _postProcessor.Process(cleanResult);
+                WriteLog($"Post-processed: {finalResult}");
+
                 progress.Report((string)FindResource("MsgWhisperDone"));
 
                 await Dispatcher.InvokeAsync(async () =>
                 {
-                    AddToHistory(cleanResult);
-                    System.Windows.Clipboard.SetText(cleanResult);
+                    AddToHistory(finalResult);
+                    System.Windows.Clipboard.SetText(finalResult);
                     await Task.Delay(100);
                     _inputSim.Keyboard.ModifiedKeyStroke(
                         VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);

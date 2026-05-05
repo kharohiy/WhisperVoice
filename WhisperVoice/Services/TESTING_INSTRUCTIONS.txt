@@ -1,0 +1,65 @@
+// ══════════════════════════════════════════════════════════════════════════
+// MANUAL TEST CODE — Add to MainWindow constructor or a test button handler
+// ══════════════════════════════════════════════════════════════════════════
+
+/*
+// Copy this into a test button click handler or MainWindow.Loaded event:
+
+private void TestTextPostProcessor()
+{
+    var processor = new TextPostProcessorService();
+
+    // Test case 1: SRT timestamp stripping
+    string test1 = "[00:00:00.000 --> 00:00:02.500] hello world";
+    string result1 = processor.Process(test1);
+    WriteLog($"Test 1 Input: {test1}");
+    WriteLog($"Test 1 Output: {result1}");
+    WriteLog($"Test 1 Expected: hello world");
+    WriteLog(result1 == "hello world" ? "✓ PASS" : "✗ FAIL");
+    WriteLog("");
+
+    // Test case 2: Double spaces
+    string test2 = "hello  world   test";
+    string result2 = processor.Process(test2);
+    WriteLog($"Test 2 Input: '{test2}'");
+    WriteLog($"Test 2 Output: '{result2}'");
+    WriteLog($"Test 2 Expected: 'hello world test'");
+    WriteLog(result2 == "hello world test" ? "✓ PASS" : "✗ FAIL");
+    WriteLog("");
+
+    // Test case 3: Capitalize first letter
+    string test3 = "the quick brown fox";
+    string result3 = processor.Process(test3);
+    WriteLog($"Test 3 Input: {test3}");
+    WriteLog($"Test 3 Output: {result3}");
+    WriteLog($"Test 3 Expected: The quick brown fox");
+    WriteLog(result3 == "The quick brown fox" ? "✓ PASS" : "✗ FAIL");
+    WriteLog("");
+
+    // Test case 4: Combined (real-world)
+    string test4 = "[00:00:00.100 --> 00:00:01.500] the quick  brown  fox\n[00:00:01.500 --> 00:00:03.000] jumps over";
+    string result4 = processor.Process(test4);
+    WriteLog($"Test 4 Input: {test4}");
+    WriteLog($"Test 4 Output: {result4}");
+    WriteLog($"Test 4 Expected: The quick brown fox\njumps over");
+    WriteLog("");
+
+    // Test case 5: VTT format timestamp
+    string test5 = "(00:00:05.000 --> 00:00:07.500) another test";
+    string result5 = processor.Process(test5);
+    WriteLog($"Test 5 Input: {test5}");
+    WriteLog($"Test 5 Output: {result5}");
+    WriteLog($"Test 5 Expected: another test");
+    WriteLog(result5 == "another test" ? "✓ PASS" : "✗ FAIL");
+}
+
+// Add a test button in your MainWindow.xaml:
+// <Button Content="Test TextPostProcessor" Click="BtnTestPostProcessor_Click" />
+
+// Then in MainWindow.xaml.cs:
+private void BtnTestPostProcessor_Click(object sender, RoutedEventArgs e)
+{
+    TestTextPostProcessor();
+}
+
+*/
