@@ -71,7 +71,6 @@
 
         <!-- ── Mic status label (moved; see VolumePanel for device name) ── -->
         <TextBlock x:Name="LblMicName"
-                   Text="{DynamicResource LblNoMicSelected}"
                    Foreground="Red" FontSize="14" FontWeight="Bold"
                    HorizontalAlignment="Center" Margin="0,0,0,10"
                    TextWrapping="Wrap" TextAlignment="Center"/>

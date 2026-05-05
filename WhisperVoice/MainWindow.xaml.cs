@@ -3,15 +3,17 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Media;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using WhisperVoice.Services;
 using WindowsInput;
 using WindowsInput.Native;
-using System.Windows.Interop;
 
 namespace WhisperVoice
 {
@@ -71,6 +73,10 @@ namespace WhisperVoice
 
         // ── VAD animation ──────────────────────────────────────────────────
         private DoubleAnimation? _vadAnim;
+
+        // ── Recording timer ────────────────────────────────────────────────
+        private DispatcherTimer? _recTimer;
+        private int _recSeconds = 0;
 
         // ── Anti-spam ──────────────────────────────────────────────────────
         private DateTime _lastAction = DateTime.MinValue;
@@ -369,8 +375,11 @@ namespace WhisperVoice
                 }
 
                 StartVadAnimation();
+                UpdateLanguageButton(keyName);
+                SystemSounds.Beep.Play();
+                StartRecordingTimer();
 
-                LblMicName.Text = $"{(string)FindResource("LblRecording")}\n(VAD авто-стоп, или {keyName})";
+                LblMicName.Text = $"{(string)FindResource("LblRecording")} 0:00";
                 LblMicName.Foreground = System.Windows.Media.Brushes.Red;
             }
             else
@@ -394,6 +403,8 @@ namespace WhisperVoice
             {
                 await _audio.StopRecordingAsync();
                 StopVadAnimation();
+                StopRecordingTimer();
+                SystemSounds.Exclamation.Play();
 
                 var lang = _currentLang;
                 var translate = _currentTranslate;
@@ -402,6 +413,7 @@ namespace WhisperVoice
 
                 LblMicName.Text = (string)FindResource("LblProcessing");
                 LblMicName.Foreground = System.Windows.Media.Brushes.Orange;
+                UpdateLanguageButton(); // strip hotkey indicator
                 VuMeter.Value = 0;
                 ShowProcessingPanel(true);
 
@@ -623,7 +635,7 @@ namespace WhisperVoice
         // ══════════════════════════════════════════════════════════════════
         // Settings window
         // ══════════════════════════════════════════════════════════════════
-        private void UpdateLanguageButton()
+        private void UpdateLanguageButton(string? activeKey = null)
         {
             _settings = AppSettings.Load();
             string langName = _settings.LanguagePrimary switch
@@ -637,9 +649,10 @@ namespace WhisperVoice
                 _ => "Русский"
             };
 
-            // Task 2: top header shows active recording language
             if (LblCurrentLanguage != null)
-                LblCurrentLanguage.Text = $"🌐 {langName}";
+                LblCurrentLanguage.Text = string.IsNullOrEmpty(activeKey)
+                    ? $"🌐 {langName}"
+                    : $"🌐 {langName} [{activeKey}]";
         }
 
         private void BtnLanguageSettings_Click(object sender, RoutedEventArgs e)
@@ -682,6 +695,29 @@ namespace WhisperVoice
             VadDot.BeginAnimation(UIElement.OpacityProperty, null);
             VadDot.Opacity = 0;
             VadPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private void StartRecordingTimer()
+        {
+            _recSeconds = 0;
+            _recTimer?.Stop();
+            LblMicName.Visibility = Visibility.Visible;
+            _recTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _recTimer.Tick += (_, _) =>
+            {
+                _recSeconds++;
+                int m = _recSeconds / 60;
+                int s = _recSeconds % 60;
+                LblMicName.Text = $"{(string)FindResource("LblRecording")} {m}:{s:D2}";
+            };
+            _recTimer.Start();
+        }
+
+        private void StopRecordingTimer()
+        {
+            _recTimer?.Stop();
+            _recTimer = null;
+            _recSeconds = 0;
         }
 
         private void ShowProcessingPanel(bool show)
