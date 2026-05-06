@@ -388,7 +388,7 @@ namespace WhisperVoice
 
                 StartVadAnimation();
                 UpdateLanguageButton(keyName);
-                SystemSounds.Beep.Play();
+                if (_settings.SoundNotifications) SystemSounds.Beep.Play();
                 StartRecordingTimer();
 
                 LblMicName.Text = $"{(string)FindResource("LblRecording")} 0:00";
@@ -416,7 +416,7 @@ namespace WhisperVoice
                 await _audio.StopRecordingAsync();
                 StopVadAnimation();
                 StopRecordingTimer();
-                SystemSounds.Exclamation.Play();
+                if (_settings.SoundNotifications) SystemSounds.Exclamation.Play();
 
                 var lang = _currentLang;
                 var translate = _currentTranslate;
@@ -491,7 +491,11 @@ namespace WhisperVoice
                 // ── Run whisper-cli.exe ────────────────────────────────────
                 string? rawResult = await _whisper.RunAsync(
                     model, lang, isTranslate, techPrompt,
-                    progress, WriteLog, token);
+                    progress, WriteLog, token,
+                    beamSize:          _settings.BeamSize,
+                    bestOf:            _settings.BestOf,
+                    temperature:       _settings.Temperature,
+                    noSpeechThreshold: _settings.NoSpeechThreshold);
 
                 if (rawResult is null) return;   // cancelled or file not found
 

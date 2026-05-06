@@ -277,6 +277,15 @@ namespace WhisperVoice
             SldVadThreshold.Value = Math.Clamp(_settings.VadThreshold, 1.0, 20.0);
             SldVadSilence.Value = Math.Clamp(_settings.VadSilenceSeconds, 0.5, 5.0);
 
+            // ── Whisper inference params ──────────────────────────────────
+            SldBeamSize.Value      = Math.Clamp(_settings.BeamSize, 1, 10);
+            SldBestOf.Value        = Math.Clamp(_settings.BestOf, 1, 10);
+            SldTemperature.Value   = Math.Clamp(_settings.Temperature, 0.0, 1.0);
+            SldNoSpeechThold.Value = Math.Clamp(_settings.NoSpeechThreshold, 0.0, 1.0);
+
+            // ── Sound notifications ───────────────────────────────────────
+            ChkSoundNotifications.IsChecked = _settings.SoundNotifications;
+
             // ── App interface language ────────────────────────────────────
             AppLanguageCombo.ItemsSource = AppLangMap.Keys;
 
@@ -333,6 +342,62 @@ namespace WhisperVoice
                 TxtVadSilence.Text = $"{SldVadSilence.Value:F1} с";
         }
 
+        private void SldBeamSize_ValueChanged(
+            object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (TxtBeamSize != null)
+                TxtBeamSize.Text = ((int)SldBeamSize.Value).ToString();
+        }
+
+        private void SldBestOf_ValueChanged(
+            object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (TxtBestOf != null)
+                TxtBestOf.Text = ((int)SldBestOf.Value).ToString();
+        }
+
+        private void SldTemperature_ValueChanged(
+            object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (TxtTemperature != null)
+                TxtTemperature.Text = $"{SldTemperature.Value:F2}";
+        }
+
+        private void SldNoSpeechThold_ValueChanged(
+            object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (TxtNoSpeechThold != null)
+                TxtNoSpeechThold.Text = $"{SldNoSpeechThold.Value:F2}";
+        }
+
+        private void BtnResetSliders_Click(object sender, RoutedEventArgs e)
+        {
+            var result = System.Windows.MessageBox.Show(
+                "Сбросить настройки VAD и параметры Whisper к значениям по умолчанию?\n\n" +
+                "• Порог шума → 5 %\n" +
+                "• Пауза тишины → 1,8 с\n" +
+                "• Beam Size → 5\n" +
+                "• Best Of → 5\n" +
+                "• Temperature → 0,00\n" +
+                "• No-Speech Threshold → 0,60\n\n" +
+                "Язык, модель, горячие клавиши и системные настройки не изменятся.",
+                "Сброс настроек",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.OK) return;
+
+            // VAD
+            SldVadThreshold.Value = 5.0;
+            SldVadSilence.Value   = 1.8;
+
+            // Whisper inference params
+            SldBeamSize.Value      = 5;
+            SldBestOf.Value        = 5;
+            SldTemperature.Value   = 0.0;
+            SldNoSpeechThold.Value = 0.6;
+        }
+
         // ══════════════════════════════════════════════════════════════════
         // Save & Close
         // ══════════════════════════════════════════════════════════════════
@@ -361,6 +426,15 @@ namespace WhisperVoice
             // VAD
             _settings.VadThreshold = SldVadThreshold.Value;
             _settings.VadSilenceSeconds = SldVadSilence.Value;
+
+            // Whisper inference params
+            _settings.BeamSize           = (int)SldBeamSize.Value;
+            _settings.BestOf             = (int)SldBestOf.Value;
+            _settings.Temperature        = SldTemperature.Value;
+            _settings.NoSpeechThreshold  = SldNoSpeechThold.Value;
+
+            // Sound notifications
+            _settings.SoundNotifications = ChkSoundNotifications.IsChecked == true;
 
             // Hotkeys — renamed Primary / Translate
             if (ComboHotkeyPrimary.SelectedItem is string hkPrimary)

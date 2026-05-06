@@ -65,6 +65,20 @@ namespace WhisperVoice
         /// <summary>Continuous silence duration (seconds) that auto-triggers stop.</summary>
         public double VadSilenceSeconds { get; set; } = 1.8;
 
+        // ── Whisper inference params ───────────────────────────────────────
+        /// <summary>--beam-size N  (1–10). Default 5 matches whisper.cpp default.</summary>
+        public int BeamSize { get; set; } = 5;
+        /// <summary>--best-of N  (1–10). Candidates sampled when beam_size == 1.</summary>
+        public int BestOf { get; set; } = 5;
+        /// <summary>--temperature F  (0.0–1.0). 0 = greedy / deterministic.</summary>
+        public double Temperature { get; set; } = 0.0;
+        /// <summary>--no-speech-thold F  (0.0–1.0). Segments below this probability are suppressed.</summary>
+        public double NoSpeechThreshold { get; set; } = 0.6;
+
+        // ── UI behaviour ───────────────────────────────────────────────────
+        /// <summary>Play system sounds on recording start/stop when true.</summary>
+        public bool SoundNotifications { get; set; } = true;
+
         // ── Static helpers ─────────────────────────────────────────────────
 
         private static readonly JsonSerializerOptions _jsonOpts =

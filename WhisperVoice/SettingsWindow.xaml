@@ -119,6 +119,69 @@
 
             <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
 
+            <!-- ══ SECTION: Whisper Params ════════════════════════════════ -->
+            <TextBlock Text="Параметры Whisper"
+                       FontSize="14" FontWeight="SemiBold"
+                       Margin="0,0,0,14" Foreground="#333"/>
+
+            <!-- Beam Size -->
+            <StackPanel Margin="0,0,0,14">
+                <Grid Margin="0,0,0,6">
+                    <TextBlock Text="Beam Size" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtBeamSize" HorizontalAlignment="Right"
+                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
+                </Grid>
+                <Slider x:Name="SldBeamSize" Minimum="1" Maximum="10" TickFrequency="1"
+                        IsSnapToTickEnabled="True" Height="28"
+                        ValueChanged="SldBeamSize_ValueChanged"/>
+                <TextBlock Text="Ширина поиска (1 = жадный, 5 = по умолчанию)"
+                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+            </StackPanel>
+
+            <!-- Best Of -->
+            <StackPanel Margin="0,0,0,14">
+                <Grid Margin="0,0,0,6">
+                    <TextBlock Text="Best Of" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtBestOf" HorizontalAlignment="Right"
+                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
+                </Grid>
+                <Slider x:Name="SldBestOf" Minimum="1" Maximum="10" TickFrequency="1"
+                        IsSnapToTickEnabled="True" Height="28"
+                        ValueChanged="SldBestOf_ValueChanged"/>
+                <TextBlock Text="Кандидаты при beam-size=1 (5 = по умолчанию)"
+                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+                <TextBlock Text="⚠ Влияет только при Temperature &gt; 0"
+                           FontSize="10" Foreground="#E65100" Margin="0,2,0,0"/>
+            </StackPanel>
+
+            <!-- Temperature -->
+            <StackPanel Margin="0,0,0,14">
+                <Grid Margin="0,0,0,6">
+                    <TextBlock Text="Temperature" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtTemperature" HorizontalAlignment="Right"
+                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
+                </Grid>
+                <Slider x:Name="SldTemperature" Minimum="0.0" Maximum="1.0" TickFrequency="0.05"
+                        IsSnapToTickEnabled="True" Height="28"
+                        ValueChanged="SldTemperature_ValueChanged"/>
+                <TextBlock Text="0.0 = детерминированный, выше = творческий"
+                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+            </StackPanel>
+
+            <!-- No-Speech Threshold -->
+            <StackPanel Margin="0,0,0,4">
+                <Grid Margin="0,0,0,6">
+                    <TextBlock Text="No-Speech Threshold" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtNoSpeechThold" HorizontalAlignment="Right"
+                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
+                </Grid>
+                <Slider x:Name="SldNoSpeechThold" Minimum="0.0" Maximum="1.0" TickFrequency="0.05"
+                        IsSnapToTickEnabled="True" Height="28"
+                        ValueChanged="SldNoSpeechThold_ValueChanged"/>
+                <TextBlock Text="Сегменты ниже этого порога = тишина (0.6 = по умолчанию)"
+                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+            </StackPanel>
+
             <!-- ══ SECTION: Hotkeys ════════════════════════════════════════ -->
             <TextBlock Text="{DynamicResource SettingsSectionHotkeys}"
                        FontSize="14" FontWeight="SemiBold"
@@ -151,9 +214,22 @@
 
             <CheckBox x:Name="ChkRunAtStartup"
                       Content="Запускать с Windows"
-                      FontSize="12" Margin="0,0,0,20"
+                      FontSize="12" Margin="0,0,0,12"
                       Checked="ChkRunAtStartup_Changed"
                       Unchecked="ChkRunAtStartup_Changed"/>
+
+            <CheckBox x:Name="ChkSoundNotifications"
+                      Content="Звуковые уведомления (старт / стоп записи)"
+                      FontSize="12" Margin="0,0,0,20"/>
+
+            <!-- Reset sliders button -->
+            <Button x:Name="BtnResetSliders"
+                    Content="↺ Сбросить настройки по умолчанию"
+                    Height="34" Margin="0,0,0,8"
+                    Click="BtnResetSliders_Click"
+                    Background="#E0E0E0" Foreground="#333"
+                    FontSize="12" Cursor="Hand"
+                    ToolTip="Сбрасывает VAD (порог шума, пауза тишины) и параметры Whisper (Beam Size, Best Of, Temperature, No-Speech Threshold). Язык, модель, горячие клавиши и системные настройки не затрагиваются."/>
 
             <!-- Save button -->
             <Button x:Name="BtnSaveClose"

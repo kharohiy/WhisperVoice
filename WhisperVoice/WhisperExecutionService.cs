@@ -36,12 +36,17 @@ namespace WhisperVoice.Services
             string techPrompt,
             IProgress<string> progress,
             Action<string>    logAction,
-            CancellationToken token)
+            CancellationToken token,
+            int    beamSize          = 5,
+            int    bestOf            = 5,
+            double temperature       = 0.0,
+            double noSpeechThreshold = 0.6)
         {
             if (File.Exists(TempTxtPath)) File.Delete(TempTxtPath);
 
             int threads = Math.Max(2, Environment.ProcessorCount - 1);
-            string args = BuildArgs(modelPath, lang, isTranslate, techPrompt, threads);
+            string args = BuildArgs(modelPath, lang, isTranslate, techPrompt, threads,
+                                    beamSize, bestOf, temperature, noSpeechThreshold);
 
             logAction($"whisper-cli args: {args}");
             progress.Report("🔍 Запуск Whisper...");
@@ -127,7 +132,8 @@ namespace WhisperVoice.Services
         /// </summary>
         private string BuildArgs(
             string model, string lang, bool isTranslate,
-            string prompt,  int threads)
+            string prompt,  int threads,
+            int beamSize, int bestOf, double temperature, double noSpeechThreshold)
         {
             var sb = new StringBuilder();
             sb.Append($"-m \"{model}\"");
@@ -138,6 +144,10 @@ namespace WhisperVoice.Services
                 sb.Append($" --prompt \"{prompt}\"");
             sb.Append(" -otxt -nt -np");
             sb.Append($" -t {threads}");
+            sb.Append($" --beam-size {beamSize}");
+            sb.Append($" --best-of {bestOf}");
+            sb.Append($" --temperature {temperature.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}");
+            sb.Append($" --no-speech-thold {noSpeechThreshold.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}");
             return sb.ToString();
         }
 
