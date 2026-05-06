@@ -12,6 +12,10 @@ temp.wav
 temp.wav.txt
 whisper_debug.log
 
+# Проектные папки вывода и ресурсов
+WhisperVoice/Output/
+WhisperVoiceIcons/
+
 # Игнорируем ВСЕ тяжелые зависимости и модели (во всех папках)
 *.bin
 *.dll

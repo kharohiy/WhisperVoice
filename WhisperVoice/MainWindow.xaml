@@ -181,20 +181,31 @@
                     Click="BtnClearHistory_Click"/>
         </Grid>
 
-        <ListBox x:Name="HistoryList" Height="152"
+        <ListBox x:Name="HistoryList" Height="200"
                  ItemContainerStyle="{StaticResource HistoryItemStyle}"
                  SelectionChanged="HistoryList_SelectionChanged"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                  Background="White" BorderBrush="#CCC" BorderThickness="1">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <StackPanel>
-                        <TextBlock Text="{Binding TimeLabel}"
-                                   FontSize="9" Foreground="#999"/>
-                        <TextBlock Text="{Binding ShortText}"
-                                   TextWrapping="Wrap" FontSize="11"
-                                   Foreground="#222"/>
-                    </StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="{Binding TimeLabel}"
+                                       FontSize="9" Foreground="#999"/>
+                            <TextBlock Text="{Binding ShortText}"
+                                       TextWrapping="Wrap" FontSize="11"
+                                       Foreground="#222"/>
+                        </StackPanel>
+                        <Border Grid.Column="1" Background="#3D7EAA" CornerRadius="3"
+                                Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Badge}"
+                                       FontSize="9" Foreground="White" FontWeight="Bold"/>
+                        </Border>
+                    </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>

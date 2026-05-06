@@ -17,27 +17,26 @@ namespace WhisperVoice
         /// </summary>
         protected override void OnStartup(StartupEventArgs e)
         {
-            // CRITICAL: Check mutex BEFORE base.OnStartup to prevent ANY WPF initialization
             _instanceMutex = new Mutex(true, MutexName, out bool createdNew);
 
             if (!createdNew)
             {
-                // Another instance already running - exit immediately without initializing WPF resources
-                System.Windows.MessageBox.Show(
-                    "Application is already running.",
-                    "Whisper Voice",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-
-                Current.Shutdown();
+                // Another instance is running — exit without touching WPF
+                _instanceMutex.Dispose();
+                Environment.Exit(0);
                 return;
             }
 
-            // Only initialize WPF if we are the first instance
             base.OnStartup(e);
 
+            bool isAutoStart = e.Args.Contains("--autostart");
+
             var mainWindow = new MainWindow();
-            mainWindow.Show();
+
+            if (isAutoStart)
+                mainWindow.Hide();   // start silently in tray at boot
+            else
+                mainWindow.Show();
         }
 
         /// <summary>

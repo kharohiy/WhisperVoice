@@ -17,6 +17,7 @@ namespace WhisperVoice
             InitializeComponent();
             LbTags.ItemsSource = Tags;
             LoadTags();
+            LoadTranslatePrompt();
         }
 
         public void LoadTags()
@@ -28,14 +29,18 @@ namespace WhisperVoice
                 var words = text.Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
                                 .Select(w => w.Trim())
                                 .Where(w => w.Length > 0);
-
                 foreach (var w in words) Tags.Add(w);
             }
         }
 
+        private void LoadTranslatePrompt()
+        {
+            TxtTranslatePrompt.Text = AppSettings.Load().PromptTranslate;
+        }
+
         private void BtnAdd_Click(object sender, RoutedEventArgs e)
         {
-            var text = TxtInput.Text.Trim().Replace(",", ""); // guard against delimiter collision
+            var text = TxtInput.Text.Trim().Replace(",", "");
             if (!string.IsNullOrEmpty(text) && !Tags.Contains(text))
             {
                 Tags.Add(text);
@@ -65,10 +70,16 @@ namespace WhisperVoice
         {
             try
             {
+                // Save primary tag list
                 var dir = Path.GetDirectoryName(dictPath);
                 if (dir != null && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
-
                 File.WriteAllText(dictPath, string.Join(", ", Tags));
+
+                // Save translate prompt to AppSettings
+                var settings = AppSettings.Load();
+                settings.PromptTranslate = TxtTranslatePrompt.Text.Trim();
+                settings.Save();
+
                 this.Hide();
             }
             catch (Exception ex)

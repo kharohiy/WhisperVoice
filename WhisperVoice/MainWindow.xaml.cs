@@ -23,9 +23,14 @@ namespace WhisperVoice
     {
         public string Text { get; set; } = "";
         public string TimeLabel { get; set; } = "";
+        public string Lang { get; set; } = "";
+        public bool IsTranslate { get; set; }
 
         public string ShortText =>
             Text.Length > 120 ? Text[..117] + "..." : Text;
+
+        /// <summary>Small badge shown in history: "→EN" for translate mode, or e.g. "RU" for transcription.</summary>
+        public string Badge => IsTranslate ? "→EN" : Lang.ToUpper();
     }
 
     // ── MainWindow — View / Orchestrator only ──────────────────────────────
@@ -240,7 +245,7 @@ namespace WhisperVoice
         {
             _trayIcon = new System.Windows.Forms.NotifyIcon
             {
-                Icon = new System.Drawing.Icon("WhisperVoice.ico"), // Custom icon
+                Icon = new System.Drawing.Icon(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "WhisperVoice.ico")), // Custom icon
                 Visible = true,
                 Text = "Whisper Voice"
             };
@@ -431,7 +436,7 @@ namespace WhisperVoice
                         LblStatus.Text = msg;
                 });
 
-                await ProcessWhisperAsync(lang, translate, progress, _whisperCts.Token);
+                await ProcessWhisperAsync(lang, translate, translate ? _settings.PromptTranslate : LoadDictPrompt(), progress, _whisperCts.Token);
 
                 _isProcessing = false;
                 ShowProcessingPanel(false);
@@ -447,7 +452,7 @@ namespace WhisperVoice
         // Whisper orchestration
         // ══════════════════════════════════════════════════════════════════
         private async Task ProcessWhisperAsync(
-            string lang, bool isTranslate,
+            string lang, bool isTranslate, string techPrompt,
             IProgress<string> progress, CancellationToken token)
         {
             try
@@ -483,8 +488,6 @@ namespace WhisperVoice
                         : Path.Combine(BaseDir, "models", "ggml-large-v3.bin");
                 });
 
-                string techPrompt = LoadDictPrompt();
-
                 // ── Run whisper-cli.exe ────────────────────────────────────
                 string? rawResult = await _whisper.RunAsync(
                     model, lang, isTranslate, techPrompt,
@@ -510,7 +513,7 @@ namespace WhisperVoice
 
                 await Dispatcher.InvokeAsync(async () =>
                 {
-                    AddToHistory(finalResult);
+                    AddToHistory(finalResult, lang, isTranslate);
                     System.Windows.Clipboard.SetText(finalResult);
                     await Task.Delay(100);
                     _inputSim.Keyboard.ModifiedKeyStroke(
@@ -538,12 +541,14 @@ namespace WhisperVoice
         // ══════════════════════════════════════════════════════════════════
         // History
         // ══════════════════════════════════════════════════════════════════
-        private void AddToHistory(string text)
+        private void AddToHistory(string text, string lang, bool isTranslate)
         {
             _history.Insert(0, new TranscriptionEntry
             {
                 Text = text,
-                TimeLabel = DateTime.Now.ToString("HH:mm:ss")
+                TimeLabel = DateTime.Now.ToString("HH:mm:ss"),
+                Lang = lang,
+                IsTranslate = isTranslate
             });
             while (_history.Count > MaxHistory)
                 _history.RemoveAt(_history.Count - 1);

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Win32;
 
 namespace WhisperVoice
 {
@@ -57,6 +58,53 @@ namespace WhisperVoice
             LoadModels();
             LoadSettings();
         }
+
+        // ══════════════════════════════════════════════════════════════════
+        // Windows startup
+        // ══════════════════════════════════════════════════════════════════
+        private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+        private const string AppName    = "WhisperVoice";
+
+        private void LoadStartupCheckbox()
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: false);
+
+            string? savedValue = key?.GetValue(AppName) as string;
+            string currentExe = $"\"{Environment.ProcessPath}\" --autostart";
+
+            // Only check if the registry value matches THIS exe
+            bool isRegistered = savedValue != null &&
+                savedValue.Equals(currentExe, StringComparison.OrdinalIgnoreCase);
+
+            ChkRunAtStartup.Checked -= ChkRunAtStartup_Changed;
+            ChkRunAtStartup.Unchecked -= ChkRunAtStartup_Changed;
+            ChkRunAtStartup.IsChecked = isRegistered;
+            ChkRunAtStartup.Checked += ChkRunAtStartup_Changed;
+            ChkRunAtStartup.Unchecked += ChkRunAtStartup_Changed;
+        }
+
+        private void ChkRunAtStartup_Changed(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath, writable: true);
+                if (key == null) return;
+
+                if (ChkRunAtStartup.IsChecked == true)
+                {
+                    // Always use the actual running exe path — never a hardcoded string
+                    string exePath = Environment.ProcessPath ??
+                                     System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName;
+                    key.SetValue(AppName, $"\"{exePath}\" --autostart");
+                }
+                else
+                {
+                    key.DeleteValue(AppName, throwOnMissingValue: false);
+                }
+            }
+            catch { }
+        }
+
 
         // ══════════════════════════════════════════════════════════════════
         // Model selector
@@ -249,6 +297,9 @@ namespace WhisperVoice
 
             ComboHotkeyTranslate.SelectedItem = HotkeyOptions.Contains(_settings.HotkeyTranslate)
                 ? _settings.HotkeyTranslate : "F9";
+
+            // ── Startup ───────────────────────────────────────────────────
+            LoadStartupCheckbox();
         }
 
         // ══════════════════════════════════════════════════════════════════

@@ -142,6 +142,19 @@
                           ToolTip="{DynamicResource SettingsTooltipHotkeyTranslate}"/>
             </StackPanel>
 
+            <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
+
+            <!-- ══ SECTION: System ════════════════════════════════════════ -->
+            <TextBlock Text="Система"
+                       FontSize="14" FontWeight="SemiBold"
+                       Margin="0,0,0,14" Foreground="#333"/>
+
+            <CheckBox x:Name="ChkRunAtStartup"
+                      Content="Запускать с Windows"
+                      FontSize="12" Margin="0,0,0,20"
+                      Checked="ChkRunAtStartup_Changed"
+                      Unchecked="ChkRunAtStartup_Changed"/>
+
             <!-- Save button -->
             <Button x:Name="BtnSaveClose"
                     Content="{DynamicResource BtnSaveCloseText}"

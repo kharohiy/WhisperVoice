@@ -55,6 +55,10 @@ namespace WhisperVoice
             };
         }
 
+        // ── Prompts ────────────────────────────────────────────────────
+        /// <summary>Prompt used when HotkeyTranslate fires (translate mode). Empty = no prompt.</summary>
+        public string PromptTranslate { get; set; } = "";
+
         // ── VAD ────────────────────────────────────────────────────────────
         /// <summary>Peak percentage below which the microphone is considered silent.</summary>
         public double VadThreshold { get; set; } = 5.0;
