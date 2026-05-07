@@ -78,4 +78,66 @@
     <sys:String x:Key="MissingModelDownloadBtn">⬇️ Завантажити модель (Hugging Face)</sys:String>
     <sys:String x:Key="MissingModelSettingsBtn">⚙️ Відкрити налаштування</sys:String>
     <sys:String x:Key="WindowTitleMissingModel">Модель ШІ не знайдена</sys:String>
+
+    <!-- ══ HardwareCheckService ══════════════════════════════════════════ -->
+    <sys:String x:Key="ErrLowRam">Недостатньо оперативної пам'яті (потрібно ≥ {0} МБ вільно).</sys:String>
+    <sys:String x:Key="ErrLowVram">VRAM майже заповнена ({0} МБ вільно, потрібно ≥ {1} МБ).</sys:String>
+
+    <!-- ══ SettingsWindow — MessageBoxes ════════════════════════════════ -->
+    <sys:String x:Key="MsgModelExistsBody">Модель '{0}' вже існує.&#x0a;Перезаписати?</sys:String>
+    <sys:String x:Key="MsgModelExistsTitle">Модель існує</sys:String>
+    <sys:String x:Key="MsgModelAddedBody">Модель '{0}' успішно додана.</sys:String>
+    <sys:String x:Key="MsgModelAddedTitle">Успіх</sys:String>
+    <sys:String x:Key="MsgModelAccessDeniedBody">Доступ заборонено. Запустіть від імені адміністратора або оберіть іншу папку.</sys:String>
+    <sys:String x:Key="MsgModelAccessDeniedTitle">Помилка</sys:String>
+    <sys:String x:Key="MsgModelFailedBody">Не вдалося додати модель:&#x0a;{0}</sys:String>
+    <sys:String x:Key="MsgModelFailedTitle">Помилка</sys:String>
+    <sys:String x:Key="MsgModelLoadErrorAccess">Доступ заборонено — перевірте права</sys:String>
+    <sys:String x:Key="MsgModelLoadError">Помилка: {0}</sys:String>
+    <sys:String x:Key="MsgResetSlidersBody">Скинути налаштування VAD і параметри Whisper до значень за замовчуванням?&#x0a;&#x0a;• Поріг шуму → 5 %&#x0a;• Пауза тиші → 1,8 с&#x0a;• Beam Size → 5&#x0a;• Best Of → 5&#x0a;• Temperature → 0,00&#x0a;• No-Speech Threshold → 0,60&#x0a;&#x0a;Мова, модель, гарячі клавіші та системні налаштування не зміняться.</sys:String>
+    <sys:String x:Key="MsgResetSlidersTitle">Скидання налаштувань</sys:String>
+    <sys:String x:Key="MsgInfoTitle">Інформація</sys:String>
+    <sys:String x:Key="MsgUnhandledErrorBody">Помилка:&#x0a;{0}</sys:String>
+
+    <!-- ══ SettingsWindow — VAD unit suffix ════════════════════════════ -->
+    <sys:String x:Key="UnitSeconds"> с</sys:String>
+
+    <!-- ══ Language display names (for UpdateLanguageButton) ═══════════ -->
+    <sys:String x:Key="LangNameEn">Англійська</sys:String>
+    <sys:String x:Key="LangNameRu">Російська</sys:String>
+    <sys:String x:Key="LangNameUk">Українська</sys:String>
+    <sys:String x:Key="LangNamePl">Польська</sys:String>
+    <sys:String x:Key="LangNameDe">Німецька</sys:String>
+    <sys:String x:Key="LangNameEs">Іспанська</sys:String>
+    <sys:String x:Key="LangNameFr">Французька</sys:String>
+
+    <!-- ══ MicWindow ══════════════════════════════════════════════════════ -->
+    <sys:String x:Key="BtnWinSoundText">⚙️ Налаштування звуку Windows</sys:String>
+    <sys:String x:Key="BtnSelectText">Вибрати</sys:String>
+
+    <!-- ══ PromptWindow ═══════════════════════════════════════════════════ -->
+    <sys:String x:Key="PromptPrimaryLabel">Теги-підказки для нейромережі:</sys:String>
+    <sys:String x:Key="PromptTranslateLabel">Промпт для перекладу (передається в --prompt):</sys:String>
+    <sys:String x:Key="BtnAddTagText">➕ Додати</sys:String>
+    <sys:String x:Key="BtnDeleteTagText">❌ Видалити</sys:String>
+    <sys:String x:Key="BtnPromptSaveText">💾 Зберегти</sys:String>
+
+    <!-- ══ NotepadWindow ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="BtnCopyAllText">📋 Копіювати все</sys:String>
+    <sys:String x:Key="BtnClearAllText">🗑️ Стерти все</sys:String>
+
+    <!-- ══ SettingsWindow — Whisper Params section ════════════════════════ -->
+    <sys:String x:Key="SettingsSectionWhisperParams">⚙️ Параметри Whisper</sys:String>
+    <sys:String x:Key="SettingsHintBeamSize">Ширина пошуку (1 = жадібний, 5 = за замовчуванням)</sys:String>
+    <sys:String x:Key="SettingsHintBestOf">Кандидати при beam-size=1 (5 = за замовчуванням)</sys:String>
+    <sys:String x:Key="SettingsWarnBestOf">⚠ Впливає лише при Temperature &gt; 0</sys:String>
+    <sys:String x:Key="SettingsHintTemperature">0.0 = детермінований, вище = творчий</sys:String>
+    <sys:String x:Key="SettingsHintNoSpeech">Сегменти нижче цього порогу = тиша (0.6 = за замовчуванням)</sys:String>
+
+    <!-- ══ SettingsWindow — System section ════════════════════════════════ -->
+    <sys:String x:Key="SettingsSectionSystem">🖥️ Система</sys:String>
+    <sys:String x:Key="ChkRunAtStartupText">Запускати з Windows</sys:String>
+    <sys:String x:Key="ChkSoundNotificationsText">Звукові сповіщення (старт / стоп запису)</sys:String>
+    <sys:String x:Key="BtnResetSlidersText">↺ Скинути до значень за замовчуванням</sys:String>
+    <sys:String x:Key="BtnResetSlidersTooltip">Скидає VAD (поріг шуму, пауза тиші) та параметри Whisper (Beam Size, Best Of, Temperature, No-Speech Threshold). Мова, модель, гарячі клавіші та системні налаштування не зачіпаються.</sys:String>
 </ResourceDictionary>

@@ -9,6 +9,8 @@ namespace WhisperVoice.Services
     /// <summary>
     /// Performs local hardware availability checks before heavy Whisper operations.
     /// Extracted from MainWindow to honour SRP.
+    /// Error message format strings are injected by the caller so this service
+    /// stays free of any UI / localisation concerns.
     /// </summary>
     public class HardwareCheckService
     {
@@ -19,7 +21,8 @@ namespace WhisperVoice.Services
         public int MinRamMb { get; set; } = 400;
 
         // ── RAM ────────────────────────────────────────────────────────────
-        public Task<(bool Ok, string Message)> CheckRamAsync()
+        /// <param name="errorFormat">Format string with one placeholder {0} for MinRamMb.</param>
+        public Task<(bool Ok, string Message)> CheckRamAsync(string errorFormat = "Not enough RAM (need ≥ {0} MB free).")
         {
             return Task.Run(() =>
             {
@@ -30,13 +33,14 @@ namespace WhisperVoice.Services
                 }
                 catch (InsufficientMemoryException)
                 {
-                    return (false, $"Недостаточно оперативной памяти (нужно ≥ {MinRamMb} МБ свободно).");
+                    return (false, string.Format(errorFormat, MinRamMb));
                 }
             });
         }
 
         // ── VRAM ───────────────────────────────────────────────────────────
-        public async Task<(bool Ok, string Message)> CheckVramAsync()
+        /// <param name="errorFormat">Format string with two placeholders: {0} = free MB, {1} = MinVramMb.</param>
+        public async Task<(bool Ok, string Message)> CheckVramAsync(string errorFormat = "VRAM almost full ({0} MB free, need ≥ {1} MB).")
         {
             try
             {
@@ -44,8 +48,8 @@ namespace WhisperVoice.Services
                     "nvidia-smi",
                     "--query-gpu=memory.free --format=csv,noheader,nounits")
                 {
-                    UseShellExecute      = false,
-                    CreateNoWindow       = true,
+                    UseShellExecute        = false,
+                    CreateNoWindow         = true,
                     RedirectStandardOutput = true
                 };
 
@@ -62,7 +66,7 @@ namespace WhisperVoice.Services
                     .Min();
 
                 if (minFree < MinVramMb)
-                    return (false, $"VRAM почти заполнена ({minFree} МБ свободно, нужно ≥ {MinVramMb} МБ).");
+                    return (false, string.Format(errorFormat, minFree, MinVramMb));
 
                 return (true, string.Empty);
             }

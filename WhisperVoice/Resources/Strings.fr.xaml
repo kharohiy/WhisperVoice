@@ -78,4 +78,66 @@
     <sys:String x:Key="MissingModelDownloadBtn">⬇️ Télécharger le modèle (Hugging Face)</sys:String>
     <sys:String x:Key="MissingModelSettingsBtn">⚙️ Ouvrir les paramètres</sys:String>
     <sys:String x:Key="WindowTitleMissingModel">Modèle IA introuvable</sys:String>
+
+    <!-- ══ HardwareCheckService ══════════════════════════════════════════ -->
+    <sys:String x:Key="ErrLowRam">RAM insuffisante (il faut ≥ {0} Mo libres).</sys:String>
+    <sys:String x:Key="ErrLowVram">VRAM presque pleine ({0} Mo libres, il faut ≥ {1} Mo).</sys:String>
+
+    <!-- ══ SettingsWindow — MessageBoxes ════════════════════════════════ -->
+    <sys:String x:Key="MsgModelExistsBody">Le modèle '{0}' existe déjà.&#x0a;Écraser ?</sys:String>
+    <sys:String x:Key="MsgModelExistsTitle">Modèle existant</sys:String>
+    <sys:String x:Key="MsgModelAddedBody">Modèle '{0}' ajouté avec succès.</sys:String>
+    <sys:String x:Key="MsgModelAddedTitle">Succès</sys:String>
+    <sys:String x:Key="MsgModelAccessDeniedBody">Accès refusé. Exécutez en tant qu'administrateur ou choisissez un autre dossier.</sys:String>
+    <sys:String x:Key="MsgModelAccessDeniedTitle">Erreur</sys:String>
+    <sys:String x:Key="MsgModelFailedBody">Impossible d'ajouter le modèle :&#x0a;{0}</sys:String>
+    <sys:String x:Key="MsgModelFailedTitle">Erreur</sys:String>
+    <sys:String x:Key="MsgModelLoadErrorAccess">Accès refusé — vérifiez les permissions</sys:String>
+    <sys:String x:Key="MsgModelLoadError">Erreur : {0}</sys:String>
+    <sys:String x:Key="MsgResetSlidersBody">Réinitialiser les paramètres VAD et Whisper aux valeurs par défaut ?&#x0a;&#x0a;• Seuil de bruit → 5 %&#x0a;• Pause de silence → 1,8 s&#x0a;• Beam Size → 5&#x0a;• Best Of → 5&#x0a;• Temperature → 0,00&#x0a;• No-Speech Threshold → 0,60&#x0a;&#x0a;La langue, le modèle, les raccourcis clavier et les paramètres système ne changeront pas.</sys:String>
+    <sys:String x:Key="MsgResetSlidersTitle">Réinitialiser les paramètres</sys:String>
+    <sys:String x:Key="MsgInfoTitle">Information</sys:String>
+    <sys:String x:Key="MsgUnhandledErrorBody">Erreur :&#x0a;{0}</sys:String>
+
+    <!-- ══ SettingsWindow — VAD unit suffix ════════════════════════════ -->
+    <sys:String x:Key="UnitSeconds"> s</sys:String>
+
+    <!-- ══ Language display names (for UpdateLanguageButton) ═══════════ -->
+    <sys:String x:Key="LangNameEn">Anglais</sys:String>
+    <sys:String x:Key="LangNameRu">Russe</sys:String>
+    <sys:String x:Key="LangNameUk">Ukrainien</sys:String>
+    <sys:String x:Key="LangNamePl">Polonais</sys:String>
+    <sys:String x:Key="LangNameDe">Allemand</sys:String>
+    <sys:String x:Key="LangNameEs">Espagnol</sys:String>
+    <sys:String x:Key="LangNameFr">Français</sys:String>
+
+    <!-- ══ MicWindow ══════════════════════════════════════════════════════ -->
+    <sys:String x:Key="BtnWinSoundText">⚙️ Paramètres son Windows</sys:String>
+    <sys:String x:Key="BtnSelectText">Sélectionner</sys:String>
+
+    <!-- ══ PromptWindow ═══════════════════════════════════════════════════ -->
+    <sys:String x:Key="PromptPrimaryLabel">Tags d'indication pour le réseau neuronal :</sys:String>
+    <sys:String x:Key="PromptTranslateLabel">Prompt de traduction (transmis à --prompt) :</sys:String>
+    <sys:String x:Key="BtnAddTagText">➕ Ajouter</sys:String>
+    <sys:String x:Key="BtnDeleteTagText">❌ Supprimer</sys:String>
+    <sys:String x:Key="BtnPromptSaveText">💾 Enregistrer</sys:String>
+
+    <!-- ══ NotepadWindow ══════════════════════════════════════════════════ -->
+    <sys:String x:Key="BtnCopyAllText">📋 Tout copier</sys:String>
+    <sys:String x:Key="BtnClearAllText">🗑️ Tout effacer</sys:String>
+
+    <!-- ══ SettingsWindow — Whisper Params section ════════════════════════ -->
+    <sys:String x:Key="SettingsSectionWhisperParams">⚙️ Paramètres Whisper</sys:String>
+    <sys:String x:Key="SettingsHintBeamSize">Largeur de recherche (1 = glouton, 5 = par défaut)</sys:String>
+    <sys:String x:Key="SettingsHintBestOf">Candidats pour beam-size=1 (5 = par défaut)</sys:String>
+    <sys:String x:Key="SettingsWarnBestOf">⚠ Actif uniquement si Temperature &gt; 0</sys:String>
+    <sys:String x:Key="SettingsHintTemperature">0.0 = déterministe, plus élevé = plus créatif</sys:String>
+    <sys:String x:Key="SettingsHintNoSpeech">Segments en dessous de ce seuil = silence (0.6 = par défaut)</sys:String>
+
+    <!-- ══ SettingsWindow — System section ════════════════════════════════ -->
+    <sys:String x:Key="SettingsSectionSystem">🖥️ Système</sys:String>
+    <sys:String x:Key="ChkRunAtStartupText">Lancer au démarrage de Windows</sys:String>
+    <sys:String x:Key="ChkSoundNotificationsText">Notifications sonores (début / fin d'enregistrement)</sys:String>
+    <sys:String x:Key="BtnResetSlidersText">↺ Réinitialiser les paramètres</sys:String>
+    <sys:String x:Key="BtnResetSlidersTooltip">Réinitialise le VAD (seuil de bruit, pause de silence) et les paramètres Whisper (Beam Size, Best Of, Temperature, No-Speech Threshold). La langue, le modèle, les raccourcis et les paramètres système ne sont pas affectés.</sys:String>
 </ResourceDictionary>

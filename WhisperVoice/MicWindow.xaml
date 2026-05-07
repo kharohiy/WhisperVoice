@@ -14,12 +14,12 @@
                  DisplayMemberPath="Name"
                  MouseDoubleClick="LbMics_MouseDoubleClick"/>
 
-        <Button Grid.Row="1" Content="⚙️ Настройки звука Windows"
+        <Button Grid.Row="1" Content="{DynamicResource BtnWinSoundText}"
                 Height="30" HorizontalAlignment="Stretch"
                 Margin="0,0,0,8"
                 Click="BtnWinSound_Click"/>
 
-        <Button Grid.Row="2" Content="Выбрать"
+        <Button Grid.Row="2" Content="{DynamicResource BtnSelectText}"
                 Height="30" Width="100" HorizontalAlignment="Center"
                 Click="BtnSelect_Click"/>
     </Grid>

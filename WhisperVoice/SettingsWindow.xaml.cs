@@ -161,7 +161,7 @@ namespace WhisperVoice
             {
                 ModelCombo.Items.Add(new ModelEntry
                 {
-                    Name = "Access denied — check permissions",
+                    Name = TryGetResource("MsgModelLoadErrorAccess", "Access denied — check permissions"),
                     Path = ""
                 });
             }
@@ -169,7 +169,7 @@ namespace WhisperVoice
             {
                 ModelCombo.Items.Add(new ModelEntry
                 {
-                    Name = $"Error: {ex.Message}",
+                    Name = string.Format(TryGetResource("MsgModelLoadError", "Error: {0}"), ex.Message),
                     Path = ""
                 });
             }
@@ -211,8 +211,8 @@ namespace WhisperVoice
                 if (File.Exists(destPath))
                 {
                     var result = System.Windows.MessageBox.Show(
-                        $"Model '{fileName}' already exists.\nOverwrite?",
-                        "Model exists",
+                        string.Format(TryGetResource("MsgModelExistsBody", "Model '{0}' already exists.\nOverwrite?"), fileName),
+                        TryGetResource("MsgModelExistsTitle", "Model exists"),
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Question);
 
@@ -231,24 +231,24 @@ namespace WhisperVoice
                     ModelCombo.SelectedItem = newEntry;
 
                 System.Windows.MessageBox.Show(
-                    $"Model '{fileName}' added successfully.",
-                    "Success",
+                    string.Format(TryGetResource("MsgModelAddedBody", "Model '{0}' added successfully."), fileName),
+                    TryGetResource("MsgModelAddedTitle", "Success"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
             }
             catch (UnauthorizedAccessException)
             {
                 System.Windows.MessageBox.Show(
-                    "Access denied. Run as administrator or choose different destination.",
-                    "Error",
+                    TryGetResource("MsgModelAccessDeniedBody", "Access denied. Run as administrator or choose a different destination."),
+                    TryGetResource("MsgModelAccessDeniedTitle", "Error"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
                 System.Windows.MessageBox.Show(
-                    $"Failed to add model:\n{ex.Message}",
-                    "Error",
+                    string.Format(TryGetResource("MsgModelFailedBody", "Failed to add model:\n{0}"), ex.Message),
+                    TryGetResource("MsgModelFailedTitle", "Error"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -262,7 +262,7 @@ namespace WhisperVoice
             // ── Language ──────────────────────────────────────────────────
             LanguageCombo.ItemsSource = LanguageMap.Keys;
 
-            string displayName = "Русский";
+            string displayName = "English";
             foreach (var kvp in LanguageMap)
             {
                 if (kvp.Value == _settings.LanguagePrimary)
@@ -339,7 +339,7 @@ namespace WhisperVoice
             object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (TxtVadSilence != null)
-                TxtVadSilence.Text = $"{SldVadSilence.Value:F1} с";
+                TxtVadSilence.Text = $"{SldVadSilence.Value:F1}{TryGetResource("UnitSeconds", " s")}";
         }
 
         private void SldBeamSize_ValueChanged(
@@ -373,15 +373,8 @@ namespace WhisperVoice
         private void BtnResetSliders_Click(object sender, RoutedEventArgs e)
         {
             var result = System.Windows.MessageBox.Show(
-                "Сбросить настройки VAD и параметры Whisper к значениям по умолчанию?\n\n" +
-                "• Порог шума → 5 %\n" +
-                "• Пауза тишины → 1,8 с\n" +
-                "• Beam Size → 5\n" +
-                "• Best Of → 5\n" +
-                "• Temperature → 0,00\n" +
-                "• No-Speech Threshold → 0,60\n\n" +
-                "Язык, модель, горячие клавиши и системные настройки не изменятся.",
-                "Сброс настроек",
+                TryGetResource("MsgResetSlidersBody", "Reset VAD settings and Whisper parameters to defaults?"),
+                TryGetResource("MsgResetSlidersTitle", "Reset settings"),
                 MessageBoxButton.OKCancel,
                 MessageBoxImage.Question);
 
@@ -444,6 +437,15 @@ namespace WhisperVoice
                 _settings.HotkeyTranslate = hkTranslate;
 
             _settings.Save();
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // Localisation helper
+        // ══════════════════════════════════════════════════════════════════
+        private string TryGetResource(string key, string fallback)
+        {
+            try { return (string)FindResource(key); }
+            catch { return fallback; }
         }
     }
 }

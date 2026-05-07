@@ -458,7 +458,10 @@ namespace WhisperVoice
             try
             {
                 // ── Resource pre-checks ────────────────────────────────────
-                var (ramOk, ramMsg) = await _hardware.CheckRamAsync();
+                string ramFmt  = await Dispatcher.InvokeAsync(() => TryGetResource("ErrLowRam",  "Not enough RAM (need ≥ {0} MB free)."));
+                string vramFmt = await Dispatcher.InvokeAsync(() => TryGetResource("ErrLowVram", "VRAM almost full ({0} MB free, need ≥ {1} MB)."));
+
+                var (ramOk, ramMsg) = await _hardware.CheckRamAsync(ramFmt);
                 if (!ramOk)
                 {
                     await Dispatcher.InvokeAsync(() =>
@@ -468,7 +471,7 @@ namespace WhisperVoice
                     return;
                 }
 
-                var (vramOk, vramMsg) = await _hardware.CheckVramAsync();
+                var (vramOk, vramMsg) = await _hardware.CheckVramAsync(vramFmt);
                 if (!vramOk)
                 {
                     var choice = await Dispatcher.InvokeAsync(() =>
@@ -536,7 +539,8 @@ namespace WhisperVoice
             {
                 WriteLog($"ProcessWhisperAsync unhandled: {ex}");
                 await Dispatcher.InvokeAsync(() =>
-                    System.Windows.MessageBox.Show(this, $"Ошибка:\n{ex.Message}",
+                    System.Windows.MessageBox.Show(this,
+                        string.Format(TryGetResource("MsgUnhandledErrorBody", "Error:\n{0}"), ex.Message),
                         (string)FindResource("MsgErrorTitle"),
                         MessageBoxButton.OK, MessageBoxImage.Error));
             }
@@ -698,16 +702,17 @@ namespace WhisperVoice
         private void UpdateLanguageButton(string? activeKey = null)
         {
             _settings = AppSettings.Load();
-            string langName = _settings.LanguagePrimary switch
+            string langKey = _settings.LanguagePrimary switch
             {
-                "en" => "English",
-                "uk" => "Українська",
-                "pl" => "Polski",
-                "de" => "Deutsch",
-                "es" => "Español",
-                "fr" => "Français",
-                _ => "Русский"
+                "en" => "LangNameEn",
+                "uk" => "LangNameUk",
+                "pl" => "LangNamePl",
+                "de" => "LangNameDe",
+                "es" => "LangNameEs",
+                "fr" => "LangNameFr",
+                _    => "LangNameRu"
             };
+            string langName = TryGetResource(langKey, _settings.LanguagePrimary.ToUpper());
 
             if (LblCurrentLanguage != null)
                 LblCurrentLanguage.Text = string.IsNullOrEmpty(activeKey)
@@ -850,7 +855,7 @@ namespace WhisperVoice
             Dispatcher.InvokeAsync(() =>
             {
                 string message = TryGetResource(resourceKey, resourceKey);
-                string title = TryGetResource("MsgErrorTitle", "Внимание"); // Fallback
+                string title = TryGetResource("MsgErrorTitle", "Error"); // Fallback
 
                 System.Windows.MessageBox.Show(
                     this, message, title,
@@ -863,7 +868,7 @@ namespace WhisperVoice
         {
             Dispatcher.InvokeAsync(() =>
             {
-                string title = TryGetResource("MsgInfoTitle", ""); // Или «Инфо»
+                string title = TryGetResource("MsgInfoTitle", "Info");
 
                 System.Windows.MessageBox.Show(
                     this, message, title,
@@ -884,7 +889,7 @@ namespace WhisperVoice
             {
                 if (_activeMode != RecordMode.None) await StopAndProcessAsync();
                 ShowErrorPopup("ErrMicUnplugged");
-                UpdateMicLabel(TryGetResource("LblNoMicSelected", "Микрофон отключен"), ok: false);
+                UpdateMicLabel(TryGetResource("LblNoMicSelected", "⚠️ SELECT A MICROPHONE!"), ok: false);
             });
         }
     }

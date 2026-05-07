@@ -39,7 +39,7 @@
             <Separator Margin="0,10,0,10" Background="#CCCCCC"/>
 
             <!-- Model Whisper -->
-            <TextBlock Text="Модель Whisper:" Margin="0,12,0,4" FontSize="12" FontWeight="SemiBold"/>
+            <TextBlock Text="{DynamicResource SettingsLblModel}" Margin="0,12,0,4" FontSize="12" FontWeight="SemiBold"/>
 
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -120,7 +120,7 @@
             <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
 
             <!-- ══ SECTION: Whisper Params ════════════════════════════════ -->
-            <TextBlock Text="Параметры Whisper"
+            <TextBlock Text="{DynamicResource SettingsSectionWhisperParams}"
                        FontSize="14" FontWeight="SemiBold"
                        Margin="0,0,0,14" Foreground="#333"/>
 
@@ -134,7 +134,7 @@
                 <Slider x:Name="SldBeamSize" Minimum="1" Maximum="10" TickFrequency="1"
                         IsSnapToTickEnabled="True" Height="28"
                         ValueChanged="SldBeamSize_ValueChanged"/>
-                <TextBlock Text="Ширина поиска (1 = жадный, 5 = по умолчанию)"
+                <TextBlock Text="{DynamicResource SettingsHintBeamSize}"
                            FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
             </StackPanel>
 
@@ -148,9 +148,9 @@
                 <Slider x:Name="SldBestOf" Minimum="1" Maximum="10" TickFrequency="1"
                         IsSnapToTickEnabled="True" Height="28"
                         ValueChanged="SldBestOf_ValueChanged"/>
-                <TextBlock Text="Кандидаты при beam-size=1 (5 = по умолчанию)"
+                <TextBlock Text="{DynamicResource SettingsHintBestOf}"
                            FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
-                <TextBlock Text="⚠ Влияет только при Temperature &gt; 0"
+                <TextBlock Text="{DynamicResource SettingsWarnBestOf}"
                            FontSize="10" Foreground="#E65100" Margin="0,2,0,0"/>
             </StackPanel>
 
@@ -164,7 +164,7 @@
                 <Slider x:Name="SldTemperature" Minimum="0.0" Maximum="1.0" TickFrequency="0.05"
                         IsSnapToTickEnabled="True" Height="28"
                         ValueChanged="SldTemperature_ValueChanged"/>
-                <TextBlock Text="0.0 = детерминированный, выше = творческий"
+                <TextBlock Text="{DynamicResource SettingsHintTemperature}"
                            FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
             </StackPanel>
 
@@ -178,7 +178,7 @@
                 <Slider x:Name="SldNoSpeechThold" Minimum="0.0" Maximum="1.0" TickFrequency="0.05"
                         IsSnapToTickEnabled="True" Height="28"
                         ValueChanged="SldNoSpeechThold_ValueChanged"/>
-                <TextBlock Text="Сегменты ниже этого порога = тишина (0.6 = по умолчанию)"
+                <TextBlock Text="{DynamicResource SettingsHintNoSpeech}"
                            FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
             </StackPanel>
 
@@ -208,28 +208,28 @@
             <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
 
             <!-- ══ SECTION: System ════════════════════════════════════════ -->
-            <TextBlock Text="Система"
+            <TextBlock Text="{DynamicResource SettingsSectionSystem}"
                        FontSize="14" FontWeight="SemiBold"
                        Margin="0,0,0,14" Foreground="#333"/>
 
             <CheckBox x:Name="ChkRunAtStartup"
-                      Content="Запускать с Windows"
+                      Content="{DynamicResource ChkRunAtStartupText}"
                       FontSize="12" Margin="0,0,0,12"
                       Checked="ChkRunAtStartup_Changed"
                       Unchecked="ChkRunAtStartup_Changed"/>
 
             <CheckBox x:Name="ChkSoundNotifications"
-                      Content="Звуковые уведомления (старт / стоп записи)"
+                      Content="{DynamicResource ChkSoundNotificationsText}"
                       FontSize="12" Margin="0,0,0,20"/>
 
             <!-- Reset sliders button -->
             <Button x:Name="BtnResetSliders"
-                    Content="↺ Сбросить настройки по умолчанию"
+                    Content="{DynamicResource BtnResetSlidersText}"
                     Height="34" Margin="0,0,0,8"
                     Click="BtnResetSliders_Click"
                     Background="#E0E0E0" Foreground="#333"
                     FontSize="12" Cursor="Hand"
-                    ToolTip="Сбрасывает VAD (порог шума, пауза тишины) и параметры Whisper (Beam Size, Best Of, Temperature, No-Speech Threshold). Язык, модель, горячие клавиши и системные настройки не затрагиваются."/>
+                    ToolTip="{DynamicResource BtnResetSlidersTooltip}"/>
 
             <!-- Save button -->
             <Button x:Name="BtnSaveClose"

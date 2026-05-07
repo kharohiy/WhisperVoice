@@ -25,8 +25,8 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0" Content="📋 Копировать всё" Height="38" FontSize="14" FontWeight="Medium" Click="BtnCopy_Click"/>
-            <Button Grid.Column="2" Content="🗑️ Стереть всё" Height="38" FontSize="14" FontWeight="Medium" Click="BtnClear_Click"/>
+            <Button Grid.Column="0" Content="{DynamicResource BtnCopyAllText}" Height="38" FontSize="14" FontWeight="Medium" Click="BtnCopy_Click"/>
+            <Button Grid.Column="2" Content="{DynamicResource BtnClearAllText}" Height="38" FontSize="14" FontWeight="Medium" Click="BtnClear_Click"/>
         </Grid>
     </Grid>
 </Window>
