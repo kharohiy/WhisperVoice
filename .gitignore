@@ -18,7 +18,5 @@ WhisperVoiceIcons/
 
 # Игнорируем ВСЕ тяжелые зависимости и модели (во всех папках)
 *.bin
-*.dll
-*.exe
 **/models/
 models/

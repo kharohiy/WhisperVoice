@@ -24,6 +24,10 @@
   </ItemGroup>
 
 	<ItemGroup>
+		<EmbeddedResource Include="Resources\default_models.json"/>
+	</ItemGroup>
+
+	<ItemGroup>
 		<None Update="whisper-cli.exe">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>

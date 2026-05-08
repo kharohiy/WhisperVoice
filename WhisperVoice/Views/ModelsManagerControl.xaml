@@ -1,0 +1,154 @@
+<UserControl x:Class="WhisperVoice.Views.ModelsManagerControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WhisperVoice.ViewModels"
+             d:DataContext="{d:DesignInstance Type=vm:ModelsViewModel, IsDesignTimeCreatable=False}"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d" d:DesignHeight="520" d:DesignWidth="620">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <!-- Hide Download button once IsDownloaded or IsDownloading -->
+        <Style x:Key="DownloadBtnStyle" TargetType="Button">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsDownloaded}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsDownloading}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate x:Key="ModelRow" DataType="{x:Type vm:ModelItemViewModel}">
+            <Border Padding="10,8" BorderBrush="#DDDDDD" BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="105"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12"/>
+                            <TextBlock Text="{Binding SizeText, StringFormat=' ({0})'}"
+                                       Foreground="Gray" FontSize="11" Margin="4,0,0,0"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding RecommendedFor}" Foreground="#555"
+                                   FontSize="11" TextWrapping="Wrap" Margin="0,2,0,1"/>
+                        <TextBlock Text="{Binding Notes}" Foreground="#888"
+                                   FontSize="10" FontStyle="Italic" TextWrapping="Wrap"/>
+
+                        <!-- Progress (visible only while downloading) -->
+                        <Grid Margin="0,5,0,0"
+                              Visibility="{Binding ProgressVisible, Converter={StaticResource BoolToVis}}">
+                            <ProgressBar Height="5" Minimum="0" Maximum="100"
+                                         Value="{Binding DownloadProgressPct, Mode=OneWay}"
+                                         IsIndeterminate="{Binding IsIndeterminate}"/>
+                            <TextBlock Text="{Binding DownloadProgressPct, StringFormat={}{0:F0}%}"
+                                       FontSize="9" HorizontalAlignment="Right" Foreground="#555"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <!-- Downloaded badge -->
+                        <TextBlock Text="✓ Downloaded" Foreground="#2E7D32"
+                                   FontSize="11" FontWeight="SemiBold" TextAlignment="Center"
+                                   Visibility="{Binding IsDownloaded, Converter={StaticResource BoolToVis}}"/>
+                        <!-- Download button -->
+                        <Button Content="⬇ Download" Style="{StaticResource DownloadBtnStyle}"
+                                Command="{Binding DataContext.DownloadModelCommand,
+                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}"
+                                Padding="7,4" MinWidth="90"/>
+                        <!-- Cancel button -->
+                        <Button Content="✕ Cancel" Margin="0,4,0,0"
+                                Command="{Binding DataContext.CancelDownloadCommand,
+                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVis}}"
+                                Padding="7,4" MinWidth="90"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <!-- LOADING -->
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+            <ProgressBar IsIndeterminate="True" Width="200" Height="5"/>
+            <TextBlock Text="{Binding StatusMessage}" HorizontalAlignment="Center"
+                       Margin="0,8,0,0" Foreground="Gray"/>
+        </StackPanel>
+
+        <!-- STATE A: AUTOMATIC -->
+        <DockPanel Visibility="{Binding IsAutomatic, Converter={StaticResource BoolToVis}}">
+            <Border DockPanel.Dock="Top" Padding="10,8" BorderBrush="#DDD" BorderThickness="0,0,0,1">
+                <TextBlock Text="Available Models — click Download to install"
+                           FontSize="13" FontWeight="SemiBold"/>
+            </Border>
+            <!-- Error strip -->
+            <Border DockPanel.Dock="Top" Background="#FFF3E0" Padding="10,6"
+                    Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#E65100"
+                           FontSize="11" TextWrapping="Wrap"/>
+            </Border>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Models}" ItemTemplate="{StaticResource ModelRow}"/>
+            </ScrollViewer>
+        </DockPanel>
+
+        <!-- STATE B: MANUAL FALLBACK -->
+        <ScrollViewer Visibility="{Binding IsManualFallback, Converter={StaticResource BoolToVis}}"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="14">
+                <Border Background="#FFEBEE" CornerRadius="3" Padding="10,8" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="⚠  Automatic download failed"
+                                   FontSize="13" FontWeight="Bold" Foreground="#C62828"/>
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="#555"
+                                   FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#F5F5F5" CornerRadius="3" Padding="12,10"
+                        BorderBrush="#E0E0E0" BorderThickness="1" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Which model should I choose?" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#444">
+                            <Run FontWeight="SemiBold">Weak PC / no GPU:</Run><Run> ggml-tiny or ggml-base (fastest).</Run><LineBreak/>
+                            <Run FontWeight="SemiBold">Mid GPU (4–6 GB):</Run><Run> ggml-medium (good balance).</Run><LineBreak/>
+                            <Run FontWeight="SemiBold">Modern GPU (6–8 GB):</Run><Run> ggml-large-v3-turbo ⭐ recommended.</Run><LineBreak/>
+                            <Run FontWeight="SemiBold">High-end GPU (8 GB+):</Run><Run> ggml-large-v3 (max quality + translation).</Run>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="Install manually:" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <UniformGrid Columns="2" HorizontalAlignment="Left">
+                    <Button Command="{Binding SearchModelsCommand}" Padding="10,7" Margin="0,0,6,6" HorizontalAlignment="Stretch">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="🔍  "/><TextBlock Text="Search on HuggingFace" VerticalAlignment="Center"/></StackPanel>
+                    </Button>
+                    <Button Command="{Binding ReadTutorialCommand}" Padding="10,7" Margin="0,0,0,6" HorizontalAlignment="Stretch">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="📖  "/><TextBlock Text="Read Tutorial" VerticalAlignment="Center"/></StackPanel>
+                    </Button>
+                    <Button Command="{Binding OpenModelsFolderCommand}" Padding="10,7" Margin="0,0,6,0" HorizontalAlignment="Stretch">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="📂  "/><TextBlock Text="Open Models Folder" VerticalAlignment="Center"/></StackPanel>
+                    </Button>
+                    <Button Command="{Binding RefreshCommand}" Padding="10,7" Margin="0,0,0,0" HorizontalAlignment="Stretch">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="🔄  "/><TextBlock Text="Refresh (Rescan)" VerticalAlignment="Center"/></StackPanel>
+                    </Button>
+                </UniformGrid>
+
+                <TextBlock Foreground="#888" FontSize="10" TextWrapping="Wrap" Margin="0,12,0,0">
+                    Place the downloaded <Run FontWeight="SemiBold">.bin</Run> file into the models folder, then click Refresh.
+                    WhisperVoice will detect it and add it to the model selector in Settings.
+                </TextBlock>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

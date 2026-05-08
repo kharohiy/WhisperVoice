@@ -1,12 +1,12 @@
+using System.IO;
 using System.Diagnostics;
 using System.Windows;
-using System.Windows.Navigation;
+using WhisperVoice.Views;
 
 namespace WhisperVoice
 {
     /// <summary>
     /// Shown when LastModelPath is empty or the .bin file no longer exists.
-    /// Guides the user to download the model and open Settings.
     /// </summary>
     public partial class MissingModelWindow : Window
     {
@@ -15,16 +15,23 @@ namespace WhisperVoice
             InitializeComponent();
         }
 
-        private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+        private void BtnGetModels_Click(object sender, RoutedEventArgs e)
         {
-            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
-            e.Handled = true;
+            string modelsDir = System.IO.Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, "models");
+
+            var win = new ModelsWindow(modelsDir, onModelAdded: null) { Owner = this };
+            win.ShowDialog();
+
+            // If the user downloaded a model, the Settings ComboBox will refresh
+            // via ModelFileDownloaded event when opened next time.
+            // Re-check: if a model now exists, close this prompt.
+            if (File.Exists(AppSettings.Load().LastModelPath))
+                Close();
         }
 
         private void BtnOpenSettings_Click(object sender, RoutedEventArgs e)
         {
-            // Open Settings modally so the user can configure the model path,
-            // then return focus to whatever triggered the check.
             var settingsWindow = new SettingsWindow { Owner = this };
             settingsWindow.ShowDialog();
             Close();

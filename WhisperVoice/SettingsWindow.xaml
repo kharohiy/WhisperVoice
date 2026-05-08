@@ -46,32 +46,40 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- Model ComboBox -->
-                <ComboBox x:Name="ModelCombo" 
-              Grid.Column="0"
-              Margin="0,0,8,0"
-              SelectionChanged="ModelCombo_SelectionChanged"/>
+                <ComboBox x:Name="ModelCombo"
+                          Grid.Column="0"
+                          Margin="0,0,6,0"
+                          SelectionChanged="ModelCombo_SelectionChanged"/>
 
                 <!-- Add Button -->
-                <Button x:Name="BtnAddModel" 
-            Grid.Column="1"
-            Content="➕" 
-            Width="32" 
-            Height="32"
-            Margin="0,0,4,0"
-            ToolTip="Add model from file"
-            Click="BtnAddModel_Click"/>
+                <Button x:Name="BtnAddModel"
+                        Grid.Column="1"
+                        Content="➕"
+                        Width="32" Height="32"
+                        Margin="0,0,4,0"
+                        ToolTip="Add model from file"
+                        Click="BtnAddModel_Click"/>
 
                 <!-- Refresh Button -->
-                <Button x:Name="BtnRefreshModels" 
-            Grid.Column="2"
-            Content="🔄" 
-            Width="32" 
-            Height="32"
-            ToolTip="Refresh models list"
-            Click="BtnRefreshModels_Click"/>
+                <Button x:Name="BtnRefreshModels"
+                        Grid.Column="2"
+                        Content="🔄"
+                        Width="32" Height="32"
+                        Margin="0,0,4,0"
+                        ToolTip="Refresh models list"
+                        Click="BtnRefreshModels_Click"/>
+
+                <!-- Get Models (opens Model Downloader window) -->
+                <Button x:Name="BtnGetModels"
+                        Grid.Column="3"
+                        Content="⬇ Get Models…"
+                        Height="32" Padding="8,0"
+                        ToolTip="Download models automatically"
+                        Click="BtnGetModels_Click"/>
             </Grid>
 
             <Separator Margin="0,16,0,14" Background="#CCCCCC"/>

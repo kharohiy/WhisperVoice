@@ -109,7 +109,7 @@ namespace WhisperVoice
         // ══════════════════════════════════════════════════════════════════
         // Model selector
         // ══════════════════════════════════════════════════════════════════
-        private void LoadModels()
+        public void LoadModels()
         {
             ModelCombo.Items.Clear();
             string modelsDir = Path.Combine(BaseDir, "models");
@@ -182,6 +182,16 @@ namespace WhisperVoice
         }
 
         private void BtnRefreshModels_Click(object sender, RoutedEventArgs e) => LoadModels();
+
+        private void BtnGetModels_Click(object sender, RoutedEventArgs e)
+        {
+            string modelsDir = Path.Combine(BaseDir, "models");
+            var win = new WhisperVoice.Views.ModelsWindow(modelsDir, onModelAdded: LoadModels)
+            {
+                Owner = this
+            };
+            win.Show();
+        }
 
         private void BtnAddModel_Click(object sender, RoutedEventArgs e)
         {
