@@ -138,6 +138,11 @@
     <sys:String x:Key="SettingsSectionSystem">🖥️ System</sys:String>
     <sys:String x:Key="ChkRunAtStartupText">Run at Windows startup</sys:String>
     <sys:String x:Key="ChkSoundNotificationsText">Sound notifications (start / stop recording)</sys:String>
+
+    <!-- ══ SettingsWindow — Push-to-Talk ════════════════════════════════ -->
+    <sys:String x:Key="ChkPushToTalkText">Push-to-Talk mode (hold to record, release to stop)</sys:String>
+    <sys:String x:Key="ChkPushToTalkTooltip">Hold the hotkey to record, release to transcribe. Replaces toggle behaviour for Primary and Translate keys only.</sys:String>
+    <sys:String x:Key="ChkPushToTalkHint">Primary &amp; Translate keys only. Menu / Notepad keys stay in toggle mode.</sys:String>
     <sys:String x:Key="BtnResetSlidersText">↺ Reset to defaults</sys:String>
     <sys:String x:Key="BtnResetSlidersTooltip">Resets VAD (noise threshold, silence pause) and Whisper parameters (Beam Size, Best Of, Temperature, No-Speech Threshold). Language, model, hotkeys and system settings are not affected.</sys:String>
 </ResourceDictionary>

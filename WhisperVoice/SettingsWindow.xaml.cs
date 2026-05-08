@@ -296,6 +296,9 @@ namespace WhisperVoice
             // ── Sound notifications ───────────────────────────────────────
             ChkSoundNotifications.IsChecked = _settings.SoundNotifications;
 
+            // ── Push-to-Talk mode ─────────────────────────────────────────
+            ChkPushToTalk.IsChecked = _settings.IsPushToTalkEnabled;
+
             // ── App interface language ────────────────────────────────────
             AppLanguageCombo.ItemsSource = AppLangMap.Keys;
 
@@ -438,6 +441,9 @@ namespace WhisperVoice
 
             // Sound notifications
             _settings.SoundNotifications = ChkSoundNotifications.IsChecked == true;
+
+            // Push-to-Talk mode
+            _settings.IsPushToTalkEnabled = ChkPushToTalk.IsChecked == true;
 
             // Hotkeys — renamed Primary / Translate
             if (ComboHotkeyPrimary.SelectedItem is string hkPrimary)

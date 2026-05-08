@@ -138,6 +138,11 @@
     <sys:String x:Key="SettingsSectionSystem">🖥️ Sistema</sys:String>
     <sys:String x:Key="ChkRunAtStartupText">Ejecutar al iniciar Windows</sys:String>
     <sys:String x:Key="ChkSoundNotificationsText">Notificaciones de sonido (inicio / fin de grabación)</sys:String>
+
+    <!-- ══ SettingsWindow — Push-to-Talk ════════════════════════════════ -->
+    <sys:String x:Key="ChkPushToTalkText">Modo Push-to-Talk (mantener = grabar, soltar = parar)</sys:String>
+    <sys:String x:Key="ChkPushToTalkTooltip">Mantén la tecla para grabar, suéltala para transcribir. Sustituye el modo alternado para las teclas Primary y Translate.</sys:String>
+    <sys:String x:Key="ChkPushToTalkHint">Solo teclas Primary y Translate. Las teclas de Menú y Bloc de notas permanecen en modo alternado.</sys:String>
     <sys:String x:Key="BtnResetSlidersText">↺ Restablecer valores predeterminados</sys:String>
     <sys:String x:Key="BtnResetSlidersTooltip">Restablece el VAD (umbral de ruido, pausa de silencio) y los parámetros de Whisper (Beam Size, Best Of, Temperature, No-Speech Threshold). El idioma, el modelo, los atajos y la configuración del sistema no se ven afectados.</sys:String>
 </ResourceDictionary>

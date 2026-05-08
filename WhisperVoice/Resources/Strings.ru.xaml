@@ -138,6 +138,11 @@
     <sys:String x:Key="SettingsSectionSystem">🖥️ Система</sys:String>
     <sys:String x:Key="ChkRunAtStartupText">Запускать с Windows</sys:String>
     <sys:String x:Key="ChkSoundNotificationsText">Звуковые уведомления (старт / стоп записи)</sys:String>
+
+    <!-- ══ SettingsWindow — Push-to-Talk ════════════════════════════════ -->
+    <sys:String x:Key="ChkPushToTalkText">Режим Push-to-Talk (удержание = запись, отпустить = стоп)</sys:String>
+    <sys:String x:Key="ChkPushToTalkTooltip">Удерживайте клавишу для записи, отпустите — для транскрипции. Заменяет режим переключения для клавиш Primary и Translate.</sys:String>
+    <sys:String x:Key="ChkPushToTalkHint">Только клавиши Primary и Translate. Меню и Блокнот остаются в режиме переключения.</sys:String>
     <sys:String x:Key="BtnResetSlidersText">↺ Сбросить настройки по умолчанию</sys:String>
     <sys:String x:Key="BtnResetSlidersTooltip">Сбрасывает VAD (порог шума, пауза тишины) и параметры Whisper (Beam Size, Best Of, Temperature, No-Speech Threshold). Язык, модель, горячие клавиши и системные настройки не затрагиваются.</sys:String>
 </ResourceDictionary>

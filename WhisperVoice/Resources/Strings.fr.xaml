@@ -138,6 +138,11 @@
     <sys:String x:Key="SettingsSectionSystem">🖥️ Système</sys:String>
     <sys:String x:Key="ChkRunAtStartupText">Lancer au démarrage de Windows</sys:String>
     <sys:String x:Key="ChkSoundNotificationsText">Notifications sonores (début / fin d'enregistrement)</sys:String>
+
+    <!-- ══ SettingsWindow — Push-to-Talk ════════════════════════════════ -->
+    <sys:String x:Key="ChkPushToTalkText">Mode Push-to-Talk (maintenir = enregistrer, relâcher = arrêter)</sys:String>
+    <sys:String x:Key="ChkPushToTalkTooltip">Maintenez la touche pour enregistrer, relâchez pour transcrire. Remplace le mode bascule pour les touches Primary et Translate.</sys:String>
+    <sys:String x:Key="ChkPushToTalkHint">Touches Primary et Translate uniquement. Les touches Menu et Bloc-notes restent en mode bascule.</sys:String>
     <sys:String x:Key="BtnResetSlidersText">↺ Réinitialiser les paramètres</sys:String>
     <sys:String x:Key="BtnResetSlidersTooltip">Réinitialise le VAD (seuil de bruit, pause de silence) et les paramètres Whisper (Beam Size, Best Of, Temperature, No-Speech Threshold). La langue, le modèle, les raccourcis et les paramètres système ne sont pas affectés.</sys:String>
 </ResourceDictionary>

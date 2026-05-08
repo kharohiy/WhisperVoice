@@ -79,6 +79,17 @@ namespace WhisperVoice
         /// <summary>Play system sounds on recording start/stop when true.</summary>
         public bool SoundNotifications { get; set; } = true;
 
+        // ── Hotkey mode ────────────────────────────────────────────────────
+        /// <summary>
+        /// When false (default): Toggle mode — one press starts, next press stops.
+        ///   Uses NHotkey (RegisterHotKey Win32 API).
+        /// When true: Push-to-Talk mode — hold to record, release to stop.
+        ///   Uses a low-level WH_KEYBOARD_LL keyboard hook.
+        /// Only applies to the Primary and Translate hotkeys.
+        /// The menu, notepad, and Ctrl+F9 hotkeys are always in Toggle mode.
+        /// </summary>
+        public bool IsPushToTalkEnabled { get; set; } = false;
+
         // ── Static helpers ─────────────────────────────────────────────────
 
         private static readonly JsonSerializerOptions _jsonOpts =

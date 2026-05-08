@@ -12,6 +12,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using WhisperVoice.Hotkeys;
 using WhisperVoice.Services;
 using WindowsInput;
 using WindowsInput.Native;
@@ -90,6 +91,9 @@ namespace WhisperVoice
         // ── History export ─────────────────────────────────────────────────
         private readonly HistoryExportService _historyExport = new();
 
+        // ── Hotkey orchestration ───────────────────────────────────────────
+        private HotkeyOrchestrationService? _hotkeyOrchestrator;
+
         // ── Anti-spam ──────────────────────────────────────────────────────
         private DateTime _lastAction = DateTime.MinValue;
 
@@ -128,7 +132,7 @@ namespace WhisperVoice
             HistoryList.ItemsSource = _history;
 
             LoadMicFromSettings();
-            SetupHotkeys();
+            RebindHotkeys();
             UpdateLanguageButton();
 
             IsVisibleChanged += (_, _) => { if (IsVisible) SyncVolumeFromSystem(); };
@@ -285,30 +289,76 @@ namespace WhisperVoice
             {
                 _whisperCts?.Cancel();
                 _audio.Dispose();
+                _hotkeyOrchestrator?.Dispose();
                 CleanupTempFiles();
             }
             catch { }
         }
 
         // ══════════════════════════════════════════════════════════════════
-        // Hotkeys  — reads HotkeyPrimary / HotkeyTranslate from settings
+        // Hotkeys  — delegates to HotkeyOrchestrationService
         // ══════════════════════════════════════════════════════════════════
-        private void SetupHotkeys()
+
+        /// <summary>
+        /// Single entry-point for all hotkey registration. Safe to call multiple times
+        /// (e.g. on startup, after settings save). Tears down the previous mode and
+        /// registers the correct one based on AppSettings.IsPushToTalkEnabled.
+        /// Must be called on the UI thread.
+        /// </summary>
+        private void RebindHotkeys()
         {
-            try
-            {
-                _settings = AppSettings.Load();
+            _settings = AppSettings.Load();
 
-                var keyPrimary = (Key)Enum.Parse(typeof(Key), _settings.HotkeyPrimary, ignoreCase: true);
-                var keyTranslate = (Key)Enum.Parse(typeof(Key), _settings.HotkeyTranslate, ignoreCase: true);
+            // Build the orchestrator once; reuse it across RebindHotkeys() calls.
+            _hotkeyOrchestrator ??= new HotkeyOrchestrationService(
+                onRecordPrimary:        OnRecordPrimary,
+                onRecordTranslate:      OnRecordTranslate,
+                onPttPrimaryStart:      OnPttPrimaryKeyDown,
+                onPttPrimaryStop:       OnPttKeyUp,
+                onPttTranslateStart:    OnPttTranslateKeyDown,
+                onPttTranslateStop:     OnPttKeyUp,
+                onToggleMenu:           OnToggleMenu,
+                onTranslateCtrl:        OnTranslateWithPrompt,
+                onOpenNotepad:          OnOpenNotepad);
 
-                HotkeyManager.Current.AddOrReplace("ToggleMenu", Key.F7, ModifierKeys.None, OnToggleMenu);
-                HotkeyManager.Current.AddOrReplace("Primary", keyPrimary, ModifierKeys.None, OnRecordPrimary);
-                HotkeyManager.Current.AddOrReplace("Translate", keyTranslate, ModifierKeys.None, OnRecordTranslate);
-                HotkeyManager.Current.AddOrReplace("TranslateCtrl", Key.F9, ModifierKeys.Control, OnTranslateWithPrompt);
-                HotkeyManager.Current.AddOrReplace("Notepad", Key.F7, ModifierKeys.Control, OnOpenNotepad);
-            }
-            catch (Exception ex) { WriteLog($"Hotkey setup error: {ex.Message}"); }
+            _hotkeyOrchestrator.RebindHotkeys(_settings);
+        }
+
+        // ── PTT event handlers ─────────────────────────────────────────────
+
+        /// <summary>
+        /// PTT Primary key down — fires on the UI thread, exactly once per physical
+        /// press (auto-repeat guard is in LowLevelKeyboardHook). Task.Run offloads
+        /// NAudio WASAPI init so the WH_KEYBOARD_LL callback returns immediately.
+        /// </summary>
+        private void OnPttPrimaryKeyDown()
+        {
+            if (_isProcessing || _audio.IsRecording) return;
+            _settings = AppSettings.Load();
+            _ = Task.Run(() => Dispatcher.InvokeAsync(() =>
+                ToggleRecording(RecordMode.Primary,
+                    _settings.LanguagePrimary, _settings.HotkeyPrimary, isTranslate: false)));
+        }
+
+        /// <summary>PTT Translate key down — same flow, forces English output.</summary>
+        private void OnPttTranslateKeyDown()
+        {
+            if (_isProcessing || _audio.IsRecording) return;
+            _settings = AppSettings.Load();
+            _ = Task.Run(() => Dispatcher.InvokeAsync(() =>
+                ToggleRecording(RecordMode.Translate,
+                    "en", _settings.HotkeyTranslate, isTranslate: false)));
+        }
+
+        /// <summary>
+        /// PTT key up — shared by both hooks. _stopGuard (Interlocked) in
+        /// StopAndProcessAsync ensures only the first call proceeds even if
+        /// both hooks fire release events near-simultaneously.
+        /// </summary>
+        private void OnPttKeyUp()
+        {
+            if (!_audio.IsRecording) return;
+            _ = StopAndProcessAsync();
         }
 
         private bool IsSpam()
@@ -732,7 +782,7 @@ namespace WhisperVoice
             _settingsWindow.Closed += (_, _) =>
             {
                 UpdateLanguageButton();
-                SetupHotkeys();
+                RebindHotkeys();
             };
             _settingsWindow.Show();
             _settingsWindow.Activate();

@@ -138,6 +138,11 @@
     <sys:String x:Key="SettingsSectionSystem">🖥️ System</sys:String>
     <sys:String x:Key="ChkRunAtStartupText">Uruchamiaj z Windows</sys:String>
     <sys:String x:Key="ChkSoundNotificationsText">Powiadomienia dźwiękowe (start / stop nagrywania)</sys:String>
+
+    <!-- ══ SettingsWindow — Push-to-Talk ════════════════════════════════ -->
+    <sys:String x:Key="ChkPushToTalkText">Tryb Push-to-Talk (przytrzymaj = nagrywaj, puść = zatrzymaj)</sys:String>
+    <sys:String x:Key="ChkPushToTalkTooltip">Przytrzymaj klawisz, aby nagrywać, puść, aby transkrybować. Zastępuje tryb przełączania dla klawiszy Primary i Translate.</sys:String>
+    <sys:String x:Key="ChkPushToTalkHint">Tylko klawisze Primary i Translate. Klawisze Menu i Notatnik pozostają w trybie przełączania.</sys:String>
     <sys:String x:Key="BtnResetSlidersText">↺ Przywróć ustawienia domyślne</sys:String>
     <sys:String x:Key="BtnResetSlidersTooltip">Resetuje VAD (próg szumu, pauza ciszy) i parametry Whisper (Beam Size, Best Of, Temperature, No-Speech Threshold). Język, model, skróty klawiszowe i ustawienia systemowe nie są zmieniane.</sys:String>
 </ResourceDictionary>

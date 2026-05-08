@@ -138,6 +138,11 @@
     <sys:String x:Key="SettingsSectionSystem">🖥️ System</sys:String>
     <sys:String x:Key="ChkRunAtStartupText">Mit Windows starten</sys:String>
     <sys:String x:Key="ChkSoundNotificationsText">Soundbenachrichtigungen (Start / Stopp der Aufnahme)</sys:String>
+
+    <!-- ══ SettingsWindow — Push-to-Talk ════════════════════════════════ -->
+    <sys:String x:Key="ChkPushToTalkText">Push-to-Talk-Modus (halten = aufnehmen, loslassen = stopp)</sys:String>
+    <sys:String x:Key="ChkPushToTalkTooltip">Taste gedrückt halten zum Aufnehmen, loslassen zum Transkribieren. Ersetzt den Umschaltmodus für Primary- und Translate-Tasten.</sys:String>
+    <sys:String x:Key="ChkPushToTalkHint">Nur Primary- und Translate-Tasten. Menü- und Notizbuch-Tasten bleiben im Umschaltmodus.</sys:String>
     <sys:String x:Key="BtnResetSlidersText">↺ Auf Standardwerte zurücksetzen</sys:String>
     <sys:String x:Key="BtnResetSlidersTooltip">Setzt VAD (Rauschschwelle, Stillepause) und Whisper-Parameter (Beam Size, Best Of, Temperature, No-Speech Threshold) zurück. Sprache, Modell, Hotkeys und Systemeinstellungen bleiben unverändert.</sys:String>
 </ResourceDictionary>
