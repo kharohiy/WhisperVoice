@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "models": [
+    {
+      "id": "ggml-tiny",
+      "name": "Tiny (Fastest)",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
+      "size_mb": 75,
+      "recommended_for": "Weak PCs, no GPU, CPU-only.",
+      "notes": "Very fast, lower accuracy on technical terms."
+    },
+    {
+      "id": "ggml-base",
+      "name": "Base",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
+      "size_mb": 142,
+      "recommended_for": "Low-end systems. No GPU required.",
+      "notes": "Noticeably more accurate than Tiny."
+    },
+    {
+      "id": "ggml-small",
+      "name": "Small",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
+      "size_mb": 466,
+      "recommended_for": "Any system with 4 GB+ RAM.",
+      "notes": "Good balance of speed and accuracy."
+    },
+    {
+      "id": "ggml-medium",
+      "name": "Medium",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin",
+      "size_mb": 1500,
+      "recommended_for": "Mid-range GPUs (4–6 GB VRAM) or fast CPUs.",
+      "notes": "Recommended for developers and technical terminology."
+    },
+    {
+      "id": "ggml-large-v3-turbo",
+      "name": "Large v3 Turbo ⭐ Recommended",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
+      "size_mb": 1600,
+      "recommended_for": "Modern GPUs (6 GB+ VRAM). Best speed/accuracy ratio.",
+      "notes": "Best choice for technical transcription and auto-translation."
+    },
+    {
+      "id": "ggml-large-v3",
+      "name": "Large v3 (Max Quality)",
+      "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
+      "size_mb": 2900,
+      "recommended_for": "High-end GPUs (8 GB+ VRAM).",
+      "notes": "Maximum quality. Ideal for translation and complex IT speech."
+    }
+  ],
+  "manual_tutorial_url": "https://github.com/YourName/WhisperVoice/wiki/Models-Guide"
+}
