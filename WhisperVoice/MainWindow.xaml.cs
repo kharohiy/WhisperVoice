@@ -12,7 +12,6 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using WhisperVoice.Hotkeys;
 using WhisperVoice.Services;
 using WindowsInput;
 using WindowsInput.Native;
@@ -310,7 +309,7 @@ namespace WhisperVoice
             _settings = AppSettings.Load();
 
             // Build the orchestrator once; reuse it across RebindHotkeys() calls.
-            _hotkeyOrchestrator ??= new HotkeyOrchestrationService(
+            _hotkeyOrchestrator ??= new Services.HotkeyOrchestrationService(
                 onRecordPrimary:        OnRecordPrimary,
                 onRecordTranslate:      OnRecordTranslate,
                 onPttPrimaryStart:      OnPttPrimaryKeyDown,

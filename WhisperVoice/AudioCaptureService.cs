@@ -22,7 +22,6 @@ namespace WhisperVoice.Services
 
                 try
                 {
-                    // Check if device is actually active (not unplugged)
                     var state = _device.State;
                     if (state != DeviceState.Active)
                     {
@@ -34,7 +33,6 @@ namespace WhisperVoice.Services
                 }
                 catch (COMException ex)
                 {
-                    // Device was unplugged - COM object invalid
                     System.Diagnostics.Debug.WriteLine($"[IsDeviceAttached] COMException: {ex.Message}, cleaning up");
                     DetachDevice();
                     return false;
@@ -54,8 +52,17 @@ namespace WhisperVoice.Services
 
         public AudioCaptureService()
         {
-            _recorder.PeakAvailable += val => PeakAvailable?.Invoke(val);
+            _recorder.PeakAvailable  += val => PeakAvailable?.Invoke(val);
             _recorder.SilenceDetected += () => SilenceDetected?.Invoke();
+
+            // ── BUG-1 FIX (WASAPI vector) ──────────────────────────────────
+            // Wire up the WASAPI external-abort handler. This fires when the
+            // browser (or any other app) steals the audio session or forces a
+            // device format change, causing WasapiCapture to self-terminate.
+            // We recover silently: restart the peak-meter monitor and only
+            // escalate to DeviceDisconnected for hard device invalidations.
+            _recorder.RecordingAborted += OnRecordingAborted;
+            // ────────────────────────────────────────────────────────────────
         }
 
         public bool AttachDevice(string micId)
@@ -79,7 +86,6 @@ namespace WhisperVoice.Services
                 _silentCapture.StartRecording();
 
                 _device.AudioEndpointVolume.OnVolumeNotification += OnVolumeNotification;
-
                 VolumeChanged?.Invoke(_device.AudioEndpointVolume.MasterVolumeLevelScalar);
 
                 return true;
@@ -148,7 +154,6 @@ namespace WhisperVoice.Services
             if ((now - _lastSilentPeak).TotalMilliseconds < 40) return;
             _lastSilentPeak = now;
 
-            // Safety: ensure capture is still valid
             if (_silentCapture != null && _device != null)
             {
                 try
@@ -156,11 +161,8 @@ namespace WhisperVoice.Services
                     double peak = AudioRecorder.CalculatePeak(e.Buffer, e.BytesRecorded, _silentCapture.WaveFormat);
                     PeakAvailable?.Invoke(peak);
 
-                    // Log only occasionally to avoid spam
                     if (peak > 0.01)
-                    {
                         System.Diagnostics.Debug.WriteLine($"[SilentCapture] Peak={peak:F3}");
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -177,8 +179,8 @@ namespace WhisperVoice.Services
         {
             try { _silentCapture?.StopRecording(); } catch { }
 
-            _recorder.VadEnabled = true;
-            _recorder.VadThreshold = vadThreshold;
+            _recorder.VadEnabled       = true;
+            _recorder.VadThreshold     = vadThreshold;
             _recorder.VadSilenceTimeout = TimeSpan.FromSeconds(vadSilenceSeconds);
             return _recorder.StartRecording(micId, outputPath);
         }
@@ -188,17 +190,13 @@ namespace WhisperVoice.Services
             _recorder.VadEnabled = false;
             await _recorder.StopRecordingAsync();
 
-            // Try to restart silent capture, recreate if failed
             try
             {
                 if (_silentCapture != null && _device != null)
-                {
                     _silentCapture.StartRecording();
-                }
             }
             catch
             {
-                // Stale capture - recreate
                 RestartSilentCapture();
             }
         }
@@ -208,17 +206,13 @@ namespace WhisperVoice.Services
             _recorder.VadEnabled = false;
             _recorder.StopRecording();
 
-            // Try to restart silent capture, recreate if failed
             try
             {
                 if (_silentCapture != null && _device != null)
-                {
                     _silentCapture.StartRecording();
-                }
             }
             catch
             {
-                // Stale capture - recreate
                 RestartSilentCapture();
             }
         }
@@ -229,10 +223,12 @@ namespace WhisperVoice.Services
             _recorder.StopRecording();
         }
 
-        /// <summary>Force restart silent capture (call after USB reconnect when idle)</summary>
+        /// <summary>Force restart silent capture (call after USB reconnect when idle).</summary>
         public void RestartSilentCapture()
         {
-            System.Diagnostics.Debug.WriteLine($"[RestartSilentCapture] Called. IsRecording={IsRecording}, _device={((_device != null) ? "EXISTS" : "NULL")}");
+            System.Diagnostics.Debug.WriteLine(
+                $"[RestartSilentCapture] Called. IsRecording={IsRecording}, " +
+                $"_device={(_device != null ? "EXISTS" : "NULL")}");
 
             if (IsRecording || _device == null)
             {
@@ -261,5 +257,58 @@ namespace WhisperVoice.Services
                 System.Diagnostics.Debug.WriteLine($"[RestartSilentCapture] FAILED: {ex.Message}");
             }
         }
+
+        // ── BUG-1 FIX (WASAPI vector) ──────────────────────────────────────────
+        /// <summary>
+        /// Called when AudioRecorder detects that WASAPI killed the active recording
+        /// session externally (a.Exception != null while IsRecording was still true).
+        ///
+        /// Strategy:
+        ///   • Recoverable session errors (AUDCLNT_E_DEVICE_IN_USE 0x88890010):
+        ///     silently restart the silent-capture peak monitor. Recording data
+        ///     already flushed to the WAV file is not discarded — MainWindow will
+        ///     still process whatever was captured up to the abort point.
+        ///   • Hard device invalidation (AUDCLNT_E_DEVICE_INVALIDATED 0x88890004):
+        ///     escalate to DeviceDisconnected so MainWindow can show the user an
+        ///     alert and attempt reconnect, same as the USB-unplug flow.
+        ///
+        /// Critically: we do NOT call anything that would trigger OnPttKeyUp or
+        /// StopAndProcessAsync — this handler is entirely internal to the audio
+        /// layer. MainWindow is unaware that an abort occurred at all for
+        /// recoverable errors.
+        /// </summary>
+        private void OnRecordingAborted(Exception ex)
+        {
+            const int AUDCLNT_E_DEVICE_INVALIDATED = unchecked((int)0x88890004);
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[AudioCaptureService] WASAPI recording aborted. " +
+                $"HRESULT=0x{ex.HResult:X8} Message={ex.Message}");
+
+            if (ex.HResult == AUDCLNT_E_DEVICE_INVALIDATED)
+            {
+                // Hard failure — device is gone. Escalate so MainWindow can react.
+                System.Diagnostics.Debug.WriteLine(
+                    $"[AudioCaptureService] Hard device invalidation — raising DeviceDisconnected.");
+                HandleDeviceFailure();
+            }
+            else
+            {
+                // Soft failure (format/sample-rate change triggered by browser audio init,
+                // e.g. YouTube starting playback). Restart the peak monitor quietly.
+                System.Diagnostics.Debug.WriteLine(
+                    $"[AudioCaptureService] Soft WASAPI abort — restarting silent capture monitor.");
+                try
+                {
+                    RestartSilentCapture();
+                }
+                catch (Exception restartEx)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[AudioCaptureService] Silent capture restart failed: {restartEx.Message}");
+                }
+            }
+        }
+        // ──────────────────────────────────────────────────────────────────────
     }
 }

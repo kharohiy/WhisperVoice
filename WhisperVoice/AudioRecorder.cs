@@ -12,11 +12,11 @@ namespace WhisperVoice
     /// </summary>
     public class AudioRecorder
     {
-        private WasapiCapture?   _capture;
-        private WaveFileWriter?  _writer;
+        private WasapiCapture?  _capture;
+        private WaveFileWriter? _writer;
         private TaskCompletionSource<bool>? _stopTcs;
 
-        private DateTime _lastPeakTime  = DateTime.MinValue;
+        private DateTime _lastPeakTime = DateTime.MinValue;
         private const int PeakIntervalMs = 40;
 
         // VAD state
@@ -32,11 +32,25 @@ namespace WhisperVoice
         /// <summary>Fires once when sustained silence exceeds VadSilenceTimeout.</summary>
         public event Action? SilenceDetected;
 
+        // ── BUG-1 FIX (WASAPI vector) ──────────────────────────────────────────
+        /// <summary>
+        /// Fires when WASAPI terminates recording externally due to a hardware or
+        /// audio-session error (e.g. a browser initialises audio and forces a device
+        /// format/sample-rate change — AUDCLNT_E_DEVICE_IN_USE 0x88890010, or a hard
+        /// device invalidation — AUDCLNT_E_DEVICE_INVALIDATED 0x88890004).
+        ///
+        /// IMPORTANT: This is NOT a PTT key-up event. Consumers must restart their
+        /// silent-capture monitor but must NOT trigger transcription or treat this
+        /// as a normal stop. The in-progress WAV data is already flushed to disk.
+        /// </summary>
+        public event Action<Exception>? RecordingAborted;
+        // ──────────────────────────────────────────────────────────────────────
+
         // VAD settings
-        public bool      VadEnabled        { get; set; } = false;
-        public double    VadThreshold      { get; set; } = 5.0;
-        public TimeSpan  VadSilenceTimeout { get; set; } = TimeSpan.FromSeconds(1.8);
-        public TimeSpan  VadGracePeriod    { get; set; } = TimeSpan.FromSeconds(1.0);
+        public bool     VadEnabled        { get; set; } = false;
+        public double   VadThreshold      { get; set; } = 5.0;
+        public TimeSpan VadSilenceTimeout { get; set; } = TimeSpan.FromSeconds(1.8);
+        public TimeSpan VadGracePeriod    { get; set; } = TimeSpan.FromSeconds(1.0);
 
         /// <summary>
         /// Returns <c>true</c> if capture started successfully.
@@ -126,12 +140,31 @@ namespace WhisperVoice
             }
         }
 
+        // ── BUG-1 FIX (WASAPI vector) ──────────────────────────────────────────
         private void OnRecordingStopped(object? sender, StoppedEventArgs a)
         {
+            // Capture the exception BEFORE Dispose() clears state.
+            var exception = a.Exception;
+
+            // If IsRecording is still true here, WASAPI killed the session externally
+            // (browser audio-focus steal, device format/sample-rate change, etc.)
+            // rather than us calling StopRecording() deliberately.
+            bool wasExternalAbort = IsRecording && exception != null;
+
             _writer?.Dispose();  _writer  = null;
             _capture?.Dispose(); _capture = null;
             _stopTcs?.TrySetResult(true);
+
+            if (wasExternalAbort)
+            {
+                IsRecording = false;
+                System.Diagnostics.Debug.WriteLine(
+                    $"[AudioRecorder] WASAPI aborted recording externally: " +
+                    $"{exception!.Message} (HRESULT 0x{exception.HResult:X8})");
+                RecordingAborted?.Invoke(exception);
+            }
         }
+        // ──────────────────────────────────────────────────────────────────────
 
         public static double CalculatePeak(byte[] buffer, int bytesRecorded, WaveFormat format)
         {
