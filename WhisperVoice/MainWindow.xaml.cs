@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Media;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -467,6 +468,22 @@ namespace WhisperVoice
                 StopRecordingTimer();
                 if (_settings.SoundNotifications) SystemSounds.Exclamation.Play();
 
+                // ── Bug-2 Fix: Acoustic Hallucination Gate ────────────────
+                // Discard the buffer when it is shorter than MinRecordingDurationMs
+                // or its RMS energy is below MinRmsLinear.  Eliminates Whisper
+                // hallucinations caused by:
+                //   (a) mechanical key-click transients at PTT press/release
+                //   (b) near-empty PCM frames on sub-400 ms taps
+                if (!IsAudioWorthProcessing(TempWavPath))
+                {
+                    WriteLog("[Bug2Gate] Buffer rejected — too short or silent. Whisper skipped.");
+                    _activeMode   = RecordMode.None;
+                    _isProcessing = false;
+                    UpdateMicLabel(_settings.MicName, ok: true);
+                    return;
+                }
+                // ─────────────────────────────────────────────────────────
+
                 var lang = _currentLang;
                 var translate = _currentTranslate;
                 _activeMode = RecordMode.None;
@@ -494,6 +511,108 @@ namespace WhisperVoice
             finally
             {
                 Interlocked.Exchange(ref _stopGuard, 0);
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // Bug-2 Fix: Acoustic Hallucination Gate
+        // ══════════════════════════════════════════════════════════════════
+
+        private const int   MinRecordingDurationMs = 400;   // taps faster than this are discarded
+        private const float MinRmsLinear           = 0.004f; // ≈ −48 dBFS; below any voiced phoneme
+
+        /// <summary>
+        /// Returns <c>true</c> only when the WAV file is long enough and loud
+        /// enough to contain real speech.
+        ///
+        /// Implementation:
+        ///   • Walks the RIFF chunk list to locate the "data" sub-chunk, so
+        ///     non-standard chunks (LIST, bext, etc.) inserted by some WASAPI
+        ///     drivers do not break the offset calculation.
+        ///   • Casts the data bytes to <see cref="ReadOnlySpan{short}"/> via
+        ///     <see cref="MemoryMarshal.Cast{TFrom,TTo}"/> — zero heap allocation
+        ///     for the sample iteration.
+        ///   • Duration gate fires first (integer arithmetic only); RMS is
+        ///     computed only when duration passes, skipping the sqrt on garbage
+        ///     buffers.
+        /// </summary>
+        private static bool IsAudioWorthProcessing(string wavPath)
+        {
+            try
+            {
+                if (!File.Exists(wavPath)) return false;
+
+                byte[] raw = File.ReadAllBytes(wavPath);
+
+                // Minimum valid PCM WAV is 44 bytes (RIFF + fmt + data headers).
+                if (raw.Length < 44) return false;
+
+                // fmt  chunk fields (standard PCM layout):
+                //   offset 22 → num channels  (int16)
+                //   offset 24 → sample rate   (int32)
+                //   offset 34 → bits/sample   (int16)
+                int channels      = BitConverter.ToInt16(raw, 22);
+                int sampleRate    = BitConverter.ToInt32(raw, 24);
+                int bitsPerSample = BitConverter.ToInt16(raw, 34);
+
+                if (channels <= 0 || sampleRate <= 0 || bitsPerSample != 16) return false;
+
+                // Walk RIFF sub-chunks from offset 12 to find "data".
+                int dataOffset = 12;
+                int dataSize   = 0;
+                while (dataOffset + 8 <= raw.Length)
+                {
+                    uint chunkId   = BitConverter.ToUInt32(raw, dataOffset);
+                    int  chunkSize = BitConverter.ToInt32(raw, dataOffset + 4);
+
+                    if (chunkId == 0x61746164u) // FourCC "data"
+                    {
+                        dataOffset += 8;
+                        dataSize    = Math.Min(chunkSize, raw.Length - dataOffset);
+                        break;
+                    }
+
+                    dataOffset += 8 + chunkSize;
+                }
+
+                if (dataSize < 2) return false;
+
+                // ── Duration gate ─────────────────────────────────────────
+                int    totalSamples  = dataSize / 2;              // 16-bit PCM = 2 bytes/sample
+                int    samplesPerCh  = totalSamples / channels;
+                double durationMs    = samplesPerCh * 1000.0 / sampleRate;
+
+                if (durationMs < MinRecordingDurationMs)
+                {
+                    Debug.WriteLine(
+                        $"[Bug2Gate] REJECTED — duration {durationMs:F0} ms < {MinRecordingDurationMs} ms");
+                    return false;
+                }
+
+                // ── RMS gate (zero allocation) ────────────────────────────
+                ReadOnlySpan<byte>  bytes   = new ReadOnlySpan<byte>(raw, dataOffset, dataSize);
+                ReadOnlySpan<short> samples = MemoryMarshal.Cast<byte, short>(bytes);
+
+                double sumSq = 0.0;
+                foreach (short s in samples)
+                    sumSq += (double)s * s;
+
+                double rms = Math.Sqrt(sumSq / samples.Length) / 32768.0; // normalise → 0–1
+
+                if (rms < MinRmsLinear)
+                {
+                    Debug.WriteLine(
+                        $"[Bug2Gate] REJECTED — RMS {rms:F5} < {MinRmsLinear} (silence/click only)");
+                    return false;
+                }
+
+                Debug.WriteLine($"[Bug2Gate] PASSED — duration {durationMs:F0} ms, RMS {rms:F5}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Bug2Gate] WAV read failed: {ex.Message}");
+                return false; // corrupt or missing file → safe discard
             }
         }
 
