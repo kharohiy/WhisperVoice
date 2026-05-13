@@ -46,6 +46,7 @@ namespace WhisperVoice
         {
             _instanceMutex?.ReleaseMutex();
             _instanceMutex?.Dispose();
+            DiagnosticLogger.Instance.Dispose();
             base.OnExit(e);
         }
 

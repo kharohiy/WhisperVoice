@@ -169,16 +169,29 @@
         <!-- ── Transcription history ──────────────────────────────────── -->
         <Grid Margin="0,0,0,4">
             <TextBlock Text="{DynamicResource LblHistoryHeader}"
-                       FontSize="12" Foreground="#444"
-                       VerticalAlignment="Center"/>
-            <Button x:Name="BtnExportHistory" Content="💾" Width="24" Height="22"
-                    HorizontalAlignment="Right" FontSize="11" Margin="0,0,30,0"
-                    ToolTip="Export history to file"
-                    Click="BtnExportHistory_Click"/>
-            <Button x:Name="BtnClearHistory" Content="🗑" Width="24" Height="22"
-                    HorizontalAlignment="Right" FontSize="11"
-                    ToolTip="{DynamicResource BtnClearHistoryTooltip}"
-                    Click="BtnClearHistory_Click"/>
+               FontSize="12" Foreground="#444"
+               VerticalAlignment="Center"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+
+                <Button x:Name="BtnDiagLog" Content="📋" Width="24" Height="22"
+                FontSize="11" Margin="0,0,6,0"
+                FontFamily="Segoe UI Emoji"
+                ToolTip="Open diagnostic log (whisper_diagnostic.log)"
+                Click="BtnDiagLog_Click"/>
+
+                <Button x:Name="BtnExportHistory" Content="💾" Width="24" Height="22"
+                FontSize="11" Margin="0,0,6,0"
+                FontFamily="Segoe UI Emoji"
+                ToolTip="Export history to file"
+                Click="BtnExportHistory_Click"/>
+
+                <Button x:Name="BtnClearHistory" Content="🗑" Width="24" Height="22"
+                FontSize="11"
+                FontFamily="Segoe UI Emoji"
+                ToolTip="{DynamicResource BtnClearHistoryTooltip}"
+                Click="BtnClearHistory_Click"/>
+            </StackPanel>
         </Grid>
 
         <ListBox x:Name="HistoryList" Height="200"

@@ -108,6 +108,7 @@ namespace WhisperVoice
             InitializeComponent();
 
             // Instantiate services
+            _ = DiagnosticLogger.Instance;
             _audio = new AudioCaptureService();
             _whisper = new WhisperExecutionService(BaseDir);
             _hardware = new HardwareCheckService();
@@ -780,6 +781,27 @@ namespace WhisperVoice
                     WriteLog($"Export failed: {ex.Message}");
                     ShowErrorPopup($"Export failed: {ex.Message}");
                 }
+            }
+        }
+
+        private void BtnDiagLog_Click(object sender, RoutedEventArgs e)
+        {
+            string logPath = DiagnosticLogger.Instance.LogPath;
+            if (!File.Exists(logPath))
+            {
+                System.Windows.MessageBox.Show($"No diagnostic log found yet.\n\nExpected location:\n{logPath}",
+                    "Diagnostic Log", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo { FileName = "notepad.exe", Arguments = $"\"{logPath}\"", UseShellExecute = false });
+            }
+            catch (Exception ex)
+            {
+                try { Process.Start("explorer.exe", $"/select,\"{logPath}\""); }
+                catch { System.Windows.MessageBox.Show($"Could not open log file.\nError: {ex.Message}"); }
             }
         }
 

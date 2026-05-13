@@ -12,17 +12,22 @@ namespace WhisperVoice
     /// </summary>
     public class AudioRecorder
     {
-        private WasapiCapture?  _capture;
+        private static readonly DiagnosticLogger Log = DiagnosticLogger.Instance;
+        private const string Comp = "AudioRecorder";
+
+        private WasapiCapture? _capture;
         private WaveFileWriter? _writer;
         private TaskCompletionSource<bool>? _stopTcs;
 
         private DateTime _lastPeakTime = DateTime.MinValue;
+        private DateTime _lastTraceLogTime = DateTime.MinValue; // throttle TRACE logs
         private const int PeakIntervalMs = 40;
+        private const int TraceLogIntervalMs = 5_000; // log VAD state every 5 s
 
         // VAD state
         private DateTime _recordingStarted = DateTime.MinValue;
-        private DateTime _lastSoundTime    = DateTime.MinValue;
-        private bool     _vadSilenceFired  = false;
+        private DateTime _lastSoundTime = DateTime.MinValue;
+        private bool _vadSilenceFired = false;
 
         public bool IsRecording { get; private set; }
 
@@ -32,60 +37,61 @@ namespace WhisperVoice
         /// <summary>Fires once when sustained silence exceeds VadSilenceTimeout.</summary>
         public event Action? SilenceDetected;
 
-        // ── BUG-1 FIX (WASAPI vector) ──────────────────────────────────────────
-        /// <summary>
-        /// Fires when WASAPI terminates recording externally due to a hardware or
-        /// audio-session error (e.g. a browser initialises audio and forces a device
-        /// format/sample-rate change — AUDCLNT_E_DEVICE_IN_USE 0x88890010, or a hard
-        /// device invalidation — AUDCLNT_E_DEVICE_INVALIDATED 0x88890004).
-        ///
-        /// IMPORTANT: This is NOT a PTT key-up event. Consumers must restart their
-        /// silent-capture monitor but must NOT trigger transcription or treat this
-        /// as a normal stop. The in-progress WAV data is already flushed to disk.
-        /// </summary>
+        // ── BUG-1 FIX (WASAPI vector) ─────────────────────────────────────────
         public event Action<Exception>? RecordingAborted;
-        // ──────────────────────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────────────────────────
 
         // VAD settings
-        public bool     VadEnabled        { get; set; } = false;
-        public double   VadThreshold      { get; set; } = 5.0;
+        public bool VadEnabled { get; set; } = false;
+        public double VadThreshold { get; set; } = 5.0;
         public TimeSpan VadSilenceTimeout { get; set; } = TimeSpan.FromSeconds(1.8);
-        public TimeSpan VadGracePeriod    { get; set; } = TimeSpan.FromSeconds(1.0);
+        public TimeSpan VadGracePeriod { get; set; } = TimeSpan.FromSeconds(1.5);
 
-        /// <summary>
-        /// Returns <c>true</c> if capture started successfully.
-        /// Returns <c>false</c> on any failure (e.g. 0x88890004 — device unplugged).
-        /// Never throws; all exceptions are swallowed and logged to IsRecording=false.
-        /// </summary>
         public bool StartRecording(string deviceId, string filePath)
         {
+            Log.Info(Comp, $"StartRecording called  deviceId={deviceId}  filePath={filePath}");
+
             try
             {
                 using var enumerator = new MMDeviceEnumerator();
                 var device = enumerator.GetDevice(deviceId);
 
+                Log.Info(Comp, $"Device resolved: FriendlyName=\"{device.FriendlyName}\"  " +
+                               $"State={device.State}  ID={device.ID}");
+
                 _capture = new WasapiCapture(device, true, 50);
                 _capture.WaveFormat = new WaveFormat(16000, 1);
-                _writer  = new WaveFileWriter(filePath, _capture.WaveFormat);
 
-                _stopTcs          = new TaskCompletionSource<bool>();
+                Log.Info(Comp, $"WaveFormat set: SampleRate={_capture.WaveFormat.SampleRate}  " +
+                               $"Channels={_capture.WaveFormat.Channels}  " +
+                               $"Encoding={_capture.WaveFormat.Encoding}  " +
+                               $"BitsPerSample={_capture.WaveFormat.BitsPerSample}");
+
+                _writer = new WaveFileWriter(filePath, _capture.WaveFormat);
+
+                _stopTcs = new TaskCompletionSource<bool>();
                 _recordingStarted = DateTime.UtcNow;
-                _lastSoundTime    = DateTime.UtcNow;
-                _vadSilenceFired  = false;
+                _lastSoundTime = DateTime.UtcNow;
+                _vadSilenceFired = false;
 
-                _capture.DataAvailable    += OnDataAvailable;
+                _capture.DataAvailable += OnDataAvailable;
                 _capture.RecordingStopped += OnRecordingStopped;
 
                 _capture.StartRecording();
                 IsRecording = true;
+
+                Log.Info(Comp, $"WASAPI capture STARTED successfully  " +
+                               $"VadEnabled={VadEnabled}  VadThreshold={VadThreshold}  " +
+                               $"VadSilenceTimeout={VadSilenceTimeout.TotalSeconds:F1}s  " +
+                               $"VadGracePeriod={VadGracePeriod.TotalSeconds:F1}s");
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
-                // Device unavailable (0x88890004), unplugged, or any other COM error.
+                Log.Error(Comp, ex, "StartRecording FAILED — device unavailable or COM error");
                 IsRecording = false;
                 _stopTcs?.TrySetResult(false);
-                _writer?.Dispose();  _writer  = null;
+                _writer?.Dispose(); _writer = null;
                 _capture?.Dispose(); _capture = null;
                 return false;
             }
@@ -93,17 +99,25 @@ namespace WhisperVoice
 
         public Task StopRecordingAsync()
         {
-            if (_capture == null || _stopTcs == null) return Task.CompletedTask;
+            Log.Info(Comp, $"StopRecordingAsync called (intentional stop)  IsRecording={IsRecording}");
+
+            if (_capture == null || _stopTcs == null)
+            {
+                Log.Warn(Comp, "StopRecordingAsync: _capture or _stopTcs is null — returning immediately");
+                return Task.CompletedTask;
+            }
+
             IsRecording = false;
-            VadEnabled  = false;
+            VadEnabled = false;
             _capture.StopRecording();
             return _stopTcs.Task;
         }
 
         public void StopRecording()
         {
+            Log.Info(Comp, $"StopRecording (sync) called (intentional stop)  IsRecording={IsRecording}");
             IsRecording = false;
-            VadEnabled  = false;
+            VadEnabled = false;
             _capture?.StopRecording();
         }
 
@@ -123,48 +137,69 @@ namespace WhisperVoice
                 PeakAvailable?.Invoke(peak);
             }
 
-            // VAD logic
+
             if (!VadEnabled || !IsRecording) return;
-            if ((now - _recordingStarted) < VadGracePeriod) return;
+            if ((now - _recordingStarted) < VadGracePeriod)
+            {
+                _lastSoundTime = now; 
+                return;
+            }
 
             if (peak > VadThreshold)
             {
-                _lastSoundTime   = now;
+                _lastSoundTime = now;
                 _vadSilenceFired = false;
             }
             else if (!_vadSilenceFired &&
                      (now - _lastSoundTime) >= VadSilenceTimeout)
             {
                 _vadSilenceFired = true;
+                Log.Warn(Comp,
+                    $"VAD SILENCE TRIGGERED  peak={peak:F2}  " +
+                    $"silenceDuration={(now - _lastSoundTime).TotalSeconds:F2}s  " +
+                    $"VadSilenceTimeout={VadSilenceTimeout.TotalSeconds:F1}s  " +
+                    $"recordingDuration={(now - _recordingStarted).TotalSeconds:F1}s  " +
+                    $"VadThreshold={VadThreshold}");
                 SilenceDetected?.Invoke();
             }
         }
 
-        // ── BUG-1 FIX (WASAPI vector) ──────────────────────────────────────────
+        // ── BUG-1 FIX (WASAPI vector) ─────────────────────────────────────────
         private void OnRecordingStopped(object? sender, StoppedEventArgs a)
         {
-            // Capture the exception BEFORE Dispose() clears state.
             var exception = a.Exception;
-
-            // If IsRecording is still true here, WASAPI killed the session externally
-            // (browser audio-focus steal, device format/sample-rate change, etc.)
-            // rather than us calling StopRecording() deliberately.
             bool wasExternalAbort = IsRecording && exception != null;
 
-            _writer?.Dispose();  _writer  = null;
+            // ── CRITICAL: log the full stop context before disposing state ───
+            if (exception != null)
+            {
+                Log.Error(Comp,
+                    $"OnRecordingStopped  EXCEPTION  " +
+                    $"HRESULT=0x{exception.HResult:X8}  " +
+                    $"Message={exception.Message}  " +
+                    $"IsRecording={IsRecording}  " +
+                    $"wasExternalAbort={wasExternalAbort}");
+            }
+            else
+            {
+                Log.Info(Comp,
+                    $"OnRecordingStopped  CLEAN  " +
+                    $"IsRecording={IsRecording}  " +
+                    $"wasExternalAbort={wasExternalAbort}");
+            }
+
+            _writer?.Dispose(); _writer = null;
             _capture?.Dispose(); _capture = null;
             _stopTcs?.TrySetResult(true);
 
             if (wasExternalAbort)
             {
                 IsRecording = false;
-                System.Diagnostics.Debug.WriteLine(
-                    $"[AudioRecorder] WASAPI aborted recording externally: " +
-                    $"{exception!.Message} (HRESULT 0x{exception.HResult:X8})");
-                RecordingAborted?.Invoke(exception);
+                Log.Error(Comp, $"WASAPI EXTERNAL ABORT confirmed — raising RecordingAborted event");
+                RecordingAborted?.Invoke(exception!);
             }
         }
-        // ──────────────────────────────────────────────────────────────────────
+        // ─────────────────────────────────────────────────────────────────────
 
         public static double CalculatePeak(byte[] buffer, int bytesRecorded, WaveFormat format)
         {
