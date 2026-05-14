@@ -2,6 +2,7 @@ using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace WhisperVoice.Services
 {
@@ -10,12 +11,14 @@ namespace WhisperVoice.Services
         private static readonly DiagnosticLogger Log = DiagnosticLogger.Instance;
         private const string Comp = "AudioCaptureService";
 
-        private readonly AudioRecorder _recorder = new();
+        // Работаем через интерфейс вместо конкретного AudioRecorder
+        private readonly IAudioSource _source;
         private WasapiCapture? _silentCapture;
         private MMDevice? _device;
         private DateTime _lastSilentPeak = DateTime.MinValue;
+        private readonly bool _loopbackMode;
 
-        public bool IsRecording => _recorder.IsRecording;
+        public bool IsRecording => _source.IsRecording;
 
         public bool IsDeviceAttached
         {
@@ -48,22 +51,44 @@ namespace WhisperVoice.Services
             }
         }
 
+        public Action<Exception> RecordingAborted { get; internal set; }
+
         public event Action<double>? PeakAvailable;
         public event Action? SilenceDetected;
         public event Action<float>? VolumeChanged;
         public event Action? DeviceDisconnected;
 
-        public AudioCaptureService()
+        /// <summary>
+        /// Конструктор теперь принимает флаг режима.
+        /// </summary>
+        /// <param name="loopbackMode">true для захвата системного звука, false для микрофона.</param>
+        public AudioCaptureService(bool loopbackMode = false)
         {
-            _recorder.PeakAvailable += val => PeakAvailable?.Invoke(val);
-            _recorder.SilenceDetected += () => SilenceDetected?.Invoke();
-            _recorder.RecordingAborted += OnRecordingAborted;
+            _loopbackMode = loopbackMode;
 
-            Log.Info(Comp, "AudioCaptureService constructed — event wiring complete");
+            // Выбор стратегии захвата
+            if (_loopbackMode)
+            {
+                _source = new LoopbackSource();
+            }
+            else
+            {
+                // AudioRecorder должен реализовывать IAudioSource
+                _source = new AudioRecorder();
+            }
+
+            // Переподписываем события от источника на сервис
+            _source.PeakAvailable += val => PeakAvailable?.Invoke(val);
+            _source.SilenceDetected += () => SilenceDetected?.Invoke();
+            _source.RecordingAborted += OnRecordingAborted;
+
+            Log.Info(Comp, $"AudioCaptureService constructed — Mode: {(_loopbackMode ? "LOOPBACK" : "MICROPHONE")}");
         }
 
         public bool AttachDevice(string micId)
         {
+            // Для режима Loopback выбор устройства микрофона не нужен для записи, 
+            // но мы оставляем логику для работы индикатора громкости (SilentCapture)
             Log.Info(Comp, $"AttachDevice called  micId={micId}");
 
             try
@@ -170,7 +195,7 @@ namespace WhisperVoice.Services
 
         private void SilentCapture_DataAvailable(object? sender, WaveInEventArgs e)
         {
-            if (_recorder.IsRecording) return;
+            if (_source.IsRecording) return;
 
             var now = DateTime.UtcNow;
             if ((now - _lastSilentPeak).TotalMilliseconds < 40) return;
@@ -180,6 +205,7 @@ namespace WhisperVoice.Services
             {
                 try
                 {
+                    // Используем статический метод из AudioRecorder для расчета пика
                     double peak = AudioRecorder.CalculatePeak(e.Buffer, e.BytesRecorded, _silentCapture.WaveFormat);
                     PeakAvailable?.Invoke(peak);
                 }
@@ -188,61 +214,43 @@ namespace WhisperVoice.Services
                     Log.Warn(Comp, $"SilentCapture peak calc failed: {ex.Message}");
                 }
             }
-            else
-            {
-                // This fires when the silent capture's DataAvailable is raised
-                // AFTER the device/capture was nulled — a race condition sign.
-                Log.Error(Comp,
-                    $"SilentCapture_DataAvailable fired but state is NULL  " +
-                    $"_silentCapture={((_silentCapture == null) ? "NULL" : "EXISTS")}  " +
-                    $"_device={((_device == null) ? "NULL" : "EXISTS")}");
-            }
         }
 
         public bool StartRecording(string micId, string outputPath, double vadThreshold, double vadSilenceSeconds)
         {
-            Log.Info(Comp, $"StartRecording  micId={micId}  out={outputPath}  " +
-                           $"vadThreshold={vadThreshold}  vadSilence={vadSilenceSeconds}s");
+            Log.Info(Comp, $"StartRecording (mode={(_loopbackMode ? "LOOPBACK" : "MICROPHONE")}) out={outputPath}");
 
             try { _silentCapture?.StopRecording(); } catch { }
 
-            _recorder.VadEnabled = true;
-            _recorder.VadThreshold = vadThreshold;
-            _recorder.VadSilenceTimeout = TimeSpan.FromSeconds(vadSilenceSeconds);
-            bool result = _recorder.StartRecording(micId, outputPath);
+            // Настройка параметров VAD для текущего источника
+            _source.VadThreshold = vadThreshold;
+            _source.VadSilenceTimeout = TimeSpan.FromSeconds(vadSilenceSeconds);
+
+            // Запуск записи. В режиме Loopback micId будет проигнорирован внутри.
+            bool result = _source.StartRecording(micId, outputPath);
 
             Log.Info(Comp, $"StartRecording result={result}");
             return result;
         }
 
-        public async System.Threading.Tasks.Task StopRecordingAsync()
+        public async Task StopRecordingAsync()
         {
             Log.Info(Comp, "StopRecordingAsync called");
-
-            _recorder.VadEnabled = false;
-            await _recorder.StopRecordingAsync();
-
+            await _source.StopRecordingAsync();
             Log.Info(Comp, "StopRecordingAsync: recorder stopped — restarting silent capture");
 
-            try
-            {
-                if (_silentCapture != null && _device != null)
-                    _silentCapture.StartRecording();
-            }
-            catch (Exception ex)
-            {
-                Log.Warn(Comp, $"StopRecordingAsync: failed to restart silent capture ({ex.Message}) — calling RestartSilentCapture");
-                RestartSilentCapture();
-            }
+            RestartSilentAfterStop();
         }
 
         public void StopRecordingSync()
         {
             Log.Info(Comp, "StopRecordingSync called");
+            _source.StopRecording();
+            RestartSilentAfterStop();
+        }
 
-            _recorder.VadEnabled = false;
-            _recorder.StopRecording();
-
+        private void RestartSilentAfterStop()
+        {
             try
             {
                 if (_silentCapture != null && _device != null)
@@ -250,7 +258,7 @@ namespace WhisperVoice.Services
             }
             catch (Exception ex)
             {
-                Log.Warn(Comp, $"StopRecordingSync: failed to restart silent capture ({ex.Message}) — calling RestartSilentCapture");
+                Log.Warn(Comp, $"Failed to restart silent capture ({ex.Message}) — calling RestartSilentCapture");
                 RestartSilentCapture();
             }
         }
@@ -259,33 +267,27 @@ namespace WhisperVoice.Services
         {
             Log.Info(Comp, "Dispose called");
             DetachDevice();
-            _recorder.StopRecording();
+            _source.Dispose();
         }
 
         public void RestartSilentCapture()
         {
-            Log.Info(Comp,
-                $"RestartSilentCapture called  IsRecording={IsRecording}  " +
-                $"_device={(_device != null ? "EXISTS" : "NULL")}");
+            Log.Info(Comp, $"RestartSilentCapture called  IsRecording={IsRecording}  _device={(_device != null ? "EXISTS" : "NULL")}");
 
             if (IsRecording || _device == null)
             {
-                Log.Warn(Comp, $"RestartSilentCapture SKIPPED  reason={(IsRecording ? "IsRecording=true" : "_device=NULL")}");
+                Log.Warn(Comp, $"RestartSilentCapture SKIPPED reason={(IsRecording ? "IsRecording=true" : "_device=NULL")}");
                 return;
             }
 
             try
             {
-                Log.Trace(Comp, "RestartSilentCapture: stopping old capture...");
                 _silentCapture?.StopRecording();
                 _silentCapture?.Dispose();
                 _silentCapture = null;
 
-                Log.Trace(Comp, "RestartSilentCapture: creating new WasapiCapture...");
                 _silentCapture = new WasapiCapture(_device, true, 50);
                 _silentCapture.DataAvailable += SilentCapture_DataAvailable;
-
-                Log.Trace(Comp, "RestartSilentCapture: starting...");
                 _silentCapture.StartRecording();
 
                 Log.Info(Comp, "RestartSilentCapture SUCCESS");
@@ -296,47 +298,20 @@ namespace WhisperVoice.Services
             }
         }
 
-        // ── BUG-1 FIX (WASAPI vector) ─────────────────────────────────────────
         private void OnRecordingAborted(Exception ex)
         {
             const int AUDCLNT_E_DEVICE_INVALIDATED = unchecked((int)0x88890004);
-            // Known soft abort HRESULTs for reference:
-            // 0x88890010 = AUDCLNT_E_DEVICE_IN_USE     (browser / format change)
-            // 0x88890008 = AUDCLNT_E_SERVICE_NOT_RUNNING
-            // 0x88890020 = AUDCLNT_E_UNSUPPORTED_FORMAT
 
-            string hresultName = ex.HResult switch
-            {
-                unchecked((int)0x88890004) => "AUDCLNT_E_DEVICE_INVALIDATED",
-                unchecked((int)0x88890010) => "AUDCLNT_E_DEVICE_IN_USE",
-                unchecked((int)0x88890008) => "AUDCLNT_E_SERVICE_NOT_RUNNING",
-                unchecked((int)0x88890020) => "AUDCLNT_E_UNSUPPORTED_FORMAT",
-                _ => "UNKNOWN"
-            };
-
-            Log.Error(Comp,
-                $"OnRecordingAborted  HRESULT=0x{ex.HResult:X8} ({hresultName})  " +
-                $"Message={ex.Message}");
+            Log.Error(Comp, $"OnRecordingAborted  HRESULT=0x{ex.HResult:X8}  Message={ex.Message}");
 
             if (ex.HResult == AUDCLNT_E_DEVICE_INVALIDATED)
             {
-                Log.Error(Comp, "OnRecordingAborted: HARD device invalidation — raising DeviceDisconnected");
                 HandleDeviceFailure();
             }
             else
             {
-                Log.Warn(Comp, "OnRecordingAborted: SOFT abort — attempting RestartSilentCapture");
-                try
-                {
-                    RestartSilentCapture();
-                    Log.Info(Comp, "OnRecordingAborted: silent capture restart succeeded");
-                }
-                catch (Exception restartEx)
-                {
-                    Log.Error(Comp, restartEx, "OnRecordingAborted: silent capture restart FAILED");
-                }
+                RestartSilentCapture();
             }
         }
-        // ─────────────────────────────────────────────────────────────────────
     }
 }

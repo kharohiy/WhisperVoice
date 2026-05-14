@@ -32,14 +32,14 @@ namespace WhisperVoice.Services
         public async Task<string?> RunAsync(
             string modelPath,
             string lang,
-            bool   isTranslate,
+            bool isTranslate,
             string techPrompt,
-            IProgress<string> progress,
-            Action<string>    logAction,
+            IProgress<string>? progress,
+            Action<string>? logAction,
             CancellationToken token,
-            int    beamSize          = 5,
-            int    bestOf            = 5,
-            double temperature       = 0.0,
+            int beamSize = 5,
+            int bestOf = 5,
+            double temperature = 0.0,
             double noSpeechThreshold = 0.6)
         {
             if (File.Exists(TempTxtPath)) File.Delete(TempTxtPath);
@@ -48,18 +48,18 @@ namespace WhisperVoice.Services
             string args = BuildArgs(modelPath, lang, isTranslate, techPrompt, threads,
                                     beamSize, bestOf, temperature, noSpeechThreshold);
 
-            logAction($"whisper-cli args: {args}");
-            progress.Report("🔍 Запуск Whisper...");
+            logAction?.Invoke($"whisper-cli args: {args}");
+            progress?.Report("🔍 Запуск Whisper...");
 
             var psi = new ProcessStartInfo
             {
-                FileName               = WhisperExe,
-                Arguments              = args,
-                WorkingDirectory       = _baseDir,
-                UseShellExecute        = false,
-                CreateNoWindow         = true,
+                FileName = WhisperExe,
+                Arguments = args,
+                WorkingDirectory = _baseDir,
+                UseShellExecute = false,
+                CreateNoWindow = true,
                 RedirectStandardOutput = true,
-                RedirectStandardError  = true
+                RedirectStandardError = true
             };
 
             using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
@@ -70,16 +70,16 @@ namespace WhisperVoice.Services
             process.OutputDataReceived += (_, e) =>
             {
                 if (e.Data is null) return;
-                progress.Report(e.Data);
+                progress?.Report(e.Data);
             };
 
             process.ErrorDataReceived += (_, e) =>
             {
                 if (e.Data is null) return;
-                logAction($"[whisper stderr] {e.Data}");
+                logAction?.Invoke($"[whisper stderr] {e.Data}");
                 // Surface meaningful stderr lines to the status label
                 if (!e.Data.Contains('%') && !e.Data.Contains("whisper_"))
-                    progress.Report(e.Data);
+                    progress?.Report(e.Data);
             };
 
             process.Exited += (_, _) => exitTcs.TrySetResult(true);
@@ -92,10 +92,10 @@ namespace WhisperVoice.Services
             {
                 exitTcs.TrySetCanceled();
                 KillProcessTree(process);
-                logAction("Whisper process cancelled by user.");
+                logAction?.Invoke("Whisper process cancelled by user.");
             });
 
-            try   { await exitTcs.Task; }
+            try { await exitTcs.Task; }
             catch (OperationCanceledException) { return null; }
 
             token.ThrowIfCancellationRequested();
@@ -110,14 +110,14 @@ namespace WhisperVoice.Services
                     1 => "whisper-cli вернул код 1 — нехватка памяти или некорректный WAV.",
                     _ => $"whisper-cli завершился с кодом {exitCode}."
                 };
-                logAction($"whisper exit code {exitCode}: {err}");
-                progress.Report($"❌ Ошибка (код {exitCode})");
+                logAction?.Invoke($"whisper exit code {exitCode}: {err}");
+                progress?.Report($"❌ Ошибка (код {exitCode})");
                 throw new WhisperProcessException(exitCode, err);
             }
 
             if (!File.Exists(TempTxtPath))
             {
-                logAction("Output file not found after successful exit.");
+                logAction?.Invoke("Output file not found after successful exit.");
                 return null;
             }
 
@@ -132,7 +132,7 @@ namespace WhisperVoice.Services
         /// </summary>
         private string BuildArgs(
             string model, string lang, bool isTranslate,
-            string prompt,  int threads,
+            string prompt, int threads,
             int beamSize, int bestOf, double temperature, double noSpeechThreshold)
         {
             var sb = new StringBuilder();

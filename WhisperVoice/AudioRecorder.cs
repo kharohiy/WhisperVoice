@@ -2,6 +2,7 @@ using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
 using System.Threading.Tasks;
+using WhisperVoice.Services; 
 
 namespace WhisperVoice
 {
@@ -10,7 +11,7 @@ namespace WhisperVoice
     /// Exposes a peak-level event for the VU-meter and built-in
     /// software Voice Activity Detection (VAD) for auto-stop.
     /// </summary>
-    public class AudioRecorder
+    public class AudioRecorder : IAudioSource
     {
         private static readonly DiagnosticLogger Log = DiagnosticLogger.Instance;
         private const string Comp = "AudioRecorder";
@@ -137,11 +138,10 @@ namespace WhisperVoice
                 PeakAvailable?.Invoke(peak);
             }
 
-
             if (!VadEnabled || !IsRecording) return;
             if ((now - _recordingStarted) < VadGracePeriod)
             {
-                _lastSoundTime = now; 
+                _lastSoundTime = now;
                 return;
             }
 
@@ -223,6 +223,12 @@ namespace WhisperVoice
             }
 
             return Math.Min(100.0, Math.Sqrt(max) * 100.0);
+        }
+        public void Dispose()
+        {
+            StopRecording();
+            _writer?.Dispose();
+            _capture?.Dispose();
         }
     }
 }
