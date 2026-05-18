@@ -157,7 +157,7 @@ namespace WhisperVoice.ViewModels
         private static void OpenUrl(string url)
         {
             if (!string.IsNullOrWhiteSpace(url))
-                try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
+                try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch (Exception ex) { WhisperVoice.DiagnosticLogger.Instance.Error("ModelsViewModel", ex, "Failed to open URL"); }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

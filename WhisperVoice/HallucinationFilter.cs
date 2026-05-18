@@ -52,7 +52,7 @@ namespace WhisperVoice.Services
                     var list = JsonSerializer.Deserialize<string[]>(json, _jsonOpts);
                     if (list is { Length: > 0 }) return list;
                 }
-                catch { /* corrupt file — recreate */ }
+                catch (Exception ex) { DiagnosticLogger.Instance.Warn("HallucinationFilter", $"Corrupt dictionary, recreating: {ex.Message}"); }
             }
 
             // Bootstrap: write defaults to disk so user can edit them
@@ -61,7 +61,7 @@ namespace WhisperVoice.Services
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 File.WriteAllText(path, JsonSerializer.Serialize(_defaults, _jsonOpts));
             }
-            catch { /* non-critical */ }
+            catch (Exception ex) { DiagnosticLogger.Instance.Error("HallucinationFilter", ex, "Failed to bootstrap dictionary"); }
 
             return _defaults;
         }

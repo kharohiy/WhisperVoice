@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
@@ -102,7 +102,7 @@ namespace WhisperVoice
                     key.DeleteValue(AppName, throwOnMissingValue: false);
                 }
             }
-            catch { }
+            catch (Exception ex) { DiagnosticLogger.Instance.Error("SettingsWindow", ex, "Registry operation failed"); }
         }
 
 

@@ -50,7 +50,7 @@ namespace WhisperVoice
                     UseShellExecute = true
                 });
             }
-            catch { }
+            catch (Exception ex) { DiagnosticLogger.Instance.Error("MicWindow", ex, "Failed to open mmsys.cpl"); }
         }
     }
 }

@@ -11,6 +11,8 @@
 temp.wav
 temp.wav.txt
 whisper_debug.log
+repomix.config.json
+repomix-output.md
 
 # Проектные папки вывода и ресурсов
 WhisperVoice/Output/

@@ -1,4 +1,4 @@
-﻿using NAudio.CoreAudioApi;
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
 using System.Runtime.InteropServices;
@@ -140,7 +140,7 @@ namespace WhisperVoice.Services
 
             if (_device != null)
             {
-                try { _device.AudioEndpointVolume.OnVolumeNotification -= OnVolumeNotification; } catch { }
+                try { _device.AudioEndpointVolume.OnVolumeNotification -= OnVolumeNotification; } catch (Exception ex) { Log.Error(Comp, ex, "General exception in AudioCaptureService"); }
                 _device = null;
             }
 
@@ -172,7 +172,7 @@ namespace WhisperVoice.Services
                 HandleDeviceFailure();
                 return 0f;
             }
-            catch { return 0f; }
+            catch (Exception ex) { Log.Error(Comp, ex, "GetVolume general exception"); return 0f; }
         }
 
         public void SetVolume(float scalar)
@@ -183,7 +183,7 @@ namespace WhisperVoice.Services
                 Log.Error(Comp, ex, "SetVolume COMException");
                 HandleDeviceFailure();
             }
-            catch { }
+            catch (Exception ex) { Log.Error(Comp, ex, "General exception in AudioCaptureService"); }
         }
 
         private void HandleDeviceFailure()
@@ -220,9 +220,9 @@ namespace WhisperVoice.Services
         {
             Log.Info(Comp, $"StartRecording (mode={(_loopbackMode ? "LOOPBACK" : "MICROPHONE")}) out={outputPath}");
 
-            try { _silentCapture?.StopRecording(); } catch { }
+            try { _silentCapture?.StopRecording(); } catch (Exception ex) { Log.Error(Comp, ex, "General exception in AudioCaptureService"); }
 
-            // Настройка параметров VAD для текущего источника
+            // Configure VAD parameters for the current source
             _source.VadThreshold = vadThreshold;
             _source.VadSilenceTimeout = TimeSpan.FromSeconds(vadSilenceSeconds);
             _source.VadEnabled = vadEnabled;

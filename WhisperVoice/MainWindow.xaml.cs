@@ -1,4 +1,4 @@
-﻿using NHotkey.Wpf;
+using NHotkey.Wpf;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -227,7 +227,7 @@ namespace WhisperVoice
                         return device.ID;
                 }
             }
-            catch { }
+            catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Operation failed: {ex.Message}"); }
 
             return null;
         }
@@ -277,7 +277,7 @@ namespace WhisperVoice
                 _hotkeyOrchestrator?.Dispose();
                 CleanupTempFiles();
             }
-            catch { }
+            catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Operation failed: {ex.Message}"); }
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -468,7 +468,7 @@ namespace WhisperVoice
                 byte[] bytes = null!;
                 for (int i = 0; i < 3; i++) {
                     try { bytes = System.IO.File.ReadAllBytes(path); break; }
-                    catch { System.Threading.Thread.Sleep(50); }
+                    catch (Exception ex) { DiagnosticLogger.Instance.Trace("MainWindow", $"Read WAV retry: {ex.Message}"); System.Threading.Thread.Sleep(50); }
                 }
                 if (bytes == null || bytes.Length <= 44) return true;
 
@@ -620,7 +620,7 @@ namespace WhisperVoice
         private async void HistoryList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (HistoryList.SelectedItem is not TranscriptionEntry entry) return;
-            try { System.Windows.Clipboard.SetText(entry.Text); ShowCopyFeedback(); } catch { }
+            try { System.Windows.Clipboard.SetText(entry.Text); ShowCopyFeedback(); } catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Operation failed: {ex.Message}"); }
             await Task.Delay(200);
             HistoryList.SelectedItem = null;
         }
@@ -648,7 +648,7 @@ namespace WhisperVoice
                     else
                         _historyExport.ExportToCsv(entries, dialog.FileName);
                 }
-                catch { }
+                catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Operation failed: {ex.Message}"); }
             }
         }
 
@@ -657,7 +657,7 @@ namespace WhisperVoice
             string logPath = DiagnosticLogger.Instance.LogPath;
             if (!File.Exists(logPath)) return;
             try { Process.Start(new ProcessStartInfo { FileName = "notepad.exe", Arguments = $"\"{logPath}\"", UseShellExecute = false }); }
-            catch { }
+            catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Operation failed: {ex.Message}"); }
         }
 
         private async void ShowCopyFeedback()
@@ -821,14 +821,14 @@ namespace WhisperVoice
                 string raw = File.ReadAllText(DictPath).Replace("\r\n", " ").Replace("\n", " ").Replace("\"", "");
                 return raw.Length > 250 ? raw[..250] : raw;
             }
-            catch { return ""; }
+            catch (Exception ex) { DiagnosticLogger.Instance.Error("MainWindow", ex, "LoadDictPrompt failed"); return ""; }
         }
 
-        private void ClearLogs() { try { if (File.Exists(LogPath)) File.Delete(LogPath); } catch { } }
+        private void ClearLogs() { try { if (File.Exists(LogPath)) File.Delete(LogPath); } catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Operation failed: {ex.Message}"); } }
 
         private void CleanupTempFiles()
         {
-            try { if (File.Exists(TempWavPath)) File.Delete(TempWavPath); } catch { }
+            try { if (File.Exists(TempWavPath)) File.Delete(TempWavPath); } catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Operation failed: {ex.Message}"); }
         }
 
         private void ShowErrorPopup(string resourceKey)

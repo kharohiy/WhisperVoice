@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -142,7 +142,7 @@ namespace WhisperVoice
                     loaded.Save();
                     return loaded;
                 }
-                catch { }
+                catch (Exception ex) { DiagnosticLogger.Instance.Error("AppSettings", ex, "I/O operation failed"); }
             }
 
             if (File.Exists(LegacyIniPath))
@@ -158,7 +158,7 @@ namespace WhisperVoice
                     migrated.Save();
                     return migrated;
                 }
-                catch { }
+                catch (Exception ex) { DiagnosticLogger.Instance.Error("AppSettings", ex, "I/O operation failed"); }
             }
 
             return new AppSettings();
@@ -173,7 +173,7 @@ namespace WhisperVoice
                 File.WriteAllText(SettingsPath,
                     JsonSerializer.Serialize(this, _jsonOpts));
             }
-            catch { }
+            catch (Exception ex) { DiagnosticLogger.Instance.Error("AppSettings", ex, "I/O operation failed"); }
         }
 
         /// <summary>Convenience: returns true if a microphone has been configured.</summary>
