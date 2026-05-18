@@ -395,9 +395,10 @@ namespace WhisperVoice
             }
         }
 
-        private async Task StopAndProcessAsync()
+                private async Task StopAndProcessAsync()
         {
             if (Interlocked.Exchange(ref _stopGuard, 1) != 0) return;
+            _isProcessing = true; // Instantly lock incoming hotkey requests to eliminate race condition window
             try
             {
                 await _activeCapture.StopRecordingAsync();
@@ -419,7 +420,6 @@ namespace WhisperVoice
                 var lang = _currentLang;
                 var translate = _currentTranslate;
                 _activeMode = RecordMode.None;
-                _isProcessing = true;
 
                 LblMicName.Text = (string)FindResource("LblProcessing");
                 LblMicName.Foreground = System.Windows.Media.Brushes.Orange;
@@ -440,12 +440,12 @@ namespace WhisperVoice
 
                 await ProcessWhisperAsync(lang, translate, selectedPrompt, progress, _whisperCts.Token);
 
-                _isProcessing = false;
                 ShowProcessingPanel(false);
                 UpdateMicLabel(_settings.MicName, ok: true);
             }
             finally
             {
+                _isProcessing = false; // Fail-safe clearance of processing block guarantees no hung UI state
                 Interlocked.Exchange(ref _stopGuard, 0);
                 // Возвращаем фокус захвата на микрофон по умолчанию для отрисовки UI
                 _activeCapture = _microphoneCapture;
