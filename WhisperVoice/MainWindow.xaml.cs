@@ -347,7 +347,7 @@ namespace WhisperVoice
             });
         }
 
-        private void StartMatrixRecording(Services.ProcessingMode mode, Services.AudioSource source)
+                private void StartMatrixRecording(Services.ProcessingMode mode, Services.AudioSource source)
         {
             if (string.IsNullOrEmpty(_settings.MicId) && source == Services.AudioSource.Microphone) { Show(); return; }
 
@@ -374,7 +374,11 @@ namespace WhisperVoice
             // Динамическое переключение источника на лету!
             _activeCapture = source == Services.AudioSource.Loopback ? _loopbackCapture : _microphoneCapture;
 
-            bool started = _activeCapture.StartRecording(_settings.MicId, TempWavPath, _settings.VadThreshold, _settings.VadSilenceSeconds);
+            // ── VAD Logic & Loopback timeout extension ──
+            double silenceTimeout = source == Services.AudioSource.Loopback ? _settings.VadSilenceSeconds + 3.0 : _settings.VadSilenceSeconds;
+            bool enableVad = (source == Services.AudioSource.Loopback) && !_settings.IsPushToTalkEnabled;
+
+            bool started = _activeCapture.StartRecording(_settings.MicId, TempWavPath, _settings.VadThreshold, silenceTimeout, enableVad);
             if (!started) { ShowErrorPopup("ErrMicUnplugged"); return; }
 
             StartVadAnimation();
@@ -454,9 +458,63 @@ namespace WhisperVoice
 
         private void WriteLog(string msg) => DiagnosticLogger.Instance.Info("MainWindow", msg);
 
-        private bool IsAudioWorthProcessing(string path)
+                                                private bool IsAudioWorthProcessing(string path)
         {
-            try { return new System.IO.FileInfo(path).Length > 1024; } catch { return false; }
+            try 
+            { 
+                var info = new System.IO.FileInfo(path);
+                if (!info.Exists || info.Length <= 44) return false; 
+
+                byte[] bytes = null!;
+                for (int i = 0; i < 3; i++) {
+                    try { bytes = System.IO.File.ReadAllBytes(path); break; }
+                    catch { System.Threading.Thread.Sleep(50); }
+                }
+                if (bytes == null || bytes.Length <= 44) return true;
+
+                int sampleCount = (bytes.Length - 44) / 2;
+                if (sampleCount < 6400) return false;
+
+                int startSample = 4800;
+                int endSample = sampleCount - 4800;
+                
+                if (startSample >= endSample) {
+                    startSample = sampleCount / 4;
+                    endSample = sampleCount - (sampleCount / 4);
+                }
+
+                int validCount = endSample - startSample;
+                if (validCount <= 0) return false;
+
+                long sum = 0;
+                for (int i = startSample; i < endSample; i++) {
+                    sum += BitConverter.ToInt16(bytes, 44 + i * 2);
+                }
+                short dcOffset = (short)(sum / validCount);
+
+                short maxAc = 0;
+                for (int i = startSample; i < endSample; i++) {
+                    short sample = BitConverter.ToInt16(bytes, 44 + i * 2);
+                    short ac = (short)Math.Abs(sample - dcOffset);
+                    if (ac > maxAc) maxAc = ac;
+                }
+
+                WriteLog($"[PCM Filter] DC Offset: {dcOffset} | True AC Peak: {maxAc}");
+                
+                bool isLoopback = _activeCapture == _loopbackCapture;
+                
+                // CRITICAL FIX: Loopback (Ctrl) is pure digital. Peak > 10 is enough.
+                if (isLoopback) return maxAc > 10;
+                
+                // Microphone has AGC which artificially boosts silence to 30000+.
+                // We use 500 to catch true digital silence, but rely on Whisper+Filters to drop AGC noise.
+                return maxAc > 500;
+            } 
+            catch (Exception ex) 
+            { 
+                WriteLog($"[PCM Filter] File error: {ex.Message} -> Fallback to True");
+                return true; 
+            }
         }
 
         private bool IsSpam()
@@ -520,6 +578,13 @@ namespace WhisperVoice
                 }
 
                 string finalResult = _postProcessor.Process(cleanResult);
+
+                // If text is empty after stripping acoustic tags, abort output pipeline
+                if (string.IsNullOrWhiteSpace(finalResult) || !finalResult.Any(char.IsLetterOrDigit))
+                {
+                    progress.Report("Silence / Ignored");
+                    return;
+                }
 
                 progress.Report((string)FindResource("MsgWhisperDone"));
 

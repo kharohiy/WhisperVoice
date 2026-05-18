@@ -1,4 +1,4 @@
-using NAudio.CoreAudioApi;
+﻿using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
 using System.Threading.Tasks;
@@ -201,15 +201,24 @@ namespace WhisperVoice
         }
         // ─────────────────────────────────────────────────────────────────────
 
-        public static double CalculatePeak(byte[] buffer, int bytesRecorded, WaveFormat format)
+                public static double CalculatePeak(byte[] buffer, int bytesRecorded, WaveFormat format)
         {
             float max = 0f;
+            float sum = 0f;
+            int count = 0;
 
             if (format.Encoding == WaveFormatEncoding.IeeeFloat)
             {
                 for (int i = 0; i + 3 < bytesRecorded; i += 4)
                 {
-                    float s = Math.Abs(BitConverter.ToSingle(buffer, i));
+                    sum += BitConverter.ToSingle(buffer, i);
+                    count++;
+                }
+                float avg = count > 0 ? sum / count : 0f;
+
+                for (int i = 0; i + 3 < bytesRecorded; i += 4)
+                {
+                    float s = Math.Abs(BitConverter.ToSingle(buffer, i) - avg);
                     if (s > max) max = s;
                 }
             }
@@ -217,7 +226,14 @@ namespace WhisperVoice
             {
                 for (int i = 0; i + 1 < bytesRecorded; i += 2)
                 {
-                    float s = Math.Abs(BitConverter.ToInt16(buffer, i) / 32768f);
+                    sum += (BitConverter.ToInt16(buffer, i) / 32768f);
+                    count++;
+                }
+                float avg = count > 0 ? sum / count : 0f;
+
+                for (int i = 0; i + 1 < bytesRecorded; i += 2)
+                {
+                    float s = Math.Abs((BitConverter.ToInt16(buffer, i) / 32768f) - avg);
                     if (s > max) max = s;
                 }
             }

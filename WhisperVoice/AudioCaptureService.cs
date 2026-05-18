@@ -1,4 +1,4 @@
-using NAudio.CoreAudioApi;
+﻿using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
 using System.Runtime.InteropServices;
@@ -216,7 +216,7 @@ namespace WhisperVoice.Services
             }
         }
 
-        public bool StartRecording(string micId, string outputPath, double vadThreshold, double vadSilenceSeconds)
+        public bool StartRecording(string micId, string outputPath, double vadThreshold, double vadSilenceSeconds, bool vadEnabled = true)
         {
             Log.Info(Comp, $"StartRecording (mode={(_loopbackMode ? "LOOPBACK" : "MICROPHONE")}) out={outputPath}");
 
@@ -225,6 +225,7 @@ namespace WhisperVoice.Services
             // Настройка параметров VAD для текущего источника
             _source.VadThreshold = vadThreshold;
             _source.VadSilenceTimeout = TimeSpan.FromSeconds(vadSilenceSeconds);
+            _source.VadEnabled = vadEnabled;
 
             // Запуск записи. В режиме Loopback micId будет проигнорирован внутри.
             bool result = _source.StartRecording(micId, outputPath);

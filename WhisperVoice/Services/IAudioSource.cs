@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 
 namespace WhisperVoice.Services
@@ -12,6 +12,7 @@ namespace WhisperVoice.Services
         
         double VadThreshold { get; set; }
         TimeSpan VadSilenceTimeout { get; set; }
+        bool VadEnabled { get; set; }
         
         bool StartRecording(string deviceId, string outputPath);
         Task StopRecordingAsync();

@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 //  LoopbackSource.cs
 //  WhisperVoice — WASAPI Loopback Capture
 // ============================================================
@@ -34,6 +34,7 @@ namespace WhisperVoice.Services
 
         public double VadThreshold { get; set; } = 5.0;
         public TimeSpan VadSilenceTimeout { get; set; } = TimeSpan.FromSeconds(1.8);
+        public bool VadEnabled { get; set; } = false;
         public TimeSpan VadGracePeriod { get; set; } = TimeSpan.FromSeconds(1.5);
 
         public bool StartRecording(string deviceId, string outputPath)
@@ -163,7 +164,7 @@ namespace WhisperVoice.Services
                     }
 
                     // VAD processing
-                    if (!silenceFired && _isRecording)
+                    if (VadEnabled && !silenceFired && _isRecording)
                     {
                         double secondsElapsed = (System.Diagnostics.Stopwatch.GetTimestamp() - startTick) / (double)System.Diagnostics.Stopwatch.Frequency;
                         if (secondsElapsed >= VadGracePeriod.TotalSeconds && vadStopwatch.Elapsed >= VadSilenceTimeout)

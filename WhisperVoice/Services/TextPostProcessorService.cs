@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace WhisperVoice.Services
 {
@@ -8,21 +8,26 @@ namespace WhisperVoice.Services
     /// </summary>
     public class TextPostProcessorService
     {
-        // Matches timestamp lines whisper leaks even with -nt/-np flags
-        // e.g. [00:00:00.000 --> 00:00:02.500] or (00:00:00.000 --> 00:00:02.500)
+                // Matches timestamp lines whisper leaks
         private static readonly Regex _timestampLine =
-            new(@"[\[\(]\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}[\]\)]",
-                RegexOptions.Compiled);
+            new(@"[\[\(]\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}[\]\)]", RegexOptions.Compiled);
+
+        // Уничтожает звуковые галлюцинации Whisper: *phone rings*, (coughs), [music]
+        private static readonly Regex _acousticTags = 
+            new(@"\[.*?\]|\(.*?\)|\*.*?\*|f\d{1,2}\s*key|phone\s*rings?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         private static readonly Regex _multiSpace =
             new(@" {2,}", RegexOptions.Compiled);
 
         public string Process(string text)
         {
+            // 0. Вырезаем все акустические галлюцинации (в скобках и звездочках)
+            text = _acousticTags.Replace(text, "").Trim();
+
             // 1. Strip leaked timestamp segments
             text = _timestampLine.Replace(text, "").Trim();
 
-            // 2. Collapse runs of spaces left after timestamp removal
+            // 2. Collapse runs of spaces
             text = _multiSpace.Replace(text, " ").Trim();
 
             // 3. Auto-capitalize first letter
