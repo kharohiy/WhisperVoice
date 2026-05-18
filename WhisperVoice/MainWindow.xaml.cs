@@ -349,6 +349,7 @@ namespace WhisperVoice
 
                 private void StartMatrixRecording(Services.ProcessingMode mode, Services.AudioSource source)
         {
+            _settings = AppSettings.Load(); // ⚡ JIT Cache Invalidation
             if (string.IsNullOrEmpty(_settings.MicId) && source == Services.AudioSource.Microphone) { Show(); return; }
 
             if (string.IsNullOrEmpty(_settings.LastModelPath) || !File.Exists(_settings.LastModelPath))
@@ -555,11 +556,19 @@ namespace WhisperVoice
                     if (choice == MessageBoxResult.No) return;
                 }
 
-                string model = await Dispatcher.InvokeAsync(() =>
+                                string model = await Dispatcher.InvokeAsync(() => AppSettings.Load().LastModelPath);
+
+                if (string.IsNullOrEmpty(model) || !File.Exists(model))
                 {
-                    string saved = AppSettings.Load().LastModelPath;
-                    return !string.IsNullOrEmpty(saved) ? saved : Path.Combine(BaseDir, "models", "ggml-large-v3.bin");
-                });
+                    DiagnosticLogger.Instance.Error("MainWindow", "Model file missing before inference: " + model);
+                    progress.Report("⚠️ Model not found!");
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        Show();
+                        new MissingModelWindow { Owner = this }.ShowDialog();
+                    });
+                    return;
+                }
 
                 string? rawResult = await _whisper.RunAsync(
                     model, lang, isTranslate, techPrompt,

@@ -20,12 +20,18 @@ namespace WhisperVoice
             string modelsDir = System.IO.Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory, "models");
 
-            var win = new ModelsWindow(modelsDir, onModelAdded: null) { Owner = this };
+            var win = new ModelsWindow(modelsDir, onModelAdded: () => 
+            {
+                var files = Directory.GetFiles(modelsDir, "*.bin");
+                if (files.Length > 0 && !File.Exists(AppSettings.Load().LastModelPath))
+                {
+                    var settings = AppSettings.Load();
+                    settings.LastModelPath = files[0];
+                    settings.Save();
+                }
+            }) { Owner = this };
             win.ShowDialog();
 
-            // If the user downloaded a model, the Settings ComboBox will refresh
-            // via ModelFileDownloaded event when opened next time.
-            // Re-check: if a model now exists, close this prompt.
             if (File.Exists(AppSettings.Load().LastModelPath))
                 Close();
         }
