@@ -64,9 +64,6 @@ namespace WhisperVoice
         private SettingsWindow _settingsWindow = new();
 
         // ── Recording state ────────────────────────────────────────────────
-        private NAudio.Wave.WasapiLoopbackCapture? _loopbackCapture;
-        private NAudio.Wave.WaveFileWriter? _loopbackWriter;
-        private bool _isLoopbackActive = false;
 
         private enum RecordMode { None, Primary, Translate, Prompt }
         private RecordMode _activeMode = RecordMode.None;
@@ -293,7 +290,7 @@ namespace WhisperVoice
         /// registers the correct one based on AppSettings.IsPushToTalkEnabled.
         /// Must be called on the UI thread.
         /// </summary>
-                private void RebindHotkeys()
+                        private void RebindHotkeys()
         {
             _settings = AppSettings.Load();
 
@@ -317,14 +314,14 @@ namespace WhisperVoice
 
                 if (_settings.IsPushToTalkEnabled)
                 {
-                    if (!_audio.IsRecording && !_isLoopbackActive)
+                    if (!_activeCapture.IsRecording)
                     {
                         StartMatrixRecording(e.Mode, e.Source);
                     }
                 }
                 else
                 {
-                    if (!_audio.IsRecording && !_isLoopbackActive)
+                    if (!_activeCapture.IsRecording)
                     {
                         StartMatrixRecording(e.Mode, e.Source);
                     }
@@ -343,7 +340,7 @@ namespace WhisperVoice
         {
             Dispatcher.InvokeAsync(async () =>
             {
-                if (_settings.IsPushToTalkEnabled && (_audio.IsRecording || _isLoopbackActive))
+                if (_settings.IsPushToTalkEnabled && _activeCapture.IsRecording)
                 {
                     await StopAndProcessAsync();
                 }
@@ -374,49 +371,16 @@ namespace WhisperVoice
             };
             string keySignature = source == Services.AudioSource.Loopback ? "Ctrl+" + keyBase : keyBase;
 
-            if (source == Services.AudioSource.Loopback)
-            {
-                _isLoopbackActive = true;
-                string rawLoopWav = TempWavPath + ".raw.wav";
-                if (File.Exists(rawLoopWav)) File.Delete(rawLoopWav);
+            // Динамическое переключение источника на лету!
+            _activeCapture = source == Services.AudioSource.Loopback ? _loopbackCapture : _microphoneCapture;
 
-                try
-                {
-                    using var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
-                    var renderDevice = enumerator.GetDefaultAudioEndpoint(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.Role.Multimedia);
-                    
-                    _loopbackCapture = new NAudio.Wave.WasapiLoopbackCapture(renderDevice);
-                    _loopbackWriter = new NAudio.Wave.WaveFileWriter(rawLoopWav, _loopbackCapture.WaveFormat);
-
-                    _loopbackCapture.DataAvailable += (s, a) => {
-                        if (a.BytesRecorded > 0 && _loopbackWriter != null)
-                            _loopbackWriter.Write(a.Buffer, 0, a.BytesRecorded);
-                    };
-
-                    _loopbackCapture.RecordingStopped += (s, a) => {
-                        _loopbackWriter?.Dispose(); _loopbackWriter = null;
-                        _loopbackCapture?.Dispose(); _loopbackCapture = null;
-                    };
-
-                    _loopbackCapture.StartRecording();
-                }
-                catch (Exception ex)
-                {
-                    WriteLog("Failed to initialize WASAPI loopback engine: " + ex.Message);
-                    _isLoopbackActive = false;
-                    return;
-                }
-            }
-            else
-            {
-                bool started = _audio.StartRecording(_settings.MicId, TempWavPath, _settings.VadThreshold, _settings.VadSilenceSeconds);
-                if (!started) { ShowErrorPopup("ErrMicUnplugged"); return; }
-            }
+            bool started = _activeCapture.StartRecording(_settings.MicId, TempWavPath, _settings.VadThreshold, _settings.VadSilenceSeconds);
+            if (!started) { ShowErrorPopup("ErrMicUnplugged"); return; }
 
             StartVadAnimation();
             UpdateLanguageButton(keySignature);
             if (_settings.SoundNotifications) SystemSounds.Beep.Play();
-            StartRecordingTimer();
+            StartRecordingTimer(source == Services.AudioSource.Loopback);
 
             LblMicName.Text = (string)FindResource("LblRecording") + " 0:00";
             LblMicName.Foreground = System.Windows.Media.Brushes.Red;
@@ -424,7 +388,7 @@ namespace WhisperVoice
 
         private async void OnVadSilenceDetected()
         {
-            if ((_audio.IsRecording || _isLoopbackActive) && _activeMode != RecordMode.None)
+            if (_activeCapture.IsRecording && _activeMode != RecordMode.None)
             {
                 WriteLog("VAD: silence threshold reached — auto-stopping.");
                 await StopAndProcessAsync();
@@ -436,39 +400,11 @@ namespace WhisperVoice
             if (Interlocked.Exchange(ref _stopGuard, 1) != 0) return;
             try
             {
-                if (_isLoopbackActive)
-                {
-                    _isLoopbackActive = false;
-                    _loopbackCapture?.StopRecording();
-                    await Task.Delay(250);
-
-                    string rawLoopWav = TempWavPath + ".raw.wav";
-                    if (File.Exists(rawLoopWav))
-                    {
-                        try
-                        {
-                            var targetFormat = new NAudio.Wave.WaveFormat(16000, 1);
-                            using (var reader = new NAudio.Wave.WaveFileReader(rawLoopWav))
-                            using (var resampler = new NAudio.Wave.MediaFoundationResampler(reader, targetFormat))
-                            {
-                                NAudio.Wave.WaveFileWriter.CreateWaveFile(TempWavPath, resampler);
-                            }
-                            File.Delete(rawLoopWav);
-                        }
-                        catch (Exception ex)
-                        {
-                            WriteLog("Loopback audio processing resampler failed: " + ex.Message);
-                        }
-                    }
-                }
-                else
-                {
-                    await _audio.StopRecordingAsync();
-                }
+                await _activeCapture.StopRecordingAsync();
 
                 StopVadAnimation();
                 StopRecordingTimer();
-
+                
                 if (!IsAudioWorthProcessing(TempWavPath))
                 {
                     _activeMode = RecordMode.None;
@@ -476,6 +412,8 @@ namespace WhisperVoice
                     UpdateMicLabel(_settings.MicName, ok: true);
                     return;
                 }
+
+                if (_settings.SoundNotifications) SystemSounds.Exclamation.Play();
 
                 var mode = _activeMode;
                 var lang = _currentLang;
@@ -509,9 +447,16 @@ namespace WhisperVoice
             finally
             {
                 Interlocked.Exchange(ref _stopGuard, 0);
-                // Fix: return active capture to microphone to restore signal level monitoring
+                // Возвращаем фокус захвата на микрофон по умолчанию для отрисовки UI
                 _activeCapture = _microphoneCapture;
             }
+        }
+
+        private void WriteLog(string msg) => DiagnosticLogger.Instance.Info("MainWindow", msg);
+
+        private bool IsAudioWorthProcessing(string path)
+        {
+            try { return new System.IO.FileInfo(path).Length > 1024; } catch { return false; }
         }
 
         private bool IsSpam()
