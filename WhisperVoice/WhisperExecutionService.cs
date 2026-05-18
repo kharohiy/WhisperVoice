@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -29,7 +29,7 @@ namespace WhisperVoice.Services
         /// All process output lines are forwarded through <paramref name="progress"/>.
         /// Writes stderr to <paramref name="logAction"/>.
         /// </summary>
-        public async Task<string?> RunAsync(
+                public async Task<string?> RunAsync(
             string modelPath,
             string lang,
             bool isTranslate,
@@ -45,22 +45,32 @@ namespace WhisperVoice.Services
             if (File.Exists(TempTxtPath)) File.Delete(TempTxtPath);
 
             int threads = Math.Max(2, Environment.ProcessorCount - 1);
-            string args = BuildArgs(modelPath, lang, isTranslate, techPrompt, threads,
-                                    beamSize, bestOf, temperature, noSpeechThreshold);
-
-            logAction?.Invoke($"whisper-cli args: {args}");
-            progress?.Report("🔍 Запуск Whisper...");
 
             var psi = new ProcessStartInfo
             {
                 FileName = WhisperExe,
-                Arguments = args,
                 WorkingDirectory = _baseDir,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
             };
+
+            // Modern .NET 8 structured argument collection isolation
+            PopulateArgumentList(psi, modelPath, lang, isTranslate, techPrompt, threads,
+                                 beamSize, bestOf, temperature, noSpeechThreshold);
+
+            // Reconstruct full execution string representation strictly for laptop diagnostic logging
+            var logBuilder = new StringBuilder("whisper-cli");
+            foreach (var arg in psi.ArgumentList)
+            {
+                if (arg.Contains(" ") || arg.Contains("\""))
+                    logBuilder.Append($" \"{arg.Replace("\"", "\\\"")}\"");
+                else
+                    logBuilder.Append($" {arg}");
+            }
+            logAction?.Invoke($"whisper-cli args: {logBuilder}");
+            progress?.Report("🔍 Запуск Whisper...");
 
             using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
@@ -77,7 +87,6 @@ namespace WhisperVoice.Services
             {
                 if (e.Data is null) return;
                 logAction?.Invoke($"[whisper stderr] {e.Data}");
-                // Surface meaningful stderr lines to the status label
                 if (!e.Data.Contains('%') && !e.Data.Contains("whisper_"))
                     progress?.Report(e.Data);
             };
@@ -90,7 +99,7 @@ namespace WhisperVoice.Services
 
             using var cancelReg = token.Register(() =>
             {
-                exitTcs.TrySetCanceled();
+                exitTcs.TrySetResult(false);
                 KillProcessTree(process);
                 logAction?.Invoke("Whisper process cancelled by user.");
             });
@@ -124,31 +133,48 @@ namespace WhisperVoice.Services
             return File.ReadAllText(TempTxtPath).Trim();
         }
 
-        // ── Argument builder (whisper.cpp C++ CLI) ─────────────────────────
-        /// <summary>
-        /// Builds the argument string for whisper-cli.exe.
-        /// RULE: always use short flags (-m, -f, -l, -tr, -otxt, -nt, -np, -t).
-        /// Never use --model / --language — those are Python whisper flags.
-        /// </summary>
-        private string BuildArgs(
-            string model, string lang, bool isTranslate,
-            string prompt, int threads,
+        // ── Argument builder (whisper.cpp C++ CLI via ArgumentList) ────────
+        private void PopulateArgumentList(
+            ProcessStartInfo psi,
+            string model, string lang, bool isTranslate, string prompt, int threads,
             int beamSize, int bestOf, double temperature, double noSpeechThreshold)
         {
-            var sb = new StringBuilder();
-            sb.Append($"-m \"{model}\"");
-            sb.Append($" -f \"{TempWavPath}\"");
-            sb.Append($" -l {lang}");
-            if (isTranslate) sb.Append(" -tr");
+            psi.ArgumentList.Add("-m");
+            psi.ArgumentList.Add(model);
+
+            psi.ArgumentList.Add("-f");
+            psi.ArgumentList.Add(TempWavPath);
+
+            psi.ArgumentList.Add("-l");
+            psi.ArgumentList.Add(lang);
+
+            if (isTranslate) 
+                psi.ArgumentList.Add("-tr");
+
             if (!string.IsNullOrWhiteSpace(prompt))
-                sb.Append($" --prompt \"{prompt}\"");
-            sb.Append(" -otxt -nt -np");
-            sb.Append($" -t {threads}");
-            sb.Append($" --beam-size {beamSize}");
-            sb.Append($" --best-of {bestOf}");
-            sb.Append($" --temperature {temperature.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}");
-            sb.Append($" --no-speech-thold {noSpeechThreshold.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)}");
-            return sb.ToString();
+            {
+                psi.ArgumentList.Add("--prompt");
+                psi.ArgumentList.Add(prompt);
+            }
+
+            psi.ArgumentList.Add("-otxt");
+            psi.ArgumentList.Add("-nt");
+            psi.ArgumentList.Add("-np");
+
+            psi.ArgumentList.Add("-t");
+            psi.ArgumentList.Add(threads.ToString());
+
+            psi.ArgumentList.Add("--beam-size");
+            psi.ArgumentList.Add(beamSize.ToString());
+
+            psi.ArgumentList.Add("--best-of");
+            psi.ArgumentList.Add(bestOf.ToString());
+
+            psi.ArgumentList.Add("--temperature");
+            psi.ArgumentList.Add(temperature.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
+
+            psi.ArgumentList.Add("--no-speech-thold");
+            psi.ArgumentList.Add(noSpeechThreshold.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
         }
 
         // ── Process utilities ──────────────────────────────────────────────

@@ -435,7 +435,7 @@ namespace WhisperVoice
                 string selectedPrompt = mode switch {
                     RecordMode.Translate => _settings.PromptTranslate,
                     RecordMode.Prompt => LoadDictPrompt(),
-                    _ => LoadDictPrompt()
+                    _ => string.Empty
                 };
 
                 await ProcessWhisperAsync(lang, translate, selectedPrompt, progress, _whisperCts.Token);
