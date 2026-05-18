@@ -43,6 +43,7 @@ namespace WhisperVoice
         private string AppDataDir => AppSettings.AppDataDir;
         private string DictDir => Path.Combine(AppDataDir, "dictionary");
         private string TempWavPath => Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav");
+        private string TempTxtPath => Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav.txt");
         private string LogPath => Path.Combine(AppDataDir, "whisper_debug.log");
         private string DictPath => Path.Combine(DictDir, "dictionary.txt");
 
@@ -837,7 +838,22 @@ namespace WhisperVoice
 
         private void CleanupTempFiles()
         {
-            try { if (File.Exists(TempWavPath)) File.Delete(TempWavPath); } catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Operation failed: {ex.Message}"); }
+            try { if (File.Exists(TempWavPath)) File.Delete(TempWavPath); } catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Temp WAV cleanup failed: {ex.Message}"); }
+            try { if (File.Exists(TempTxtPath)) File.Delete(TempTxtPath); } catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Temp TXT cleanup failed: {ex.Message}"); }
+            
+            try 
+            { 
+                string modelsDir = Path.Combine(BaseDir, "models");
+                if (Directory.Exists(modelsDir))
+                {
+                    foreach (var file in Directory.GetFiles(modelsDir, "*.part"))
+                    {
+                        File.Delete(file);
+                        DiagnosticLogger.Instance.Info("MainWindow", $"Cleaned up orphaned download: {Path.GetFileName(file)}");
+                    }
+                }
+            } 
+            catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Orphaned .part models cleanup failed: {ex.Message}"); }
         }
 
         private void ShowErrorPopup(string resourceKey)
