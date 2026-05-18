@@ -20,3 +20,6 @@ WhisperVoiceIcons/
 *.bin
 **/models/
 models/
+
+# Нативные библиотеки whisper.cpp в корне проекта
+WhisperVoice/*.dll

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -28,6 +28,8 @@ namespace WhisperVoice
         public string HotkeyPrimary { get; set; } = "F8";
         /// <summary>Hotkey for Record with forced English translation (was HotkeyEn).</summary>
         public string HotkeyTranslate { get; set; } = "F9";
+        /// <summary>Hotkey for Record with forced technical prompt injection.</summary>
+        public string HotkeyPrompt { get; set; } = "F10";
         public string HotkeyMenu { get; set; } = "F7";
         public string HotkeyNotepad { get; set; } = "Ctrl+F7";
 

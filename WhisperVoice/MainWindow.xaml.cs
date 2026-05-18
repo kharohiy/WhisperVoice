@@ -1,4 +1,4 @@
-using NHotkey.Wpf;
+﻿using NHotkey.Wpf;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -62,7 +62,11 @@ namespace WhisperVoice
         private SettingsWindow _settingsWindow = new();
 
         // ── Recording state ────────────────────────────────────────────────
-        private enum RecordMode { None, Primary, Translate }
+        private NAudio.Wave.WasapiLoopbackCapture? _loopbackCapture;
+        private NAudio.Wave.WaveFileWriter? _loopbackWriter;
+        private bool _isLoopbackActive = false;
+
+        private enum RecordMode { None, Primary, Translate, Prompt }
         private RecordMode _activeMode = RecordMode.None;
 
         private string _currentLang = "ru";
@@ -304,109 +308,66 @@ namespace WhisperVoice
         /// registers the correct one based on AppSettings.IsPushToTalkEnabled.
         /// Must be called on the UI thread.
         /// </summary>
-        private void RebindHotkeys()
+                private void RebindHotkeys()
         {
             _settings = AppSettings.Load();
 
-            // Build the orchestrator once; reuse it across RebindHotkeys() calls.
-            _hotkeyOrchestrator ??= new Services.HotkeyOrchestrationService(
-                onRecordPrimary:        OnRecordPrimary,
-                onRecordTranslate:      OnRecordTranslate,
-                onPttPrimaryStart:      OnPttPrimaryKeyDown,
-                onPttPrimaryStop:       OnPttKeyUp,
-                onPttTranslateStart:    OnPttTranslateKeyDown,
-                onPttTranslateStop:     OnPttKeyUp,
-                onToggleMenu:           OnToggleMenu,
-                onTranslateCtrl:        OnTranslateWithPrompt,
-                onOpenNotepad:          OnOpenNotepad);
+            if (_hotkeyOrchestrator == null)
+            {
+                _hotkeyOrchestrator = new Services.HotkeyOrchestrationService();
+                _hotkeyOrchestrator.OnRecordRequested += HotkeyOrchestrator_OnRecordRequested;
+                _hotkeyOrchestrator.OnRecordStopped += HotkeyOrchestrator_OnRecordStopped;
+                _hotkeyOrchestrator.OnToggleMenu += (s, e) => { if (!IsSpam()) { if (IsVisible) Hide(); else { Show(); Activate(); } } };
+                _hotkeyOrchestrator.OnOpenNotepad += (s, e) => { if (!IsSpam()) ToggleWindow(_notepad); };
+            }
 
             _hotkeyOrchestrator.RebindHotkeys(_settings);
         }
 
-        // ── PTT event handlers ─────────────────────────────────────────────
-
-        /// <summary>
-        /// PTT Primary key down — fires on the UI thread, exactly once per physical
-        /// press (auto-repeat guard is in LowLevelKeyboardHook). Task.Run offloads
-        /// NAudio WASAPI init so the WH_KEYBOARD_LL callback returns immediately.
-        /// </summary>
-        private void OnPttPrimaryKeyDown()
+        private void HotkeyOrchestrator_OnRecordRequested(object? sender, Services.HotkeyRequestedEventArgs e)
         {
-            if (_isProcessing || _audio.IsRecording) return;
-            _settings = AppSettings.Load();
-            _ = Task.Run(() => Dispatcher.InvokeAsync(() =>
-                ToggleRecording(RecordMode.Primary,
-                    _settings.LanguagePrimary, _settings.HotkeyPrimary, isTranslate: false)));
-        }
-
-        /// <summary>PTT Translate key down — same flow, forces English output.</summary>
-        private void OnPttTranslateKeyDown()
-        {
-            if (_isProcessing || _audio.IsRecording) return;
-            _settings = AppSettings.Load();
-            _ = Task.Run(() => Dispatcher.InvokeAsync(() =>
-                ToggleRecording(RecordMode.Translate,
-                    "en", _settings.HotkeyTranslate, isTranslate: false)));
-        }
-
-        /// <summary>
-        /// PTT key up — shared by both hooks. _stopGuard (Interlocked) in
-        /// StopAndProcessAsync ensures only the first call proceeds even if
-        /// both hooks fire release events near-simultaneously.
-        /// </summary>
-        private void OnPttKeyUp()
-        {
-            if (!_audio.IsRecording) return;
-            _ = StopAndProcessAsync();
-        }
-
-        private bool IsSpam()
-        {
-            var diff = (DateTime.Now - _lastAction).TotalMilliseconds;
-            _lastAction = DateTime.Now;
-            return diff < 600;
-        }
-
-        private void OnToggleMenu(object? s, NHotkey.HotkeyEventArgs e)
-        { e.Handled = true; if (!IsSpam()) { if (IsVisible) Hide(); else { Show(); Activate(); } } }
-
-        private void OnOpenNotepad(object? s, NHotkey.HotkeyEventArgs e)
-        { e.Handled = true; if (!IsSpam()) ToggleWindow(_notepad); }
-
-        /// <summary>Primary hotkey: record in the user's selected language.</summary>
-        private void OnRecordPrimary(object? s, NHotkey.HotkeyEventArgs e)
-        {
-            e.Handled = true;
-            if (!IsSpam() && !_isProcessing)
+            Dispatcher.InvokeAsync(async () =>
             {
-                _settings = AppSettings.Load();
-                ToggleRecording(RecordMode.Primary,
-                    _settings.LanguagePrimary, _settings.HotkeyPrimary, false);
-            }
+                if (_isProcessing) return;
+
+                if (_settings.IsPushToTalkEnabled)
+                {
+                    if (!_audio.IsRecording && !_isLoopbackActive)
+                    {
+                        StartMatrixRecording(e.Mode, e.Source);
+                    }
+                }
+                else
+                {
+                    if (!_audio.IsRecording && !_isLoopbackActive)
+                    {
+                        StartMatrixRecording(e.Mode, e.Source);
+                    }
+                    else
+                    {
+                        if (_activeMode == (RecordMode)e.Mode)
+                        {
+                            await StopAndProcessAsync();
+                        }
+                    }
+                }
+            });
         }
 
-        /// <summary>Translate hotkey: force English output regardless of selected language.</summary>
-        private void OnRecordTranslate(object? s, NHotkey.HotkeyEventArgs e)
+        private void HotkeyOrchestrator_OnRecordStopped(object? sender, Services.HotkeyRequestedEventArgs e)
         {
-            e.Handled = true;
-            if (!IsSpam() && !_isProcessing)
+            Dispatcher.InvokeAsync(async () =>
             {
-                _settings = AppSettings.Load();
-                ToggleRecording(RecordMode.Translate,
-                    "en", _settings.HotkeyTranslate, false);
-            }
+                if (_settings.IsPushToTalkEnabled && (_audio.IsRecording || _isLoopbackActive))
+                {
+                    await StopAndProcessAsync();
+                }
+            });
         }
 
-        /// <summary>Ctrl+F9: translate with active user prompt.</summary>
-        private void OnTranslateWithPrompt(object? s, NHotkey.HotkeyEventArgs e)
-        { e.Handled = true; if (!IsSpam() && !_isProcessing) ToggleRecording(RecordMode.Translate, "ru", "Ctrl+F9", true); }
-
-        // ══════════════════════════════════════════════════════════════════
-        // Recording toggle
-        // ══════════════════════════════════════════════════════════════════
-        private async void ToggleRecording(RecordMode mode, string lang, string keyName, bool isTranslate)
+        private void StartMatrixRecording(Services.ProcessingMode mode, Services.AudioSource source)
         {
-            if (string.IsNullOrEmpty(_settings.MicId)) { Show(); return; }
+            if (string.IsNullOrEmpty(_settings.MicId) && source == Services.AudioSource.Microphone) { Show(); return; }
 
             if (string.IsNullOrEmpty(_settings.LastModelPath) || !File.Exists(_settings.LastModelPath))
             {
@@ -415,46 +376,74 @@ namespace WhisperVoice
                 return;
             }
 
-            if (!_audio.IsRecording)
+            _activeMode = (RecordMode)mode;
+            _currentTranslate = (mode == Services.ProcessingMode.Translate || mode == Services.ProcessingMode.Prompt);
+            _currentLang = (mode == Services.ProcessingMode.Primary) ? _settings.LanguagePrimary : "en";
+
+            if (File.Exists(TempWavPath)) File.Delete(TempWavPath);
+
+            string keyBase = mode switch {
+                Services.ProcessingMode.Primary => _settings.HotkeyPrimary,
+                Services.ProcessingMode.Translate => _settings.HotkeyTranslate,
+                _ => _settings.HotkeyPrompt
+            };
+            string keySignature = source == Services.AudioSource.Loopback ? "Ctrl+" + keyBase : keyBase;
+
+            if (source == Services.AudioSource.Loopback)
             {
-                _activeMode = mode;
-                _currentLang = lang;
-                _currentTranslate = isTranslate;
+                _isLoopbackActive = true;
+                string rawLoopWav = TempWavPath + ".raw.wav";
+                if (File.Exists(rawLoopWav)) File.Delete(rawLoopWav);
 
-                if (File.Exists(TempWavPath)) File.Delete(TempWavPath);
-
-                // Сервис всё делает сам в фоне. Просто стартуем.
-
-                bool started = _audio.StartRecording(
-                    _settings.MicId, TempWavPath,
-                    _settings.VadThreshold, _settings.VadSilenceSeconds);
-
-                if (!started)
+                try
                 {
-                    ShowErrorPopup("ErrMicUnplugged");
+                    using var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+                    var renderDevice = enumerator.GetDefaultAudioEndpoint(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.Role.Multimedia);
+                    
+                    _loopbackCapture = new NAudio.Wave.WasapiLoopbackCapture(renderDevice);
+                    _loopbackWriter = new NAudio.Wave.WaveFileWriter(rawLoopWav, _loopbackCapture.WaveFormat);
+
+                    _loopbackCapture.DataAvailable += (s, a) => {
+                        if (a.BytesRecorded > 0 && _loopbackWriter != null)
+                            _loopbackWriter.Write(a.Buffer, 0, a.BytesRecorded);
+                    };
+
+                    _loopbackCapture.RecordingStopped += (s, a) => {
+                        _loopbackWriter?.Dispose(); _loopbackWriter = null;
+                        _loopbackCapture?.Dispose(); _loopbackCapture = null;
+                    };
+
+                    _loopbackCapture.StartRecording();
+                }
+                catch (Exception ex)
+                {
+                    WriteLog("Failed to initialize WASAPI loopback engine: " + ex.Message);
+                    _isLoopbackActive = false;
                     return;
                 }
-
-                StartVadAnimation();
-                UpdateLanguageButton(keyName);
-                if (_settings.SoundNotifications) SystemSounds.Beep.Play();
-                StartRecordingTimer();
-
-                LblMicName.Text = $"{(string)FindResource("LblRecording")} 0:00";
-                LblMicName.Foreground = System.Windows.Media.Brushes.Red;
             }
             else
             {
-                if (_activeMode != mode) return;
-                await StopAndProcessAsync();
+                bool started = _audio.StartRecording(_settings.MicId, TempWavPath, _settings.VadThreshold, _settings.VadSilenceSeconds);
+                if (!started) { ShowErrorPopup("ErrMicUnplugged"); return; }
             }
+
+            StartVadAnimation();
+            UpdateLanguageButton(keySignature);
+            if (_settings.SoundNotifications) SystemSounds.Beep.Play();
+            StartRecordingTimer();
+
+            LblMicName.Text = (string)FindResource("LblRecording") + " 0:00";
+            LblMicName.Foreground = System.Windows.Media.Brushes.Red;
         }
 
         private async void OnVadSilenceDetected()
         {
-            if (!_audio.IsRecording || _activeMode == RecordMode.None) return;
-            WriteLog("VAD: silence threshold reached — auto-stopping.");
-            await StopAndProcessAsync();
+            if ((_audio.IsRecording || _isLoopbackActive) && _activeMode != RecordMode.None)
+            {
+                WriteLog("VAD: silence threshold reached — auto-stopping.");
+                await StopAndProcessAsync();
+            }
         }
 
         private async Task StopAndProcessAsync()
@@ -462,11 +451,41 @@ namespace WhisperVoice
             if (Interlocked.Exchange(ref _stopGuard, 1) != 0) return;
             try
             {
-                await _audio.StopRecordingAsync();
+                if (_isLoopbackActive)
+                {
+                    _isLoopbackActive = false;
+                    _loopbackCapture?.StopRecording();
+                    await Task.Delay(250);
+
+                    string rawLoopWav = TempWavPath + ".raw.wav";
+                    if (File.Exists(rawLoopWav))
+                    {
+                        try
+                        {
+                            var targetFormat = new NAudio.Wave.WaveFormat(16000, 1);
+                            using (var reader = new NAudio.Wave.WaveFileReader(rawLoopWav))
+                            using (var resampler = new NAudio.Wave.MediaFoundationResampler(reader, targetFormat))
+                            {
+                                NAudio.Wave.WaveFileWriter.CreateWaveFile(TempWavPath, resampler);
+                            }
+                            File.Delete(rawLoopWav);
+                        }
+                        catch (Exception ex)
+                        {
+                            WriteLog("Loopback audio processing resampler failed: " + ex.Message);
+                        }
+                    }
+                }
+                else
+                {
+                    await _audio.StopRecordingAsync();
+                }
+
                 StopVadAnimation();
                 StopRecordingTimer();
                 if (_settings.SoundNotifications) SystemSounds.Exclamation.Play();
 
+                var mode = _activeMode;
                 var lang = _currentLang;
                 var translate = _currentTranslate;
                 _activeMode = RecordMode.None;
@@ -474,18 +493,22 @@ namespace WhisperVoice
 
                 LblMicName.Text = (string)FindResource("LblProcessing");
                 LblMicName.Foreground = System.Windows.Media.Brushes.Orange;
-                UpdateLanguageButton(); // strip hotkey indicator
+                UpdateLanguageButton();
                 VuMeter.Value = 0;
                 ShowProcessingPanel(true);
 
                 _whisperCts = new CancellationTokenSource();
-                var progress = new Progress<string>(msg =>
-                {
-                    if (!string.IsNullOrWhiteSpace(msg))
-                        LblStatus.Text = msg;
+                var progress = new Progress<string>(msg => {
+                    if (!string.IsNullOrWhiteSpace(msg)) LblStatus.Text = msg;
                 });
 
-                await ProcessWhisperAsync(lang, translate, translate ? _settings.PromptTranslate : LoadDictPrompt(), progress, _whisperCts.Token);
+                string selectedPrompt = mode switch {
+                    RecordMode.Translate => _settings.PromptTranslate,
+                    RecordMode.Prompt => LoadDictPrompt(),
+                    _ => LoadDictPrompt()
+                };
+
+                await ProcessWhisperAsync(lang, translate, selectedPrompt, progress, _whisperCts.Token);
 
                 _isProcessing = false;
                 ShowProcessingPanel(false);
@@ -497,9 +520,14 @@ namespace WhisperVoice
             }
         }
 
-        // ══════════════════════════════════════════════════════════════════
-        // Whisper orchestration
-        // ══════════════════════════════════════════════════════════════════
+        private bool IsSpam()
+        {
+            var diff = (DateTime.Now - _lastAction).TotalMilliseconds;
+            _lastAction = DateTime.Now;
+            return diff < 600;
+        }
+
+        // ── Whisper orchestration ──────────────────────────────────────────
         private async Task ProcessWhisperAsync(
             string lang, bool isTranslate, string techPrompt,
             IProgress<string> progress, CancellationToken token)

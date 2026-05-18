@@ -1,4 +1,4 @@
-<ResourceDictionary
+﻿<ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:sys="clr-namespace:System;assembly=mscorlib">
@@ -58,6 +58,8 @@
     <sys:String x:Key="SettingsTooltipHotkeyPrimary">Клавіша для запуску/зупинки запису на основній мові</sys:String>
     <sys:String x:Key="SettingsLblHotkeyTranslate">Запис — переклад на English (Translate):</sys:String>
     <sys:String x:Key="SettingsTooltipHotkeyTranslate">Клавіша для запису з примусовим перекладом на англійську</sys:String>
+    <sys:String x:Key="SettingsLblHotkeyPrompt">Запис — з тех. промптом (Prompt):</sys:String>
+    <sys:String x:Key="SettingsTooltipHotkeyPrompt">Клавіша для запису з ін'єкцією технічного промпту</sys:String>
     <sys:String x:Key="SettingsSectionAppLanguage">🖥️ Мова інтерфейсу</sys:String>
     <sys:String x:Key="SettingsLblAppLanguage">Мова інтерфейсу програми:</sys:String>
     <sys:String x:Key="SettingsLblAppLanguageTooltip">Миттєво змінює мову інтерфейсу</sys:String>

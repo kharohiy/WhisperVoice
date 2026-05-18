@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
@@ -313,12 +313,16 @@ namespace WhisperVoice
             // ── Hotkeys ───────────────────────────────────────────────────
             ComboHotkeyPrimary.ItemsSource = HotkeyOptions;
             ComboHotkeyTranslate.ItemsSource = HotkeyOptions;
+            ComboHotkeyPrompt.ItemsSource = HotkeyOptions;
 
             ComboHotkeyPrimary.SelectedItem = HotkeyOptions.Contains(_settings.HotkeyPrimary)
                 ? _settings.HotkeyPrimary : "F8";
 
             ComboHotkeyTranslate.SelectedItem = HotkeyOptions.Contains(_settings.HotkeyTranslate)
                 ? _settings.HotkeyTranslate : "F9";
+
+            ComboHotkeyPrompt.SelectedItem = HotkeyOptions.Contains(_settings.HotkeyPrompt)
+                ? _settings.HotkeyPrompt : "F10";
 
             // ── Startup ───────────────────────────────────────────────────
             LoadStartupCheckbox();
@@ -451,6 +455,9 @@ namespace WhisperVoice
 
             if (ComboHotkeyTranslate.SelectedItem is string hkTranslate)
                 _settings.HotkeyTranslate = hkTranslate;
+
+            if (ComboHotkeyPrompt.SelectedItem is string hkPrompt)
+                _settings.HotkeyPrompt = hkPrompt;
 
             _settings.Save();
         }

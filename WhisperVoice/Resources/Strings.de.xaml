@@ -1,4 +1,4 @@
-<ResourceDictionary
+﻿<ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:sys="clr-namespace:System;assembly=mscorlib">
@@ -58,6 +58,8 @@
     <sys:String x:Key="SettingsTooltipHotkeyPrimary">Taste zum Starten/Stoppen der Aufnahme</sys:String>
     <sys:String x:Key="SettingsLblHotkeyTranslate">Aufnahme — Übersetzung ins Englische:</sys:String>
     <sys:String x:Key="SettingsTooltipHotkeyTranslate">Taste für Aufnahme mit erzwungener englischer Übersetzung</sys:String>
+    <sys:String x:Key="SettingsLblHotkeyPrompt">Aufnahme — mit Tech-Prompt (Prompt):</sys:String>
+    <sys:String x:Key="SettingsTooltipHotkeyPrompt">Taste für Aufnahme mit technischem Prompt</sys:String>
     <sys:String x:Key="SettingsSectionAppLanguage">🖥️ App-Sprache</sys:String>
     <sys:String x:Key="SettingsLblAppLanguage">Oberflächensprache:</sys:String>
     <sys:String x:Key="SettingsLblAppLanguageTooltip">Ändert die App-Sprache sofort</sys:String>
