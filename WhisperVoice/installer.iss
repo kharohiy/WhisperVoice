@@ -13,7 +13,6 @@ AppPublisherURL=https://github.com/your-repo/WhisperVoice
 AppSupportURL=https://github.com/your-repo/WhisperVoice/issues
 
 ; Install to Program Files without requiring admin — uses user-level AppData for writable data
-; User selects install directory
 DefaultDirName={autopf}\WhisperVoice
 ; Enable directory selection dialog
 DisableDirPage=no
@@ -39,18 +38,14 @@ WizardStyle=modern
 DisableProgramGroupPage=yes
 DisableWelcomePage=no
 
-; .NET 8 runtime check (whisper WPF requires Desktop Runtime)
-; Inno Setup does not auto-install .NET; inform the user if missing.
-; You can integrate netcorecheck.exe here if desired.
-
 [Languages]
-Name: "english";  MessagesFile: "compiler:Default.isl"
-Name: "russian";  MessagesFile: "compiler:Languages\Russian.isl"
+Name: "english";   MessagesFile: "compiler:Default.isl"
+Name: "russian";   MessagesFile: "compiler:Languages\Russian.isl"
 Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
-Name: "german";   MessagesFile: "compiler:Languages\German.isl"
-Name: "french";   MessagesFile: "compiler:Languages\French.isl"
-Name: "spanish";  MessagesFile: "compiler:Languages\Spanish.isl"
-Name: "polish";   MessagesFile: "compiler:Languages\Polish.isl"
+Name: "german";    MessagesFile: "compiler:Languages\German.isl"
+Name: "french";    MessagesFile: "compiler:Languages\French.isl"
+Name: "spanish";   MessagesFile: "compiler:Languages\Spanish.isl"
+Name: "polish";    MessagesFile: "compiler:Languages\Polish.isl"
 
 [Files]
 ; ------------------------------------------------------------------
@@ -63,34 +58,32 @@ Source: "bin\Release\net8.0-windows\*"; \
   Excludes: "*.pdb,*.bin,*.xml"; \
   Flags: ignoreversion recursesubdirs createallsubdirs
 
-; If you use dotnet publish --self-contained, change the Source path to:
-;   Source: "bin\Release\net8.0-windows\win-x64\publish\*"; \
-
 [Dirs]
+; CRITICAL FOR DIAGNOSTIC LOGGER: 
+; Grant modify permissions to the app folder so the application 
+; can create and write the whisper_diagnostic.log directly in its directory.
+Name: "{app}"; Permissions: users-modify
+; Models directory with modify permissions
 Name: "{app}\models"; Permissions: users-modify
 
 [Icons]
 ; Start Menu
-Name: "{group}\WhisperVoice";              Filename: "{app}\WhisperVoice.exe"
+Name: "{group}\WhisperVoice";             Filename: "{app}\WhisperVoice.exe"
 Name: "{group}\Uninstall WhisperVoice";   Filename: "{uninstallexe}"
 
-; Desktop shortcut — use {userdesktop} instead of {commondesktop}
-Name: "{userdesktop}\WhisperVoice"; Filename: "{app}\WhisperVoice.exe"; \
-  Tasks: desktopicon
+; Desktop shortcut
+Name: "{userdesktop}\WhisperVoice"; Filename: "{app}\WhisperVoice.exe"; Tasks: desktopicon
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a &desktop shortcut"; \
-  GroupDescription: "Additional icons:"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Run]
 ; Offer to launch the app after installation completes
-Filename: "{app}\WhisperVoice.exe"; \
-  Description: "Launch WhisperVoice now"; \
-  Flags: nowait postinstall skipifsilent
+Filename: "{app}\WhisperVoice.exe"; Description: "{cm:LaunchProgram,WhisperVoice}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 ; Clean up any files the app writes to its install dir at runtime
-; (should be none after the AppData migration, but kept as a safety net)
+; Includes the new diagnostic log file
 Type: filesandordirs; Name: "{app}\*.log"
 
 [Code]
@@ -109,6 +102,6 @@ begin
     MsgBox(
       '.NET 8 Desktop Runtime was not detected.' + #13#10 +
       'WhisperVoice requires it to run.' + #13#10#13#10 +
-      'Download it from: https://dotnet.microsoft.com/download/dotnet/8.0',
+      'Please download it from: https://dotnet.microsoft.com/download/dotnet/8.0',
       mbInformation, MB_OK);
 end;

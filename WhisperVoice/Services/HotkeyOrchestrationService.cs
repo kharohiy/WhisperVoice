@@ -141,6 +141,7 @@ namespace WhisperVoice.Services
             try
             {
                 var (mods, key) = HotkeyParser.ParseNHotkey(keyString);
+                if (key == Key.None) return;
                 HotkeyManager.Current.AddOrReplace(name, key, mods, handler);
             }
             catch (Exception ex)
@@ -149,9 +150,27 @@ namespace WhisperVoice.Services
             }
         }
 
+        /// <summary>
+        /// Registers a hotkey with an explicitly provided modifier set.
+        /// Use this for Ctrl variants to guarantee a distinct WM_HOTKEY ID.
+        /// </summary>
+        private static void TryRegisterExplicit(string name, Key key, ModifierKeys mods, EventHandler<HotkeyEventArgs> handler)
+        {
+            try
+            {
+                if (key == Key.None) return;
+                HotkeyManager.Current.AddOrReplace(name, key, mods, handler);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[Hotkey] Failed to register explicit '{name}' ({mods}+{key}): {ex.Message}");
+            }
+        }
+
         private void UnregisterAll()
         {
-            _primaryHook?.Dispose();   _primaryHook   = null;
+            _primaryHook?.Dispose(); _primaryHook = null;
             _translateHook?.Dispose(); _translateHook = null;
             _promptHook?.Dispose();    _promptHook    = null;
 
@@ -165,14 +184,15 @@ namespace WhisperVoice.Services
 
             foreach (var name in names)
             {
-                try { HotkeyManager.Current.Remove(name); } catch { }
+                try { HotkeyManager.Current.Remove(name); }
+                catch { /* key was never registered — safe to ignore */ }
             }
         }
     }
 
 
     // ══════════════════════════════════════════════════════════════════════════
-    // LowLevelKeyboardHook — core of Bug-1 fix
+    // LowLevelKeyboardHook — WH_KEYBOARD_LL wrapper with key-identity lock
     // ══════════════════════════════════════════════════════════════════════════
 
     internal sealed class LowLevelKeyboardHook : IDisposable
@@ -194,10 +214,10 @@ namespace WhisperVoice.Services
         [StructLayout(LayoutKind.Sequential)]
         private struct KBDLLHOOKSTRUCT
         {
-            public uint   vkCode;
-            public uint   scanCode;
-            public uint   flags;
-            public uint   time;
+            public uint vkCode;
+            public uint scanCode;
+            public uint flags;
+            public uint time;
             public IntPtr dwExtraInfo;
         }
 
@@ -225,7 +245,7 @@ namespace WhisperVoice.Services
 
         internal LowLevelKeyboardHook(uint targetVk, Action onKeyDown, Action onKeyUp)
         {
-            _targetVk  = targetVk;
+            _targetVk = targetVk;
             _onKeyDown = onKeyDown;
             _onKeyUp   = onKeyUp;
             _proc      = HookCallback;
@@ -253,9 +273,9 @@ namespace WhisperVoice.Services
             if (kbd.vkCode != _targetVk)
                 return CallNextHookEx(_hookHandle, nCode, wParam, lParam);
 
-            int msg     = wParam.ToInt32();
-            bool isDown = msg == WM_KEYDOWN  || msg == WM_SYSKEYDOWN;
-            bool isUp   = msg == WM_KEYUP    || msg == WM_SYSKEYUP;
+            int msg = wParam.ToInt32();
+            bool isDown = msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN;
+            bool isUp = msg == WM_KEYUP || msg == WM_SYSKEYUP;
 
             if (isDown)
             {
@@ -318,9 +338,9 @@ namespace WhisperVoice.Services
 
         public static (ModifierKeys mods, Key key) ParseNHotkey(string s)
         {
-            var mods  = ModifierKeys.None;
+            var mods = ModifierKeys.None;
             var parts = s.Split('+');
-            Key key   = Key.None;
+            Key key = Key.None;
 
             foreach (var part in parts)
             {
@@ -328,8 +348,8 @@ namespace WhisperVoice.Services
                 {
                     case "CTRL":
                     case "CONTROL": mods |= ModifierKeys.Control; break;
-                    case "ALT":     mods |= ModifierKeys.Alt;     break;
-                    case "SHIFT":   mods |= ModifierKeys.Shift;   break;
+                    case "ALT": mods |= ModifierKeys.Alt; break;
+                    case "SHIFT": mods |= ModifierKeys.Shift; break;
                     case "WIN":
                     case "WINDOWS": mods |= ModifierKeys.Windows; break;
                     default:

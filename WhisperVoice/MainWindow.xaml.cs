@@ -5,6 +5,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Media;
+using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -18,7 +20,6 @@ using WindowsInput.Native;
 
 namespace WhisperVoice
 {
-    // ── Data models ────────────────────────────────────────────────────────
     public class TranscriptionEntry
     {
         public string Text { get; set; } = "";
@@ -29,14 +30,15 @@ namespace WhisperVoice
         public string ShortText =>
             Text.Length > 120 ? Text[..117] + "..." : Text;
 
-        /// <summary>Small badge shown in history: "→EN" for translate mode, or e.g. "RU" for transcription.</summary>
         public string Badge => IsTranslate ? "→EN" : Lang.ToUpper();
     }
 
-    // ── MainWindow — View / Orchestrator only ──────────────────────────────
     public partial class MainWindow : Window
     {
-        // ── Paths ──────────────────────────────────────────────────────────
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+        private const int VK_CONTROL = 0x11;
+
         private string BaseDir => AppDomain.CurrentDomain.BaseDirectory;
         private string AppDataDir => AppSettings.AppDataDir;
         private string DictDir => Path.Combine(AppDataDir, "dictionary");
@@ -44,16 +46,16 @@ namespace WhisperVoice
         private string LogPath => Path.Combine(AppDataDir, "whisper_debug.log");
         private string DictPath => Path.Combine(DictDir, "dictionary.txt");
 
-        // ── Services ───────────────────────────────────────────────────────
-        private readonly AudioCaptureService _audio;
+        private readonly AudioCaptureService _microphoneCapture;
+        private readonly AudioCaptureService _loopbackCapture;
+        private AudioCaptureService _activeCapture;
+
         private readonly WhisperExecutionService _whisper;
         private readonly HardwareCheckService _hardware;
         private readonly HallucinationFilter _hallucinationFilter;
 
-        // ── Settings ───────────────────────────────────────────────────────
         private AppSettings _settings = AppSettings.Load();
 
-        // ── UI helpers ─────────────────────────────────────────────────────
         private System.Windows.Forms.NotifyIcon _trayIcon = null!;
         private readonly InputSimulator _inputSim = new();
 
@@ -72,65 +74,46 @@ namespace WhisperVoice
         private string _currentLang = "ru";
         private bool _currentTranslate = false;
         private bool _isProcessing = false;
-        private int _stopGuard = 0;  // Interlocked double-stop guard
+        private int _stopGuard = 0;
 
-        // ── Async / cancellation ───────────────────────────────────────────
         private CancellationTokenSource? _whisperCts;
 
-        // ── History ────────────────────────────────────────────────────────
         private const int MaxHistory = 10;
         private readonly ObservableCollection<TranscriptionEntry> _history = new();
 
-        // ── VAD animation ──────────────────────────────────────────────────
         private DoubleAnimation? _vadAnim;
 
-        // ── Recording timer ────────────────────────────────────────────────
         private DispatcherTimer? _recTimer;
         private int _recSeconds = 0;
 
-        // ── Post-processor ─────────────────────────────────────────────────
         private readonly TextPostProcessorService _postProcessor = new();
-
-        // ── History export ─────────────────────────────────────────────────
         private readonly HistoryExportService _historyExport = new();
 
-        // ── Hotkey orchestration ───────────────────────────────────────────
         private HotkeyOrchestrationService? _hotkeyOrchestrator;
 
-        // ── Anti-spam ──────────────────────────────────────────────────────
         private DateTime _lastAction = DateTime.MinValue;
 
-        // ══════════════════════════════════════════════════════════════════
-        // Constructor
-        // ══════════════════════════════════════════════════════════════════
         public MainWindow()
         {
-            // Apply saved interface language before XAML resources are resolved
             App.ApplyInterfaceLanguage(AppSettings.Load().AppInterfaceLanguage);
 
             InitializeComponent();
 
-            // Instantiate services
-            _audio = new AudioCaptureService();
+            _ = DiagnosticLogger.Instance;
             _whisper = new WhisperExecutionService(BaseDir);
             _hardware = new HardwareCheckService();
             _hallucinationFilter = new HallucinationFilter(DictDir);
+
+            _microphoneCapture = new AudioCaptureService(loopbackMode: false);
+            _loopbackCapture = new AudioCaptureService(loopbackMode: true);
+            _activeCapture = _microphoneCapture;
 
             ClearLogs();
             CleanupTempFiles();
             SetupTrayIcon();
 
-            // Wire audio service events — these fire on background threads
-            _audio.PeakAvailable += val => Dispatcher.InvokeAsync(() => VuMeter.Value = val);
-            _audio.SilenceDetected += () => Dispatcher.InvokeAsync(OnVadSilenceDetected);
-            _audio.VolumeChanged += vol => Dispatcher.Invoke(() =>
-            {
-                SldVolume.ValueChanged -= SldVolume_ValueChanged;
-                SldVolume.Value = vol * 100;
-                SldVolume.ValueChanged += SldVolume_ValueChanged;
-            });
-
-            _audio.DeviceDisconnected += OnDeviceDisconnected;
+            WireAudioEvents(_microphoneCapture);
+            WireAudioEvents(_loopbackCapture);
 
             HistoryList.ItemsSource = _history;
 
@@ -142,10 +125,41 @@ namespace WhisperVoice
             System.Windows.Application.Current.Exit += (_, _) => FullShutdown();
         }
 
-        // ── Переменная для таймера авто-реконнекта ──
+        private void WireAudioEvents(AudioCaptureService service)
+        {
+            service.PeakAvailable += val => Dispatcher.InvokeAsync(() => {
+                if (_activeCapture == service) VuMeter.Value = val;
+            });
+
+            service.SilenceDetected += () => Dispatcher.InvokeAsync(() => {
+                if (_activeCapture == service) OnVadSilenceDetected();
+            });
+
+            service.RecordingAborted += OnRecordingAborted;
+
+            if (service == _microphoneCapture)
+            {
+                service.VolumeChanged += vol => Dispatcher.Invoke(() =>
+                {
+                    SldVolume.ValueChanged -= SldVolume_ValueChanged;
+                    SldVolume.Value = vol * 100;
+                    SldVolume.ValueChanged += SldVolume_ValueChanged;
+                });
+                service.DeviceDisconnected += OnDeviceDisconnected;
+            }
+        }
+
+        private void OnRecordingAborted(Exception ex)
+        {
+            Dispatcher.InvokeAsync(async () =>
+            {
+                if (_activeMode != RecordMode.None) await StopAndProcessAsync();
+                ShowErrorPopup("ErrRecordingAborted");
+            });
+        }
+
         private DateTime _lastDeviceChange = DateTime.MinValue;
 
-        // ── Системный хук Windows: ловит любые изменения железа (USB/Jack) ──
         protected override void OnSourceInitialized(EventArgs e)
         {
             base.OnSourceInitialized(e);
@@ -163,9 +177,7 @@ namespace WhisperVoice
                 {
                     _lastDeviceChange = DateTime.Now;
 
-                    System.Diagnostics.Debug.WriteLine($"[USB] WM_DEVICECHANGE detected. IsAttached={_audio.IsDeviceAttached}, SavedMicId={_settings.MicId}");
-
-                    if (!_audio.IsDeviceAttached && !string.IsNullOrEmpty(_settings.MicId))
+                    if (!_microphoneCapture.IsDeviceAttached && !string.IsNullOrEmpty(_settings.MicId))
                     {
                         Task.Run(async () =>
                         {
@@ -173,55 +185,33 @@ namespace WhisperVoice
 
                             Dispatcher.Invoke(() =>
                             {
-                                System.Diagnostics.Debug.WriteLine($"[USB] Searching for device by name: {_settings.MicName}");
-
-                                // Find device by friendly name since ID may have changed
                                 string? newId = FindDeviceIdByName(_settings.MicName);
-
-                                System.Diagnostics.Debug.WriteLine($"[USB] FindDeviceIdByName result: {newId ?? "NULL"}");
 
                                 if (newId != null)
                                 {
-                                    bool success = _audio.AttachDevice(newId);
-
-                                    System.Diagnostics.Debug.WriteLine($"[USB] AttachDevice result: {success}");
+                                    bool success = _microphoneCapture.AttachDevice(newId);
 
                                     if (success)
                                     {
-                                        // Update ID if it changed
                                         if (newId != _settings.MicId)
                                         {
-                                            System.Diagnostics.Debug.WriteLine($"[USB] ID changed: {_settings.MicId} -> {newId}");
                                             _settings.MicId = newId;
                                             _settings.Save();
                                         }
 
                                         UpdateMicLabel(_settings.MicName, ok: true);
                                         SetupVolumeSlider();
-
-                                        System.Diagnostics.Debug.WriteLine($"[USB] Calling RestartSilentCapture...");
-                                        // CRITICAL: Restart silent capture for peak meter
-                                        _audio.RestartSilentCapture();
-                                        System.Diagnostics.Debug.WriteLine($"[USB] RestartSilentCapture completed");
+                                        _microphoneCapture.RestartSilentCapture();
                                     }
-                                }
-                                else
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"[USB] Device not found by name '{_settings.MicName}'");
                                 }
                             });
                         });
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[USB] Skipping reconnect (already attached or no saved mic)");
                     }
                 }
             }
             return IntPtr.Zero;
         }
 
-        /// <summary>Find device ID by friendly name (handles USB ID changes)</summary>
         private string? FindDeviceIdByName(string targetName)
         {
             if (string.IsNullOrEmpty(targetName))
@@ -245,14 +235,11 @@ namespace WhisperVoice
             return null;
         }
 
-        // ══════════════════════════════════════════════════════════════════
-        // Tray icon
-        // ══════════════════════════════════════════════════════════════════
         private void SetupTrayIcon()
         {
             _trayIcon = new System.Windows.Forms.NotifyIcon
             {
-                Icon = new System.Drawing.Icon(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "WhisperVoice.ico")), // Custom icon
+                Icon = new System.Drawing.Icon(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "WhisperVoice.ico")),
                 Visible = true,
                 Text = "Whisper Voice"
             };
@@ -277,9 +264,6 @@ namespace WhisperVoice
             if (w.IsVisible) w.Hide(); else { w.Show(); w.Activate(); }
         }
 
-        // ══════════════════════════════════════════════════════════════════
-        // Window lifecycle
-        // ══════════════════════════════════════════════════════════════════
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
             e.Cancel = true;
@@ -291,7 +275,8 @@ namespace WhisperVoice
             try
             {
                 _whisperCts?.Cancel();
-                _audio.Dispose();
+                _microphoneCapture?.Dispose();
+                _loopbackCapture?.Dispose();
                 _hotkeyOrchestrator?.Dispose();
                 CleanupTempFiles();
             }
@@ -483,7 +468,14 @@ namespace WhisperVoice
 
                 StopVadAnimation();
                 StopRecordingTimer();
-                if (_settings.SoundNotifications) SystemSounds.Exclamation.Play();
+
+                if (!IsAudioWorthProcessing(TempWavPath))
+                {
+                    _activeMode = RecordMode.None;
+                    _isProcessing = false;
+                    UpdateMicLabel(_settings.MicName, ok: true);
+                    return;
+                }
 
                 var mode = _activeMode;
                 var lang = _currentLang;
@@ -517,6 +509,8 @@ namespace WhisperVoice
             finally
             {
                 Interlocked.Exchange(ref _stopGuard, 0);
+                // Fix: return active capture to microphone to restore signal level monitoring
+                _activeCapture = _microphoneCapture;
             }
         }
 
@@ -534,8 +528,7 @@ namespace WhisperVoice
         {
             try
             {
-                // ── Resource pre-checks ────────────────────────────────────
-                string ramFmt  = await Dispatcher.InvokeAsync(() => TryGetResource("ErrLowRam",  "Not enough RAM (need ≥ {0} MB free)."));
+                string ramFmt = await Dispatcher.InvokeAsync(() => TryGetResource("ErrLowRam", "Not enough RAM (need ≥ {0} MB free)."));
                 string vramFmt = await Dispatcher.InvokeAsync(() => TryGetResource("ErrLowVram", "VRAM almost full ({0} MB free, need ≥ {1} MB)."));
 
                 var (ramOk, ramMsg) = await _hardware.CheckRamAsync(ramFmt);
@@ -559,39 +552,29 @@ namespace WhisperVoice
                     if (choice == MessageBoxResult.No) return;
                 }
 
-                // ── Model path ─────────────────────────────────────────────
                 string model = await Dispatcher.InvokeAsync(() =>
                 {
                     string saved = AppSettings.Load().LastModelPath;
-                    return !string.IsNullOrEmpty(saved)
-                        ? saved
-                        : Path.Combine(BaseDir, "models", "ggml-large-v3.bin");
+                    return !string.IsNullOrEmpty(saved) ? saved : Path.Combine(BaseDir, "models", "ggml-large-v3.bin");
                 });
 
-                // ── Run whisper-cli.exe ────────────────────────────────────
                 string? rawResult = await _whisper.RunAsync(
                     model, lang, isTranslate, techPrompt,
-                    progress, WriteLog, token,
-                    beamSize:          _settings.BeamSize,
-                    bestOf:            _settings.BestOf,
-                    temperature:       _settings.Temperature,
+                    progress, (msg) => System.Diagnostics.Debug.WriteLine(msg), token,
+                    beamSize: _settings.BeamSize,
+                    bestOf: _settings.BestOf,
+                    temperature: _settings.Temperature,
                     noSpeechThreshold: _settings.NoSpeechThreshold);
 
-                if (rawResult is null) return;   // cancelled or file not found
+                if (rawResult is null) return;
 
-                WriteLog($"Raw result: {rawResult}");
-
-                // ── Hallucination filter ───────────────────────────────────
                 if (!_hallucinationFilter.Check(rawResult, out string cleanResult))
                 {
-                    WriteLog($"Hallucination filtered: {rawResult}");
                     progress.Report((string)FindResource("MsgHallucinationFiltered"));
                     return;
                 }
 
-                // ── Post-processor ─────────────────────────────────────────
                 string finalResult = _postProcessor.Process(cleanResult);
-                WriteLog($"Post-processed: {finalResult}");
 
                 progress.Report((string)FindResource("MsgWhisperDone"));
 
@@ -604,28 +587,13 @@ namespace WhisperVoice
                         VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
                 });
             }
-            catch (WhisperProcessException ex)
-            {
-                await Dispatcher.InvokeAsync(() =>
-                    System.Windows.MessageBox.Show(this, ex.Message,
-                        (string)FindResource("MsgWhisperErrorTitle"),
-                        MessageBoxButton.OK, MessageBoxImage.Error));
-            }
-            catch (OperationCanceledException) { WriteLog("ProcessWhisperAsync cancelled."); }
             catch (Exception ex)
             {
-                WriteLog($"ProcessWhisperAsync unhandled: {ex}");
                 await Dispatcher.InvokeAsync(() =>
-                    System.Windows.MessageBox.Show(this,
-                        string.Format(TryGetResource("MsgUnhandledErrorBody", "Error:\n{0}"), ex.Message),
-                        (string)FindResource("MsgErrorTitle"),
-                        MessageBoxButton.OK, MessageBoxImage.Error));
+                    System.Windows.MessageBox.Show(this, ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error));
             }
         }
 
-        // ══════════════════════════════════════════════════════════════════
-        // History
-        // ══════════════════════════════════════════════════════════════════
         private void AddToHistory(string text, string lang, bool isTranslate)
         {
             _history.Insert(0, new TranscriptionEntry
@@ -639,9 +607,7 @@ namespace WhisperVoice
                 _history.RemoveAt(_history.Count - 1);
         }
 
-        private async void HistoryList_SelectionChanged(
-            object sender,
-            System.Windows.Controls.SelectionChangedEventArgs e)
+        private async void HistoryList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (HistoryList.SelectedItem is not TranscriptionEntry entry) return;
             try { System.Windows.Clipboard.SetText(entry.Text); ShowCopyFeedback(); } catch { }
@@ -649,20 +615,14 @@ namespace WhisperVoice
             HistoryList.SelectedItem = null;
         }
 
-        private void BtnClearHistory_Click(object sender, RoutedEventArgs e) =>
-            _history.Clear();
+        private void BtnClearHistory_Click(object sender, RoutedEventArgs e) => _history.Clear();
 
         private void BtnExportHistory_Click(object sender, RoutedEventArgs e)
         {
-            if (_history.Count == 0)
-            {
-                ShowErrorPopup("No history to export.");
-                return;
-            }
-
+            if (_history.Count == 0) return;
             var dialog = new System.Windows.Forms.SaveFileDialog
             {
-                Filter = "CSV files (*.csv)|*.csv|Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                Filter = "CSV files (*.csv)|*.csv|Text files (*.txt)|*.txt",
                 DefaultExt = "csv",
                 FileName = _historyExport.GenerateTimestampedFilename("csv"),
                 InitialDirectory = AppDataDir
@@ -672,24 +632,22 @@ namespace WhisperVoice
             {
                 try
                 {
-                    var entries = _history
-                        .Select(e => (e.TimeLabel, e.Text))
-                        .ToList();
-
+                    var entries = _history.Select(e => (e.TimeLabel, e.Text)).ToList();
                     if (dialog.FileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
                         _historyExport.ExportToTxt(entries, dialog.FileName);
                     else
                         _historyExport.ExportToCsv(entries, dialog.FileName);
-
-                    WriteLog($"History exported to: {dialog.FileName}");
-                    ShowInfoPopup($"✓ Exported {_history.Count} entries to {Path.GetFileName(dialog.FileName)}");
                 }
-                catch (Exception ex)
-                {
-                    WriteLog($"Export failed: {ex.Message}");
-                    ShowErrorPopup($"Export failed: {ex.Message}");
-                }
+                catch { }
             }
+        }
+
+        private void BtnDiagLog_Click(object sender, RoutedEventArgs e)
+        {
+            string logPath = DiagnosticLogger.Instance.LogPath;
+            if (!File.Exists(logPath)) return;
+            try { Process.Start(new ProcessStartInfo { FileName = "notepad.exe", Arguments = $"\"{logPath}\"", UseShellExecute = false }); }
+            catch { }
         }
 
         private async void ShowCopyFeedback()
@@ -705,14 +663,11 @@ namespace WhisperVoice
             LblStatus.Text = (string)FindResource("LblCancelled");
         }
 
-        // ══════════════════════════════════════════════════════════════════
-        // Mic / volume
-        // ══════════════════════════════════════════════════════════════════
         private void LoadMicFromSettings()
         {
             if (_settings.HasMic)
             {
-                bool attached = _audio.AttachDevice(_settings.MicId);
+                bool attached = _microphoneCapture.AttachDevice(_settings.MicId);
                 UpdateMicLabel(_settings.MicName, ok: attached);
                 if (attached) SetupVolumeSlider();
             }
@@ -725,7 +680,7 @@ namespace WhisperVoice
         private void SetupVolumeSlider()
         {
             SldVolume.ValueChanged -= SldVolume_ValueChanged;
-            SldVolume.Value = _audio.GetVolume() * 100;
+            SldVolume.Value = _microphoneCapture.GetVolume() * 100;
             SldVolume.ValueChanged += SldVolume_ValueChanged;
             VolumePanel.Visibility = Visibility.Visible;
         }
@@ -733,27 +688,22 @@ namespace WhisperVoice
         private void SyncVolumeFromSystem()
         {
             SldVolume.ValueChanged -= SldVolume_ValueChanged;
-            SldVolume.Value = _audio.GetVolume() * 100;
+            SldVolume.Value = _microphoneCapture.GetVolume() * 100;
             SldVolume.ValueChanged += SldVolume_ValueChanged;
         }
 
-        private void SldVolume_ValueChanged(
-            object sender, RoutedPropertyChangedEventArgs<double> e)
-            => _audio.SetVolume((float)(SldVolume.Value / 100.0));
+        private void SldVolume_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+            => _microphoneCapture.SetVolume((float)(SldVolume.Value / 100.0));
 
         private void UpdateMicLabel(string text, bool ok)
         {
-            // When ok: hide the top warning label and show device name inside VolumePanel instead.
             LblMicName.Visibility = ok ? Visibility.Collapsed : Visibility.Visible;
             if (!ok)
             {
                 LblMicName.Text = text;
                 LblMicName.Foreground = System.Windows.Media.Brushes.Red;
             }
-
-            if (LblSelectedDeviceName != null)
-                LblSelectedDeviceName.Text = text;
-
+            if (LblSelectedDeviceName != null) LblSelectedDeviceName.Text = text;
             VolumePanel.Visibility = ok ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -765,17 +715,12 @@ namespace WhisperVoice
                 _settings.MicId = mic.SelectedMicId;
                 _settings.MicName = mic.SelectedMicName;
                 _settings.Save();
-
-                _audio.AttachDevice(_settings.MicId);
-
+                _microphoneCapture.AttachDevice(_settings.MicId);
                 UpdateMicLabel(_settings.MicName, ok: true);
                 SetupVolumeSlider();
             }
         }
 
-        // ══════════════════════════════════════════════════════════════════
-        // Settings window
-        // ══════════════════════════════════════════════════════════════════
         private void UpdateLanguageButton(string? activeKey = null)
         {
             _settings = AppSettings.Load();
@@ -787,47 +732,24 @@ namespace WhisperVoice
                 "de" => "LangNameDe",
                 "es" => "LangNameEs",
                 "fr" => "LangNameFr",
-                _    => "LangNameRu"
+                _ => "LangNameRu"
             };
             string langName = TryGetResource(langKey, _settings.LanguagePrimary.ToUpper());
-
             if (LblCurrentLanguage != null)
-                LblCurrentLanguage.Text = string.IsNullOrEmpty(activeKey)
-                    ? $"🌐 {langName}"
-                    : $"🌐 {langName} [{activeKey}]";
+                LblCurrentLanguage.Text = string.IsNullOrEmpty(activeKey) ? $"🌐 {langName}" : $"🌐 {langName} [{activeKey}]";
         }
 
         private void BtnLanguageSettings_Click(object sender, RoutedEventArgs e)
         {
-            if (_settingsWindow.IsVisible)
-            {
-                _settingsWindow.Activate();
-                return;
-            }
-
+            if (_settingsWindow.IsVisible) { _settingsWindow.Activate(); return; }
             _settingsWindow = new SettingsWindow { Owner = this };
-            _settingsWindow.Closed += (_, _) =>
-            {
-                UpdateLanguageButton();
-                RebindHotkeys();
-            };
+            _settingsWindow.Closed += (_, _) => { UpdateLanguageButton(); RebindHotkeys(); };
             _settingsWindow.Show();
-            _settingsWindow.Activate();
         }
 
-        // ══════════════════════════════════════════════════════════════════
-        // VAD animation helpers
-        // ══════════════════════════════════════════════════════════════════
         private void StartVadAnimation()
         {
-            _vadAnim ??= new DoubleAnimation
-            {
-                From = 1.0,
-                To = 0.1,
-                Duration = TimeSpan.FromSeconds(0.75),
-                AutoReverse = true,
-                RepeatBehavior = RepeatBehavior.Forever
-            };
+            _vadAnim ??= new DoubleAnimation { From = 1.0, To = 0.1, Duration = TimeSpan.FromSeconds(0.75), AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever };
             VadDot.BeginAnimation(UIElement.OpacityProperty, _vadAnim);
             VadPanel.Visibility = Visibility.Visible;
         }
@@ -839,28 +761,30 @@ namespace WhisperVoice
             VadPanel.Visibility = Visibility.Collapsed;
         }
 
-        private void StartRecordingTimer()
+        private void StartRecordingTimer(bool isLoopback)
         {
             _recSeconds = 0;
             _recTimer?.Stop();
             LblMicName.Visibility = Visibility.Visible;
+
+            string prefix = isLoopback ? "🔊" : "🎤";
+            string recLabel = TryGetResource("LblRecording", "Recording");
+
+            // Fix: Immediately update label to 0:00 to avoid display jumps
+            LblMicName.Text = $"{prefix} {recLabel} 0:00";
+
             _recTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _recTimer.Tick += (_, _) =>
             {
                 _recSeconds++;
                 int m = _recSeconds / 60;
                 int s = _recSeconds % 60;
-                LblMicName.Text = $"{(string)FindResource("LblRecording")} {m}:{s:D2}";
+                LblMicName.Text = $"{prefix} {recLabel} {m}:{s:D2}";
             };
             _recTimer.Start();
         }
 
-        private void StopRecordingTimer()
-        {
-            _recTimer?.Stop();
-            _recTimer = null;
-            _recSeconds = 0;
-        }
+        private void StopRecordingTimer() { _recTimer?.Stop(); _recTimer = null; _recSeconds = 0; }
 
         private void ShowProcessingPanel(bool show)
         {
@@ -868,16 +792,8 @@ namespace WhisperVoice
             if (!show) LblStatus.Text = "";
         }
 
-        // ══════════════════════════════════════════════════════════════════
-        // Misc button handlers
-        // ══════════════════════════════════════════════════════════════════
-        private void BtnSound_Click(object sender, RoutedEventArgs e) =>
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "rundll32.exe",
-                Arguments = "shell32.dll,Control_RunDLL mmsys.cpl,,1",
-                UseShellExecute = true
-            });
+        private void BtnSound_Click(object sender, RoutedEventArgs e)
+            => Process.Start(new ProcessStartInfo { FileName = "rundll32.exe", Arguments = "shell32.dll,Control_RunDLL mmsys.cpl,,1", UseShellExecute = true });
 
         private void BtnPrompt_Click(object sender, RoutedEventArgs e)
         {
@@ -885,79 +801,39 @@ namespace WhisperVoice
             else { _promptWindow.LoadTags(); _promptWindow.Show(); _promptWindow.Activate(); }
         }
 
-        private void BtnOpenNotepad_Click(object sender, RoutedEventArgs e) =>
-            ToggleWindow(_notepad);
+        private void BtnOpenNotepad_Click(object sender, RoutedEventArgs e) => ToggleWindow(_notepad);
 
-        // ══════════════════════════════════════════════════════════════════
-        // Utilities
-        // ══════════════════════════════════════════════════════════════════
         private string LoadDictPrompt()
         {
             try
             {
                 if (!File.Exists(DictPath)) return "";
-                string raw = File.ReadAllText(DictPath)
-                    .Replace("\r\n", " ").Replace("\n", " ").Replace("\"", "");
+                string raw = File.ReadAllText(DictPath).Replace("\r\n", " ").Replace("\n", " ").Replace("\"", "");
                 return raw.Length > 250 ? raw[..250] : raw;
             }
             catch { return ""; }
         }
 
-        private void ClearLogs()
-        {
-            try { if (File.Exists(LogPath)) File.Delete(LogPath); } catch { }
-        }
+        private void ClearLogs() { try { if (File.Exists(LogPath)) File.Delete(LogPath); } catch { } }
 
         private void CleanupTempFiles()
         {
-            try
-            {
-                string txt = Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav.txt");
-                if (File.Exists(TempWavPath)) File.Delete(TempWavPath);
-                if (File.Exists(txt)) File.Delete(txt);
-            }
-            catch { }
+            try { if (File.Exists(TempWavPath)) File.Delete(TempWavPath); } catch { }
         }
 
-        private void WriteLog(string text)
-        {
-            try { File.AppendAllText(LogPath, $"{DateTime.Now:HH:mm:ss} | {text}\n"); }
-            catch { }
-        }
-
-        // Вспомогательные методы для попапа с ошибкой
         private void ShowErrorPopup(string resourceKey)
         {
-            // Запускаем в главном UI-потоке, так как вызов может прийти из фонового потока
             Dispatcher.InvokeAsync(() =>
             {
                 string message = TryGetResource(resourceKey, resourceKey);
-                string title = TryGetResource("MsgErrorTitle", "Error"); // Fallback
-
-                System.Windows.MessageBox.Show(
-                    this, message, title,
-                    System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Warning);
-            });
-        }
-
-        private void ShowInfoPopup(string message)
-        {
-            Dispatcher.InvokeAsync(() =>
-            {
-                string title = TryGetResource("MsgInfoTitle", "Info");
-
-                System.Windows.MessageBox.Show(
-                    this, message, title,
-                    System.Windows.MessageBoxButton.OK,
-                    System.Windows.MessageBoxImage.Information);
+                string title = TryGetResource("MsgErrorTitle", "Error");
+                System.Windows.MessageBox.Show(this, message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             });
         }
 
         private string TryGetResource(string key, string fallback)
         {
-            try { return (string)FindResource(key); }
-            catch { return fallback; }
+            try { return (string)FindResource(key); } catch { return fallback; }
         }
 
         private void OnDeviceDisconnected()
