@@ -296,6 +296,9 @@ namespace WhisperVoice
             // ── Sound notifications ───────────────────────────────────────
             ChkSoundNotifications.IsChecked = _settings.SoundNotifications;
 
+            // ── Auto clipboard copy ───────────────────────────────────────
+            ChkAutoClipboard.IsChecked = _settings.AutoClipboardCopy;
+
             // ── Push-to-Talk mode ─────────────────────────────────────────
             ChkPushToTalk.IsChecked = _settings.IsPushToTalkEnabled;
 
@@ -445,6 +448,9 @@ namespace WhisperVoice
 
             // Sound notifications
             _settings.SoundNotifications = ChkSoundNotifications.IsChecked == true;
+
+            // Auto clipboard copy
+            _settings.AutoClipboardCopy = ChkAutoClipboard.IsChecked == true;
 
             // Push-to-Talk mode
             _settings.IsPushToTalkEnabled = ChkPushToTalk.IsChecked == true;

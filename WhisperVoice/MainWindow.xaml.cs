@@ -57,6 +57,8 @@ namespace WhisperVoice
 
         private AppSettings _settings = AppSettings.Load();
 
+        private RecordingOrchestrationService _recorder = null!;
+
         private System.Windows.Forms.NotifyIcon _trayIcon = null!;
         private readonly InputSimulator _inputSim = new();
 
@@ -64,25 +66,13 @@ namespace WhisperVoice
         private readonly PromptWindow _promptWindow = new();
         private SettingsWindow _settingsWindow = new();
 
-        // ── Recording state ────────────────────────────────────────────────
-
-        private enum RecordMode { None, Primary, Translate, Prompt }
-        private RecordMode _activeMode = RecordMode.None;
-
-        private string _currentLang = "ru";
-        private bool _currentTranslate = false;
-        private bool _isProcessing = false;
-        private int _stopGuard = 0;
-
+        // ── Recording state (owned by RecordingOrchestrationService) ───────
         private CancellationTokenSource? _whisperCts;
 
         private const int MaxHistory = 10;
         private readonly ObservableCollection<TranscriptionEntry> _history = new();
 
         private DoubleAnimation? _vadAnim;
-
-        private DispatcherTimer? _recTimer;
-        private int _recSeconds = 0;
 
         private readonly TextPostProcessorService _postProcessor = new();
         private readonly HistoryExportService _historyExport = new();
@@ -105,6 +95,22 @@ namespace WhisperVoice
             _microphoneCapture = new AudioCaptureService(loopbackMode: false);
             _loopbackCapture = new AudioCaptureService(loopbackMode: true);
             _activeCapture = _microphoneCapture;
+
+            _recorder = new Services.RecordingOrchestrationService(
+                _microphoneCapture,
+                _loopbackCapture,
+                _whisper,
+                _hardware,
+                _hallucinationFilter,
+                _postProcessor,
+                TempWavPath);
+
+            _recorder.StateChanged           += Recorder_StateChanged;
+            _recorder.TranscriptionCompleted += Recorder_TranscriptionCompleted;
+            _recorder.StatusUpdated          += (_, msg) => Dispatcher.InvokeAsync(() => LblStatus.Text = msg);
+            _recorder.RecordingTimerTick      += Recorder_TimerTick;
+            _recorder.MissingModelRequested   += (_, _) => Dispatcher.InvokeAsync(() => { Show(); new MissingModelWindow { Owner = this }.ShowDialog(); });
+            _recorder.ErrorOccurred           += (_, key) => ShowErrorPopup(key);
 
             ClearLogs();
             CleanupTempFiles();
@@ -151,7 +157,7 @@ namespace WhisperVoice
         {
             Dispatcher.InvokeAsync(async () =>
             {
-                if (_activeMode != RecordMode.None) await StopAndProcessAsync();
+                if (_recorder.IsRecording) await StopAndProcessAsync();
                 ShowErrorPopup("ErrRecordingAborted");
             });
         }
@@ -272,7 +278,7 @@ namespace WhisperVoice
         {
             try
             {
-                _whisperCts?.Cancel();
+                _recorder?.Dispose();
                 _microphoneCapture?.Dispose();
                 _loopbackCapture?.Dispose();
                 _hotkeyOrchestrator?.Dispose();
@@ -311,28 +317,19 @@ namespace WhisperVoice
         {
             Dispatcher.InvokeAsync(async () =>
             {
-                if (_isProcessing) return;
+                if (_recorder.IsProcessing) return;
 
                 if (_settings.IsPushToTalkEnabled)
                 {
-                    if (!_activeCapture.IsRecording)
-                    {
-                        StartMatrixRecording(e.Mode, e.Source);
-                    }
+                    if (!_recorder.IsRecording)
+                        _recorder.StartRecording(new Services.RecordingRequest(e.Mode, e.Source));
                 }
                 else
                 {
-                    if (!_activeCapture.IsRecording)
-                    {
-                        StartMatrixRecording(e.Mode, e.Source);
-                    }
+                    if (!_recorder.IsRecording)
+                        _recorder.StartRecording(new Services.RecordingRequest(e.Mode, e.Source));
                     else
-                    {
-                        if (_activeMode == (RecordMode)e.Mode)
-                        {
-                            await StopAndProcessAsync();
-                        }
-                    }
+                        await _recorder.StopAndProcessAsync(AppSettings.Load(), key => TryGetResource(key, key));
                 }
             });
         }
@@ -341,183 +338,38 @@ namespace WhisperVoice
         {
             Dispatcher.InvokeAsync(async () =>
             {
-                if (_settings.IsPushToTalkEnabled && _activeCapture.IsRecording)
-                {
-                    await StopAndProcessAsync();
-                }
+                if (_settings.IsPushToTalkEnabled && _recorder.IsRecording)
+                    await _recorder.StopAndProcessAsync(AppSettings.Load(), key => TryGetResource(key, key));
             });
         }
 
-                private void StartMatrixRecording(Services.ProcessingMode mode, Services.AudioSource source)
+        // Kept for legacy call-sites only; actual logic lives in RecordingOrchestrationService.
+        private void StartMatrixRecording(Services.ProcessingMode mode, Services.AudioSource source)
         {
-            _settings = AppSettings.Load(); // ⚡ JIT Cache Invalidation
-            if (string.IsNullOrEmpty(_settings.MicId) && source == Services.AudioSource.Microphone) { Show(); return; }
-
-            if (string.IsNullOrEmpty(_settings.LastModelPath) || !File.Exists(_settings.LastModelPath))
-            {
-                Show();
-                new MissingModelWindow { Owner = this }.ShowDialog();
-                return;
-            }
-
-            _activeMode = (RecordMode)mode;
-            _currentTranslate = (mode == Services.ProcessingMode.Translate || mode == Services.ProcessingMode.Prompt);
-            _currentLang = (mode == Services.ProcessingMode.Primary) ? _settings.LanguagePrimary : "en";
-
-            if (File.Exists(TempWavPath)) File.Delete(TempWavPath);
-
-            string keyBase = mode switch {
-                Services.ProcessingMode.Primary => _settings.HotkeyPrimary,
-                Services.ProcessingMode.Translate => _settings.HotkeyTranslate,
-                _ => _settings.HotkeyPrompt
-            };
-            string keySignature = source == Services.AudioSource.Loopback ? "Ctrl+" + keyBase : keyBase;
-
-            // Динамическое переключение источника на лету!
-            _activeCapture = source == Services.AudioSource.Loopback ? _loopbackCapture : _microphoneCapture;
-
-            // ── VAD Logic & Loopback timeout extension ──
-            double silenceTimeout = source == Services.AudioSource.Loopback ? _settings.VadSilenceSeconds + 3.0 : _settings.VadSilenceSeconds;
-            bool enableVad = (source == Services.AudioSource.Loopback) && !_settings.IsPushToTalkEnabled;
-
-            bool started = _activeCapture.StartRecording(_settings.MicId, TempWavPath, _settings.VadThreshold, silenceTimeout, enableVad);
-            if (!started) { ShowErrorPopup("ErrMicUnplugged"); return; }
-
-            StartVadAnimation();
-            UpdateLanguageButton(keySignature);
-            if (_settings.SoundNotifications) SystemSounds.Beep.Play();
-            StartRecordingTimer(source == Services.AudioSource.Loopback);
-
-            LblMicName.Text = (string)FindResource("LblRecording") + " 0:00";
-            LblMicName.Foreground = System.Windows.Media.Brushes.Red;
+            _settings = AppSettings.Load();
+            _recorder.StartRecording(new Services.RecordingRequest(mode, source));
         }
 
         private async void OnVadSilenceDetected()
         {
-            if (_activeCapture.IsRecording && _activeMode != RecordMode.None)
+            if (_recorder.IsRecording)
             {
                 WriteLog("VAD: silence threshold reached — auto-stopping.");
-                await StopAndProcessAsync();
+                await _recorder.StopAndProcessAsync(AppSettings.Load(), key => TryGetResource(key, key));
             }
         }
 
-                private async Task StopAndProcessAsync()
+        // Thin UI-thread wrapper; orchestration lives in RecordingOrchestrationService.
+        private async Task StopAndProcessAsync()
         {
-            if (Interlocked.Exchange(ref _stopGuard, 1) != 0) return;
-            _isProcessing = true; // Instantly lock incoming hotkey requests to eliminate race condition window
-            try
-            {
-                await _activeCapture.StopRecordingAsync();
-
-                StopVadAnimation();
-                StopRecordingTimer();
-                
-                if (!IsAudioWorthProcessing(TempWavPath))
-                {
-                    _activeMode = RecordMode.None;
-                    _isProcessing = false;
-                    UpdateMicLabel(_settings.MicName, ok: true);
-                    return;
-                }
-
-                if (_settings.SoundNotifications) SystemSounds.Exclamation.Play();
-
-                var mode = _activeMode;
-                var lang = _currentLang;
-                var translate = _currentTranslate;
-                _activeMode = RecordMode.None;
-
-                LblMicName.Text = (string)FindResource("LblProcessing");
-                LblMicName.Foreground = System.Windows.Media.Brushes.Orange;
-                UpdateLanguageButton();
-                VuMeter.Value = 0;
-                ShowProcessingPanel(true);
-
-                _whisperCts = new CancellationTokenSource();
-                var progress = new Progress<string>(msg => {
-                    if (!string.IsNullOrWhiteSpace(msg)) LblStatus.Text = msg;
-                });
-
-                string selectedPrompt = mode switch {
-                    RecordMode.Translate => _settings.PromptTranslate,
-                    RecordMode.Prompt => LoadDictPrompt(),
-                    _ => string.Empty
-                };
-
-                await ProcessWhisperAsync(lang, translate, selectedPrompt, progress, _whisperCts.Token);
-
-                ShowProcessingPanel(false);
-                UpdateMicLabel(_settings.MicName, ok: true);
-            }
-            finally
-            {
-                _isProcessing = false; // Fail-safe clearance of processing block guarantees no hung UI state
-                Interlocked.Exchange(ref _stopGuard, 0);
-                // Возвращаем фокус захвата на микрофон по умолчанию для отрисовки UI
-                _activeCapture = _microphoneCapture;
-            }
+            await _recorder.StopAndProcessAsync(AppSettings.Load(), key => TryGetResource(key, key));
         }
 
         private void WriteLog(string msg) => DiagnosticLogger.Instance.Info("MainWindow", msg);
 
-                                                private bool IsAudioWorthProcessing(string path)
-        {
-            try 
-            { 
-                var info = new System.IO.FileInfo(path);
-                if (!info.Exists || info.Length <= 44) return false; 
+        // IsAudioWorthProcessing moved to RecordingOrchestrationService.
 
-                byte[] bytes = null!;
-                for (int i = 0; i < 3; i++) {
-                    try { bytes = System.IO.File.ReadAllBytes(path); break; }
-                    catch (Exception ex) { DiagnosticLogger.Instance.Trace("MainWindow", $"Read WAV retry: {ex.Message}"); System.Threading.Thread.Sleep(50); }
-                }
-                if (bytes == null || bytes.Length <= 44) return true;
 
-                int sampleCount = (bytes.Length - 44) / 2;
-                if (sampleCount < 6400) return false;
-
-                int startSample = 4800;
-                int endSample = sampleCount - 4800;
-                
-                if (startSample >= endSample) {
-                    startSample = sampleCount / 4;
-                    endSample = sampleCount - (sampleCount / 4);
-                }
-
-                int validCount = endSample - startSample;
-                if (validCount <= 0) return false;
-
-                long sum = 0;
-                for (int i = startSample; i < endSample; i++) {
-                    sum += BitConverter.ToInt16(bytes, 44 + i * 2);
-                }
-                short dcOffset = (short)(sum / validCount);
-
-                short maxAc = 0;
-                for (int i = startSample; i < endSample; i++) {
-                    short sample = BitConverter.ToInt16(bytes, 44 + i * 2);
-                    short ac = (short)Math.Abs(sample - dcOffset);
-                    if (ac > maxAc) maxAc = ac;
-                }
-
-                WriteLog($"[PCM Filter] DC Offset: {dcOffset} | True AC Peak: {maxAc}");
-                
-                bool isLoopback = _activeCapture == _loopbackCapture;
-                
-                // CRITICAL FIX: Loopback (Ctrl) is pure digital. Peak > 10 is enough.
-                if (isLoopback) return maxAc > 10;
-                
-                // Microphone has AGC which artificially boosts silence to 30000+.
-                // We use 500 to catch true digital silence, but rely on Whisper+Filters to drop AGC noise.
-                return maxAc > 500;
-            } 
-            catch (Exception ex) 
-            { 
-                WriteLog($"[PCM Filter] File error: {ex.Message} -> Fallback to True");
-                return true; 
-            }
-        }
 
         private bool IsSpam()
         {
@@ -526,93 +378,8 @@ namespace WhisperVoice
             return diff < 600;
         }
 
-        // ── Whisper orchestration ──────────────────────────────────────────
-        private async Task ProcessWhisperAsync(
-            string lang, bool isTranslate, string techPrompt,
-            IProgress<string> progress, CancellationToken token)
-        {
-            try
-            {
-                string ramFmt = await Dispatcher.InvokeAsync(() => TryGetResource("ErrLowRam", "Not enough RAM (need ≥ {0} MB free)."));
-                string vramFmt = await Dispatcher.InvokeAsync(() => TryGetResource("ErrLowVram", "VRAM almost full ({0} MB free, need ≥ {1} MB)."));
-
-                var (ramOk, ramMsg) = await _hardware.CheckRamAsync(ramFmt);
-                if (!ramOk)
-                {
-                    await Dispatcher.InvokeAsync(() =>
-                        System.Windows.MessageBox.Show(this, ramMsg,
-                            (string)FindResource("MsgLowResourcesTitle"),
-                            MessageBoxButton.OK, MessageBoxImage.Warning));
-                    return;
-                }
-
-                var (vramOk, vramMsg) = await _hardware.CheckVramAsync(vramFmt);
-                if (!vramOk)
-                {
-                    var choice = await Dispatcher.InvokeAsync(() =>
-                        System.Windows.MessageBox.Show(this,
-                            vramMsg + (string)FindResource("MsgVramContinue"),
-                            (string)FindResource("MsgVramTitle"),
-                            MessageBoxButton.YesNo, MessageBoxImage.Warning));
-                    if (choice == MessageBoxResult.No) return;
-                }
-
-                                string model = await Dispatcher.InvokeAsync(() => AppSettings.Load().LastModelPath);
-
-                if (string.IsNullOrEmpty(model) || !File.Exists(model))
-                {
-                    DiagnosticLogger.Instance.Error("MainWindow", "Model file missing before inference: " + model);
-                    progress.Report("⚠️ Model not found!");
-                    await Dispatcher.InvokeAsync(() =>
-                    {
-                        Show();
-                        new MissingModelWindow { Owner = this }.ShowDialog();
-                    });
-                    return;
-                }
-
-                string? rawResult = await _whisper.RunAsync(
-                    model, lang, isTranslate, techPrompt,
-                    progress, (msg) => System.Diagnostics.Debug.WriteLine(msg), token,
-                    beamSize: _settings.BeamSize,
-                    bestOf: _settings.BestOf,
-                    temperature: _settings.Temperature,
-                    noSpeechThreshold: _settings.NoSpeechThreshold);
-
-                if (rawResult is null) return;
-
-                if (!_hallucinationFilter.Check(rawResult, out string cleanResult))
-                {
-                    progress.Report((string)FindResource("MsgHallucinationFiltered"));
-                    return;
-                }
-
-                string finalResult = _postProcessor.Process(cleanResult);
-
-                // If text is empty after stripping acoustic tags, abort output pipeline
-                if (string.IsNullOrWhiteSpace(finalResult) || !finalResult.Any(char.IsLetterOrDigit))
-                {
-                    progress.Report("Silence / Ignored");
-                    return;
-                }
-
-                progress.Report((string)FindResource("MsgWhisperDone"));
-
-                await Dispatcher.InvokeAsync(async () =>
-                {
-                    AddToHistory(finalResult, lang, isTranslate);
-                    System.Windows.Clipboard.SetText(finalResult);
-                    await Task.Delay(100);
-                    _inputSim.Keyboard.ModifiedKeyStroke(
-                        VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
-                });
-            }
-            catch (Exception ex)
-            {
-                await Dispatcher.InvokeAsync(() =>
-                    System.Windows.MessageBox.Show(this, ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error));
-            }
-        }
+        // ── Whisper orchestration ─────────────────────────────────────────
+        // Logic moved to RecordingOrchestrationService.RunWhisperPipelineAsync.
 
         private void AddToHistory(string text, string lang, bool isTranslate)
         {
@@ -679,8 +446,8 @@ namespace WhisperVoice
 
         private void BtnCancel_Click(object sender, RoutedEventArgs e)
         {
-            _whisperCts?.Cancel();
-            LblStatus.Text = (string)FindResource("LblCancelled");
+            _recorder.CancelWhisper();
+            LblStatus.Text = TryGetResource("LblCancelled", "Cancelled");
         }
 
         private void LoadMicFromSettings()
@@ -781,30 +548,7 @@ namespace WhisperVoice
             VadPanel.Visibility = Visibility.Collapsed;
         }
 
-        private void StartRecordingTimer(bool isLoopback)
-        {
-            _recSeconds = 0;
-            _recTimer?.Stop();
-            LblMicName.Visibility = Visibility.Visible;
-
-            string prefix = isLoopback ? "🔊" : "🎤";
-            string recLabel = TryGetResource("LblRecording", "Recording");
-
-            // Fix: Immediately update label to 0:00 to avoid display jumps
-            LblMicName.Text = $"{prefix} {recLabel} 0:00";
-
-            _recTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _recTimer.Tick += (_, _) =>
-            {
-                _recSeconds++;
-                int m = _recSeconds / 60;
-                int s = _recSeconds % 60;
-                LblMicName.Text = $"{prefix} {recLabel} {m}:{s:D2}";
-            };
-            _recTimer.Start();
-        }
-
-        private void StopRecordingTimer() { _recTimer?.Stop(); _recTimer = null; _recSeconds = 0; }
+        // Timer tick handling moved to Recorder_TimerTick event handler.
 
         private void ShowProcessingPanel(bool show)
         {
@@ -823,16 +567,7 @@ namespace WhisperVoice
 
         private void BtnOpenNotepad_Click(object sender, RoutedEventArgs e) => ToggleWindow(_notepad);
 
-        private string LoadDictPrompt()
-        {
-            try
-            {
-                if (!File.Exists(DictPath)) return "";
-                string raw = File.ReadAllText(DictPath).Replace("\r\n", " ").Replace("\n", " ").Replace("\"", "");
-                return raw.Length > 250 ? raw[..250] : raw;
-            }
-            catch (Exception ex) { DiagnosticLogger.Instance.Error("MainWindow", ex, "LoadDictPrompt failed"); return ""; }
-        }
+        // LoadDictPrompt moved to RecordingOrchestrationService.
 
         private void ClearLogs() { try { if (File.Exists(LogPath)) File.Delete(LogPath); } catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Operation failed: {ex.Message}"); } }
 
@@ -875,9 +610,79 @@ namespace WhisperVoice
         {
             Dispatcher.InvokeAsync(async () =>
             {
-                if (_activeMode != RecordMode.None) await StopAndProcessAsync();
+                if (_recorder.IsRecording) await StopAndProcessAsync();
                 ShowErrorPopup("ErrMicUnplugged");
                 UpdateMicLabel(TryGetResource("LblNoMicSelected", "⚠️ SELECT A MICROPHONE!"), ok: false);
+            });
+        }
+
+        // ── RecordingOrchestrationService event handlers ──────────────────
+
+        private void Recorder_StateChanged(object? sender, Services.RecordingStateChangedEventArgs e)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                switch (e.State)
+                {
+                    case Services.RecordingState.Recording:
+                        StartVadAnimation();
+                        string keyBase = e.Mode switch
+                        {
+                            Services.ProcessingMode.Primary   => _settings.HotkeyPrimary,
+                            Services.ProcessingMode.Translate => _settings.HotkeyTranslate,
+                            _                                  => _settings.HotkeyPrompt
+                        };
+                        string keySig = e.Source == Services.AudioSource.Loopback
+                            ? "Ctrl+" + keyBase : keyBase;
+                        UpdateLanguageButton(keySig);
+                        LblMicName.Visibility  = Visibility.Visible;
+                        LblMicName.Text        = TryGetResource("LblRecording", "Recording") + " 0:00";
+                        LblMicName.Foreground  = System.Windows.Media.Brushes.Red;
+                        break;
+
+                    case Services.RecordingState.Processing:
+                        StopVadAnimation();
+                        LblMicName.Text       = TryGetResource("LblProcessing", "Processing…");
+                        LblMicName.Foreground = System.Windows.Media.Brushes.Orange;
+                        UpdateLanguageButton();
+                        VuMeter.Value = 0;
+                        ShowProcessingPanel(true);
+                        break;
+
+                    case Services.RecordingState.Idle:
+                        StopVadAnimation();
+                        ShowProcessingPanel(false);
+                        UpdateMicLabel(_settings.MicName, ok: true);
+                        break;
+                }
+            });
+        }
+
+        private void Recorder_TranscriptionCompleted(object? sender, Services.TranscriptionResultEventArgs e)
+        {
+            Dispatcher.InvokeAsync(async () =>
+            {
+                AddToHistory(e.Text, e.Lang, e.IsTranslate);
+
+                _settings = AppSettings.Load();
+                if (_settings.AutoClipboardCopy)
+                {
+                    System.Windows.Clipboard.SetText(e.Text);
+                    await Task.Delay(100);
+                    _inputSim.Keyboard.ModifiedKeyStroke(
+                        VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
+                }
+            });
+        }
+
+        private void Recorder_TimerTick(object? sender, int seconds)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                int m = seconds / 60;
+                int s = seconds % 60;
+                string recLabel = TryGetResource("LblRecording", "Recording");
+                LblMicName.Text = $"{recLabel} {m}:{s:D2}";
             });
         }
     }

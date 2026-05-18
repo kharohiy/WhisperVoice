@@ -81,6 +81,13 @@ namespace WhisperVoice
         /// <summary>Play system sounds on recording start/stop when true.</summary>
         public bool SoundNotifications { get; set; } = true;
 
+        /// <summary>
+        /// When true (default), copies the final transcription text to the clipboard
+        /// and auto-pastes via Ctrl+V after each recognition cycle.
+        /// Disable to keep transcriptions in history only.
+        /// </summary>
+        public bool AutoClipboardCopy { get; set; } = true;
+
         // ── Hotkey mode ────────────────────────────────────────────────────
         /// <summary>
         /// When false (default): Toggle mode — one press starts, next press stops.
