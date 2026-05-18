@@ -88,7 +88,7 @@ namespace WhisperVoice
             InitializeComponent();
 
             _ = DiagnosticLogger.Instance;
-            _whisper = new WhisperExecutionService(BaseDir);
+            _whisper = new WhisperExecutionService();
             _hardware = new HardwareCheckService();
             _hallucinationFilter = new HallucinationFilter(DictDir);
 
@@ -111,6 +111,7 @@ namespace WhisperVoice
             _recorder.RecordingTimerTick      += Recorder_TimerTick;
             _recorder.MissingModelRequested   += (_, _) => Dispatcher.InvokeAsync(() => { Show(); new MissingModelWindow { Owner = this }.ShowDialog(); });
             _recorder.ErrorOccurred           += (_, key) => ShowErrorPopup(key);
+            _recorder.VulkanStatusChecked    += Recorder_VulkanStatusChecked;
 
             ClearLogs();
             CleanupTempFiles();
@@ -122,7 +123,6 @@ namespace WhisperVoice
             HistoryList.ItemsSource = _history;
 
             LoadMicFromSettings();
-            RebindHotkeys();
             UpdateLanguageButton();
 
             IsVisibleChanged += (_, _) => { if (IsVisible) SyncVolumeFromSystem(); };
@@ -169,6 +169,9 @@ namespace WhisperVoice
             base.OnSourceInitialized(e);
             HwndSource source = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
             source?.AddHook(HwndHook);
+
+            // Ensure HWND and WPF message pump are fully ready before registering global hotkeys
+            RebindHotkeys();
         }
 
         private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -366,6 +369,17 @@ namespace WhisperVoice
         }
 
         private void WriteLog(string msg) => DiagnosticLogger.Instance.Info("MainWindow", msg);
+
+        private void Recorder_VulkanStatusChecked(object? sender, Services.VulkanStatus status)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (status == Services.VulkanStatus.CpuFallback)
+                {
+                    LblStatus.Text = TryGetResource("MsgVulkanCpuFallback", "Warning: Inference is running on CPU. Check Vulkan support.");
+                }
+            });
+        }
 
         // IsAudioWorthProcessing moved to RecordingOrchestrationService.
 

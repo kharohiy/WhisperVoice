@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -8,28 +8,58 @@ using System.Threading.Tasks;
 
 namespace WhisperVoice.Services
 {
-    /// <summary>
-    /// Builds whisper-cli.exe arguments and manages the subprocess lifecycle.
-    /// Extracted from MainWindow to honour SRP.
-    /// All whisper.cpp C++ CLI syntax is centralised here.
-    /// </summary>
     public class WhisperExecutionService
     {
-        private readonly string _baseDir;
-        private string WhisperExe => Path.Combine(_baseDir, "whisper-cli.exe");
-        private string TempWavPath => Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav");
-        private string TempTxtPath => Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav.txt");
+        public WhisperExecutionService()
+        {
+        }
 
-        public WhisperExecutionService(string baseDir) => _baseDir = baseDir;
+        public void PopulateArgumentList(
+            ProcessStartInfo psi,
+            string modelPath,
+            string audioPath,
+            string lang,
+            bool isTranslate,
+            string techPrompt,
+            int beamSize,
+            int bestOf,
+            double temperature,
+            double noSpeechThreshold)
+        {
+            // Core arguments
+            psi.ArgumentList.Add("-m");
+            psi.ArgumentList.Add(modelPath);
+            psi.ArgumentList.Add("-f");
+            psi.ArgumentList.Add(audioPath);
+            psi.ArgumentList.Add("-l");
+            psi.ArgumentList.Add(lang);
 
-        // ── Public entry point ─────────────────────────────────────────────
+            if (isTranslate)
+            {
+                psi.ArgumentList.Add("-tr");
+            }
 
-        /// <summary>
-        /// Runs whisper-cli.exe and returns the raw output text, or <c>null</c> on failure.
-        /// All process output lines are forwarded through <paramref name="progress"/>.
-        /// Writes stderr to <paramref name="logAction"/>.
-        /// </summary>
-                public async Task<string?> RunAsync(
+            if (!string.IsNullOrWhiteSpace(techPrompt))
+            {
+                psi.ArgumentList.Add("--prompt");
+                psi.ArgumentList.Add(techPrompt);
+            }
+
+            // Strictly using official long arguments to prevent CLI crashes
+            psi.ArgumentList.Add("--beam-size");
+            psi.ArgumentList.Add(beamSize.ToString());
+            
+            psi.ArgumentList.Add("--best-of");
+            psi.ArgumentList.Add(bestOf.ToString());
+            
+            psi.ArgumentList.Add("--temperature");
+            psi.ArgumentList.Add(temperature.ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
+            
+            psi.ArgumentList.Add("--no-timestamps");
+            psi.ArgumentList.Add("-otxt"); // CRITICAL FIX 1: Force whisper to save .txt file
+        }
+
+        public async Task<string?> RunAsync(
             string modelPath,
             string lang,
             bool isTranslate,
@@ -40,42 +70,67 @@ namespace WhisperVoice.Services
             int beamSize = 5,
             int bestOf = 5,
             double temperature = 0.0,
-            double noSpeechThreshold = 0.6)
+            double noSpeechThreshold = 0.6,
+            Action<bool>? vulkanStatusCallback = null)
         {
-            if (File.Exists(TempTxtPath)) File.Delete(TempTxtPath);
+            string exePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "whisper-cli.exe");
+            if (!File.Exists(exePath))
+            {
+                logAction?.Invoke($"Error: whisper-cli.exe missing at {exePath}");
+                progress?.Report("Error: whisper-cli.exe missing!");
+                return null;
+            }
 
-            int threads = Math.Max(2, Environment.ProcessorCount - 1);
+            // Direct mapping to Windows Temp folder to match audio capture
+            string tempWav = Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav");
+            if (!File.Exists(tempWav))
+            {
+                logAction?.Invoke("Error: Temp WAV file missing before execution.");
+                return null;
+            }
 
             var psi = new ProcessStartInfo
             {
-                FileName = WhisperExe,
-                WorkingDirectory = _baseDir,
-                UseShellExecute = false,
+                FileName = exePath,
                 CreateNoWindow = true,
+                UseShellExecute = false,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true
+                RedirectStandardError = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding = Encoding.UTF8,
+                WorkingDirectory = Path.GetTempPath() // CRITICAL FIX 2: Save directly to Temp folder
             };
 
-            // Modern .NET 8 structured argument collection isolation
-            PopulateArgumentList(psi, modelPath, lang, isTranslate, techPrompt, threads,
-                                 beamSize, bestOf, temperature, noSpeechThreshold);
+            PopulateArgumentList(psi, modelPath, tempWav, lang, isTranslate, techPrompt, beamSize, bestOf, temperature, noSpeechThreshold);
 
-            // Reconstruct full execution string representation strictly for laptop diagnostic logging
             var logBuilder = new StringBuilder("whisper-cli");
+            bool maskNext = false;
             foreach (var arg in psi.ArgumentList)
             {
+                if (maskNext)
+                {
+                    logBuilder.Append(" [REDACTED_PROMPT]");
+                    maskNext = false;
+                    continue;
+                }
+                if (arg == "--prompt")
+                {
+                    logBuilder.Append(" --prompt");
+                    maskNext = true;
+                    continue;
+                }
                 if (arg.Contains(" ") || arg.Contains("\""))
                     logBuilder.Append($" \"{arg.Replace("\"", "\\\"")}\"");
                 else
                     logBuilder.Append($" {arg}");
             }
             logAction?.Invoke($"whisper-cli args: {logBuilder}");
-            progress?.Report("🔍 Запуск Whisper...");
+            progress?.Report("рџ”Ќ Р—Р°РїСѓСЃРє Whisper...");
 
+            bool localVulkanFound = false;
             using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
-            var exitTcs = new TaskCompletionSource<bool>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
+            var exitTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             process.OutputDataReceived += (_, e) =>
             {
@@ -86,119 +141,48 @@ namespace WhisperVoice.Services
             process.ErrorDataReceived += (_, e) =>
             {
                 if (e.Data is null) return;
-                logAction?.Invoke($"[whisper stderr] {e.Data}");
+                bool isSystemInfo = e.Data.Contains("ggml") || e.Data.Contains("vulkan") || e.Data.Contains("Vulkan") || e.Data.Contains("whisper_") || e.Data.Contains("init") || e.Data.Contains("error") || e.Data.Contains("failed") || e.Data.Contains("system") || (e.Data.Contains("main:") && !e.Data.Contains("-->"));
+                
+                if (e.Data.Contains("ggml_vulkan") || e.Data.Contains("vulkan") || e.Data.Contains("Vulkan"))
+                {
+                    localVulkanFound = true;
+                }
+
+                if (isSystemInfo) logAction?.Invoke($"[whisper stderr] {e.Data}");
                 if (!e.Data.Contains('%') && !e.Data.Contains("whisper_"))
                     progress?.Report(e.Data);
             };
-
-            process.Exited += (_, _) => exitTcs.TrySetResult(true);
 
             process.Start();
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
-            using var cancelReg = token.Register(() =>
+            using var registration = token.Register(() =>
             {
-                exitTcs.TrySetResult(false);
-                KillProcessTree(process);
-                logAction?.Invoke("Whisper process cancelled by user.");
+                try { if (!process.HasExited) process.Kill(); } catch { }
+                exitTcs.TrySetCanceled();
             });
+
+            process.Exited += (_, _) => exitTcs.TrySetResult(true);
 
             try { await exitTcs.Task; }
             catch (OperationCanceledException) { return null; }
 
+            vulkanStatusCallback?.Invoke(localVulkanFound);
             token.ThrowIfCancellationRequested();
 
             int exitCode = process.ExitCode;
-            if (exitCode != 0)
+            logAction?.Invoke($"whisper-cli exited with code {exitCode}");
+
+            string txtPath = tempWav + ".txt";
+            if (!File.Exists(txtPath))
             {
-                string err = exitCode switch
-                {
-                    unchecked((int)0xC0000135) => "Не найдена необходимая DLL (GGML/CUDA).",
-                    unchecked((int)0xC0000005) => "Access violation / OOM — возможно VRAM переполнена.",
-                    1 => "whisper-cli вернул код 1 — нехватка памяти или некорректный WAV.",
-                    _ => $"whisper-cli завершился с кодом {exitCode}."
-                };
-                logAction?.Invoke($"whisper exit code {exitCode}: {err}");
-                progress?.Report($"❌ Ошибка (код {exitCode})");
-                throw new WhisperProcessException(exitCode, err);
+                logAction?.Invoke("Error: Transcription output file missing.");
+                return string.Empty;
             }
 
-            if (!File.Exists(TempTxtPath))
-            {
-                logAction?.Invoke("Output file not found after successful exit.");
-                return null;
-            }
-
-            return File.ReadAllText(TempTxtPath).Trim();
+            string result = await File.ReadAllTextAsync(txtPath, Encoding.UTF8);
+            return result;
         }
-
-        // ── Argument builder (whisper.cpp C++ CLI via ArgumentList) ────────
-        private void PopulateArgumentList(
-            ProcessStartInfo psi,
-            string model, string lang, bool isTranslate, string prompt, int threads,
-            int beamSize, int bestOf, double temperature, double noSpeechThreshold)
-        {
-            psi.ArgumentList.Add("-m");
-            psi.ArgumentList.Add(model);
-
-            psi.ArgumentList.Add("-f");
-            psi.ArgumentList.Add(TempWavPath);
-
-            psi.ArgumentList.Add("-l");
-            psi.ArgumentList.Add(lang);
-
-            if (isTranslate) 
-                psi.ArgumentList.Add("-tr");
-
-            if (!string.IsNullOrWhiteSpace(prompt))
-            {
-                psi.ArgumentList.Add("--prompt");
-                psi.ArgumentList.Add(prompt);
-            }
-
-            psi.ArgumentList.Add("-otxt");
-            psi.ArgumentList.Add("-nt");
-            psi.ArgumentList.Add("-np");
-
-            psi.ArgumentList.Add("-t");
-            psi.ArgumentList.Add(threads.ToString());
-
-            psi.ArgumentList.Add("--beam-size");
-            psi.ArgumentList.Add(beamSize.ToString());
-
-            psi.ArgumentList.Add("--best-of");
-            psi.ArgumentList.Add(bestOf.ToString());
-
-            psi.ArgumentList.Add("--temperature");
-            psi.ArgumentList.Add(temperature.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
-
-            psi.ArgumentList.Add("--no-speech-thold");
-            psi.ArgumentList.Add(noSpeechThreshold.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
-        }
-
-        // ── Process utilities ──────────────────────────────────────────────
-        private static void KillProcessTree(Process process)
-        {
-            try
-            {
-                var kill = new ProcessStartInfo(
-                    "taskkill", $"/F /T /PID {process.Id}")
-                { UseShellExecute = false, CreateNoWindow = true };
-                Process.Start(kill)?.WaitForExit(3000);
-            }
-            catch
-            {
-                try { process.Kill(entireProcessTree: true); } catch { }
-            }
-        }
-    }
-
-    /// <summary>Thrown when whisper-cli.exe exits with a non-zero code.</summary>
-    public class WhisperProcessException : Exception
-    {
-        public int ExitCode { get; }
-        public WhisperProcessException(int exitCode, string message)
-            : base(message) => ExitCode = exitCode;
     }
 }

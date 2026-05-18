@@ -151,4 +151,5 @@
     <sys:String x:Key="ChkAutoClipboardText">Automatyczne kopiowanie do schowka</sys:String>
     <sys:String x:Key="ChkAutoClipboardTooltip">Automatycznie kopiuj transkrypcję i wklejaj za pomocą Ctrl+V</sys:String>
     <sys:String x:Key="ChkAutoClipboardHint">Wyłącz, aby zachować transkrypcję tylko w historii (tryb prywatności)</sys:String>
+<sys:String x:Key="MsgVulkanCpuFallback">вљ пёЏ Uwaga: Inferencja dziaЕ‚a na CPU. SprawdЕє obsЕ‚ugД™ Vulkan.</sys:String>
 </ResourceDictionary>

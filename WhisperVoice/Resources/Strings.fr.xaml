@@ -151,4 +151,5 @@
     <sys:String x:Key="ChkAutoClipboardText">Copie automatique dans le presse-papiers</sys:String>
     <sys:String x:Key="ChkAutoClipboardTooltip">Copier automatiquement la transcription et la coller via Ctrl+V</sys:String>
     <sys:String x:Key="ChkAutoClipboardHint">Désactiver pour conserver les transcriptions dans l'historique uniquement (mode confidentialité)</sys:String>
+<sys:String x:Key="MsgVulkanCpuFallback">вљ пёЏ Attention : L'infГ©rence est exГ©cutГ©e sur le CPU. VГ©rifiez le support Vulkan.</sys:String>
 </ResourceDictionary>

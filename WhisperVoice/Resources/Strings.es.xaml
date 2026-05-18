@@ -151,4 +151,5 @@
     <sys:String x:Key="ChkAutoClipboardText">Copiar automáticamente al portapapeles</sys:String>
     <sys:String x:Key="ChkAutoClipboardTooltip">Copiar automáticamente la transcripción y pegarla mediante Ctrl+V</sys:String>
     <sys:String x:Key="ChkAutoClipboardHint">Desactivar para mantener las transcripciones solo en el historial (modo de privacidad)</sys:String>
+<sys:String x:Key="MsgVulkanCpuFallback">вљ пёЏ Advertencia: La inferencia se estГЎ ejecutando en la CPU. Verifique el soporte de Vulkan.</sys:String>
 </ResourceDictionary>

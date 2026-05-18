@@ -150,4 +150,5 @@
     <sys:String x:Key="ChkAutoClipboardText">Авто-копирование в буфер</sys:String>
     <sys:String x:Key="ChkAutoClipboardTooltip">Автоматически копировать транскрипцию и вставлять через Ctrl+V</sys:String>
     <sys:String x:Key="ChkAutoClipboardHint">Отключите, чтобы результат сохранялся только в истории (режим приватности)</sys:String>
+<sys:String x:Key="MsgVulkanCpuFallback">вљ пёЏ Р’РЅРёРјР°РЅРёРµ: РёРЅС„РµСЂРµРЅСЃ РёРґРµС‚ РЅР° CPU. РџСЂРѕРІРµСЂСЊС‚Рµ РїРѕРґРґРµСЂР¶РєСѓ Vulkan.</sys:String>
 </ResourceDictionary>
