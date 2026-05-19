@@ -312,20 +312,7 @@ namespace WhisperVoice
         {
             Dispatcher.InvokeAsync(async () =>
             {
-                if (_recorder.IsProcessing) return;
-
-                if (_settings.IsPushToTalkEnabled)
-                {
-                    if (!_recorder.IsRecording)
-                        _recorder.StartRecording(new Services.RecordingRequest(e.Mode, e.Source));
-                }
-                else
-                {
-                    if (!_recorder.IsRecording)
-                        _recorder.StartRecording(new Services.RecordingRequest(e.Mode, e.Source));
-                    else
-                        await _recorder.StopAndProcessAsync(AppSettings.Load(), key => TryGetResource(key, key));
-                }
+                await _recorder.HandleHotkeyTrigger(e.Mode, e.Source, _settings.IsPushToTalkEnabled, isKeyDown: true, AppSettings.Load(), key => TryGetResource(key, key));
             });
         }
 
@@ -333,8 +320,7 @@ namespace WhisperVoice
         {
             Dispatcher.InvokeAsync(async () =>
             {
-                if (_settings.IsPushToTalkEnabled && _recorder.IsRecording)
-                    await _recorder.StopAndProcessAsync(AppSettings.Load(), key => TryGetResource(key, key));
+                await _recorder.HandleHotkeyTrigger(e.Mode, e.Source, _settings.IsPushToTalkEnabled, isKeyDown: false, AppSettings.Load(), key => TryGetResource(key, key));
             });
         }
 

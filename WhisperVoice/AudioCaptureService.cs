@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WhisperVoice.Services
 {
-    public class AudioCaptureService : IDisposable
+    public class AudioCaptureService : IAudioCaptureService, IDisposable
     {
         private static readonly DiagnosticLogger Log = DiagnosticLogger.Instance;
         private const string Comp = "AudioCaptureService";

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace WhisperVoice.Services
 {
-    public class WhisperExecutionService
+    public class WhisperExecutionService : IWhisperExecutionService
     {
         public WhisperExecutionService()
         {

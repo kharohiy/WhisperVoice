@@ -50,31 +50,32 @@ namespace WhisperVoice.Services
         public event EventHandler<string>?                         ErrorOccurred;
         public event EventHandler<VulkanStatus>?                    VulkanStatusChecked;
 
-        private readonly AudioCaptureService    _micCapture;
-        private readonly AudioCaptureService    _loopbackCapture;
-        private readonly WhisperExecutionService _whisper;
+        private readonly IAudioCaptureService    _micCapture;
+        private readonly IAudioCaptureService    _loopbackCapture;
+        private readonly IWhisperExecutionService _whisper;
         private readonly HardwareCheckService   _hardware;
         private readonly HallucinationFilter    _hallucinationFilter;
         private readonly TextPostProcessorService _postProcessor;
         private readonly string                 _tempWavPath;
 
-        private AudioCaptureService _activeCapture;
+        private IAudioCaptureService _activeCapture;
         private enum InternalMode { None, Primary, Translate, Prompt }
         private InternalMode _activeMode    = InternalMode.None;
         private string       _currentLang   = "ru";
         private bool         _currentTranslate;
         private volatile bool _isProcessing;
         private int           _stopGuard;
+        private int           _startGuard;
         private CancellationTokenSource? _whisperCts;
         private System.Windows.Threading.DispatcherTimer? _recTimer;
         private int _recSeconds;
 
         public bool IsProcessing => _isProcessing;
         public bool IsRecording  => _activeCapture.IsRecording;
-        public AudioCaptureService MicCapture      => _micCapture;
-        public AudioCaptureService LoopbackCapture => _loopbackCapture;
+        public IAudioCaptureService MicCapture      => _micCapture;
+        public IAudioCaptureService LoopbackCapture => _loopbackCapture;
 
-        public RecordingOrchestrationService(AudioCaptureService micCapture, AudioCaptureService loopbackCapture, WhisperExecutionService whisper, HardwareCheckService hardware, HallucinationFilter hallucinationFilter, TextPostProcessorService postProcessor, string tempWavPath)
+        public RecordingOrchestrationService(IAudioCaptureService micCapture, IAudioCaptureService loopbackCapture, IWhisperExecutionService whisper, HardwareCheckService hardware, HallucinationFilter hallucinationFilter, TextPostProcessorService postProcessor, string tempWavPath)
         {
             _micCapture          = micCapture;
             _loopbackCapture     = loopbackCapture;
@@ -88,7 +89,10 @@ namespace WhisperVoice.Services
 
         public void StartRecording(RecordingRequest request)
         {
-            var settings = AppSettings.Load();
+            if (Interlocked.Exchange(ref _startGuard, 1) != 0) return;
+            try
+            {
+                var settings = AppSettings.Load();
             if (string.IsNullOrEmpty(settings.MicId) && request.Source == AudioSource.Microphone)
             {
                 ErrorOccurred?.Invoke(this, "ErrMicUnplugged");
@@ -120,6 +124,11 @@ namespace WhisperVoice.Services
             if (settings.SoundNotifications) SystemSounds.Beep.Play();
             StartTimer();
             StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Recording, request.Source, request.Mode));
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _startGuard, 0);
+            }
         }
 
         public async Task StopAndProcessAsync(AppSettings settings, Func<string, string> getResource)
@@ -168,6 +177,35 @@ namespace WhisperVoice.Services
         }
 
         public void CancelWhisper() => _whisperCts?.Cancel();
+
+        public async Task HandleHotkeyTrigger(ProcessingMode mode, AudioSource source, bool isPushToTalk, bool isKeyDown, AppSettings settings, Func<string, string> getResource)
+        {
+            if (isPushToTalk)
+            {
+                if (isKeyDown)
+                {
+                    if (!IsRecording && !IsProcessing)
+                        StartRecording(new RecordingRequest(mode, source));
+                }
+                else
+                {
+                    if (IsRecording)
+                        await StopAndProcessAsync(settings, getResource);
+                }
+            }
+            else // Toggle Mode
+            {
+                if (isKeyDown)
+                {
+                    if (IsProcessing) return;
+
+                    if (IsRecording)
+                        await StopAndProcessAsync(settings, getResource);
+                    else
+                        StartRecording(new RecordingRequest(mode, source));
+                }
+            }
+        }
 
         private async Task RunWhisperPipelineAsync(string lang, bool isTranslate, string techPrompt, IProgress<string> progress, AppSettings settings, Func<string, string> getResource, CancellationToken token)
         {

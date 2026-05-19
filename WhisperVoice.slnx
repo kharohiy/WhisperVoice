@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="WhisperVoice.Tests/WhisperVoice.Tests.csproj" />
   <Project Path="WhisperVoice/WhisperVoice.csproj" />
 </Solution>
