@@ -70,7 +70,7 @@ namespace WhisperVoice.ViewModels
 
             try
             {
-                await _dlSvc.DownloadAsync(item.Model.Url, dest, progress, ct);
+                await _dlSvc.DownloadAsync(item.Model.Url, dest, item.Model.Sha256, progress, ct);
                 item.IsDownloaded  = true;
                 item.IsDownloading = false;
                 StatusMessage      = string.Empty;
