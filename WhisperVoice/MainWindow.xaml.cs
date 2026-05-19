@@ -15,8 +15,6 @@ using System.Windows.Interop;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using WhisperVoice.Services;
-using WindowsInput;
-using WindowsInput.Native;
 
 namespace WhisperVoice
 {
@@ -59,8 +57,9 @@ namespace WhisperVoice
 
         private RecordingOrchestrationService _recorder = null!;
 
-        private System.Windows.Forms.NotifyIcon _trayIcon = null!;
-        private readonly InputSimulator _inputSim = new();
+        private readonly ITrayIconService _trayIconService = new TrayIconService();
+        private readonly IClipboardService _clipboardService = new ClipboardService();
+        private readonly IHistoryService _historyService = new HistoryService();
 
         private readonly NotepadWindow _notepad = new();
         private readonly PromptWindow _promptWindow = new();
@@ -69,13 +68,9 @@ namespace WhisperVoice
         // ── Recording state (owned by RecordingOrchestrationService) ───────
         private CancellationTokenSource? _whisperCts;
 
-        private const int MaxHistory = 10;
-        private readonly ObservableCollection<TranscriptionEntry> _history = new();
-
         private DoubleAnimation? _vadAnim;
 
         private readonly TextPostProcessorService _postProcessor = new();
-        private readonly HistoryExportService _historyExport = new();
 
         private HotkeyOrchestrationService? _hotkeyOrchestrator;
 
@@ -120,7 +115,7 @@ namespace WhisperVoice
             WireAudioEvents(_microphoneCapture);
             WireAudioEvents(_loopbackCapture);
 
-            HistoryList.ItemsSource = _history;
+            HistoryList.ItemsSource = _historyService.Entries;
 
             LoadMicFromSettings();
             UpdateLanguageButton();
@@ -245,26 +240,21 @@ namespace WhisperVoice
 
         private void SetupTrayIcon()
         {
-            _trayIcon = new System.Windows.Forms.NotifyIcon
-            {
-                Icon = new System.Drawing.Icon(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "WhisperVoice.ico")),
-                Visible = true,
-                Text = "Whisper Voice"
-            };
-            _trayIcon.DoubleClick += (_, _) => { Show(); Activate(); };
-
-            var menu = new System.Windows.Forms.ContextMenuStrip();
-            menu.Items.Add((string)FindResource("TrayMenuControl"), null, (_, _) => { Show(); Activate(); });
-            menu.Items.Add((string)FindResource("TrayMenuNotepad"), null, (_, _) => ToggleWindow(_notepad));
-            menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
-            menu.Items.Add((string)FindResource("TrayMenuExit"), null, (_, _) =>
+            _trayIconService.Initialize(
+                Path.Combine(BaseDir, "WhisperVoice.ico"),
+                "Whisper Voice",
+                TryGetResource("TrayMenuControl", "Control Panel"),
+                TryGetResource("TrayMenuNotepad", "Notepad"),
+                TryGetResource("TrayMenuExit", "Exit")
+            );
+            
+            _trayIconService.OnRestoreRequested += (_, _) => { Show(); Activate(); };
+            _trayIconService.OnNotepadRequested += (_, _) => ToggleWindow(_notepad);
+            _trayIconService.OnExitRequested += (_, _) =>
             {
                 FullShutdown();
-                _trayIcon.Visible = false;
-                _trayIcon.Dispose();
                 System.Windows.Application.Current.Shutdown();
-            });
-            _trayIcon.ContextMenuStrip = menu;
+            };
         }
 
         private static void ToggleWindow(Window w)
@@ -286,6 +276,7 @@ namespace WhisperVoice
                 _microphoneCapture?.Dispose();
                 _loopbackCapture?.Dispose();
                 _hotkeyOrchestrator?.Dispose();
+                _trayIconService?.Dispose();
                 CleanupTempFiles();
             }
             catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Operation failed: {ex.Message}"); }
@@ -396,19 +387,6 @@ namespace WhisperVoice
         // ── Whisper orchestration ─────────────────────────────────────────
         // Logic moved to RecordingOrchestrationService.RunWhisperPipelineAsync.
 
-        private void AddToHistory(string text, string lang, bool isTranslate)
-        {
-            _history.Insert(0, new TranscriptionEntry
-            {
-                Text = text,
-                TimeLabel = DateTime.Now.ToString("HH:mm:ss"),
-                Lang = lang,
-                IsTranslate = isTranslate
-            });
-            while (_history.Count > MaxHistory)
-                _history.RemoveAt(_history.Count - 1);
-        }
-
         private async void HistoryList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (HistoryList.SelectedItem is not TranscriptionEntry entry) return;
@@ -417,32 +395,9 @@ namespace WhisperVoice
             HistoryList.SelectedItem = null;
         }
 
-        private void BtnClearHistory_Click(object sender, RoutedEventArgs e) => _history.Clear();
+        private void BtnClearHistory_Click(object sender, RoutedEventArgs e) => _historyService.Clear();
 
-        private void BtnExportHistory_Click(object sender, RoutedEventArgs e)
-        {
-            if (_history.Count == 0) return;
-            var dialog = new System.Windows.Forms.SaveFileDialog
-            {
-                Filter = "CSV files (*.csv)|*.csv|Text files (*.txt)|*.txt",
-                DefaultExt = "csv",
-                FileName = _historyExport.GenerateTimestampedFilename("csv"),
-                InitialDirectory = AppDataDir
-            };
-
-            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                try
-                {
-                    var entries = _history.Select(e => (e.TimeLabel, e.Text)).ToList();
-                    if (dialog.FileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
-                        _historyExport.ExportToTxt(entries, dialog.FileName);
-                    else
-                        _historyExport.ExportToCsv(entries, dialog.FileName);
-                }
-                catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Operation failed: {ex.Message}"); }
-            }
-        }
+        private void BtnExportHistory_Click(object sender, RoutedEventArgs e) => _historyService.PromptExport(AppDataDir);
 
         private void BtnDiagLog_Click(object sender, RoutedEventArgs e)
         {
@@ -694,32 +649,12 @@ namespace WhisperVoice
         {
             Dispatcher.InvokeAsync(async () =>
             {
-                AddToHistory(e.Text, e.Lang, e.IsTranslate);
+                _historyService.AddEntry(e.Text, e.Lang, e.IsTranslate);
 
                 _settings = AppSettings.Load();
                 if (_settings.AutoClipboardCopy)
                 {
-                    bool copied = false;
-                    for (int i = 0; i < 5; i++)
-                    {
-                        try
-                        {
-                            System.Windows.Clipboard.SetText(e.Text);
-                            copied = true;
-                            break;
-                        }
-                        catch (Exception ex)
-                        {
-                            DiagnosticLogger.Instance.Warn("MainWindow", $"Clipboard lock: {ex.Message}. Retrying...");
-                            await Task.Delay(50);
-                        }
-                    }
-                    
-                    if (copied)
-                    {
-                        await Task.Delay(100);
-                        _inputSim.Keyboard.ModifiedKeyStroke(VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
-                    }
+                    await _clipboardService.CopyAndPasteAsync(e.Text, injectPaste: true);
                 }
             });
         }
