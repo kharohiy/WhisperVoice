@@ -151,5 +151,9 @@
     <sys:String x:Key="ChkAutoClipboardText">Automatisches Kopieren in die Zwischenablage</sys:String>
     <sys:String x:Key="ChkAutoClipboardTooltip">Transkription automatisch kopieren und mit Strg+V einfügen</sys:String>
     <sys:String x:Key="ChkAutoClipboardHint">Deaktivieren, um Transkriptionen nur im Verlauf zu speichern (Datenschutzmodus)</sys:String>
-<sys:String x:Key="MsgVulkanCpuFallback">вљ пёЏ Warnung: Inferenz lГ¤uft auf CPU. ГњberprГјfen Sie die Vulkan-UnterstГјtzung.</sys:String>
+<sys:String x:Key="MsgVulkanCpuFallback">⚠️ Warnung: Inferenz läuft auf CPU. Vulkan-Unterstützung prüfen.</sys:String>
+
+    <sys:String x:Key="ModePushToTalk">Push-To-Talk</sys:String>
+    <sys:String x:Key="ModeToggle">Umschalten</sys:String>
+    <sys:String x:Key="ToolTipPrivacyPolicy">Audio wird vor der Transkription vorübergehend lokal gespeichert und beim Beenden gelöscht.</sys:String>
 </ResourceDictionary>

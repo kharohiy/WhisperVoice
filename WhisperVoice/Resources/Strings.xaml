@@ -147,4 +147,8 @@
     <sys:String x:Key="ChkPushToTalkHint">Primary &amp; Translate keys only. Menu / Notepad keys stay in toggle mode.</sys:String>
     <sys:String x:Key="BtnResetSlidersText">↺ Reset to defaults</sys:String>
     <sys:String x:Key="BtnResetSlidersTooltip">Resets VAD (noise threshold, silence pause) and Whisper parameters (Beam Size, Best Of, Temperature, No-Speech Threshold). Language, model, hotkeys and system settings are not affected.</sys:String>
+
+    <sys:String x:Key="ModePushToTalk">Push-To-Talk</sys:String>
+    <sys:String x:Key="ModeToggle">Toggle</sys:String>
+    <sys:String x:Key="ToolTipPrivacyPolicy">Audio is temporarily stored locally before transcription and deleted upon exit.</sys:String>
 </ResourceDictionary>

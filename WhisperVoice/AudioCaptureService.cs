@@ -140,8 +140,32 @@ namespace WhisperVoice.Services
 
             if (_device != null)
             {
-                try { _device.AudioEndpointVolume.OnVolumeNotification -= OnVolumeNotification; } catch (Exception ex) { Log.Error(Comp, ex, "General exception in AudioCaptureService"); }
-                _device = null;
+                try 
+                { 
+                    _device.AudioEndpointVolume.OnVolumeNotification -= OnVolumeNotification; 
+                } 
+                catch (Exception ex) 
+                { 
+                    Log.Error(Comp, ex, "Exception unsubscribing from OnVolumeNotification"); 
+                }
+
+                try
+                {
+                    _device.Dispose();
+                    Log.Trace(Comp, "DetachDevice: _device disposed successfully");
+                }
+                catch (COMException ex)
+                {
+                    Log.Warn(Comp, $"DetachDevice: COMException disposing _device: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Log.Warn(Comp, $"DetachDevice: unexpected exception disposing _device: {ex.Message}");
+                }
+                finally
+                {
+                    _device = null;
+                }
             }
 
             try

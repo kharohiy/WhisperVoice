@@ -151,5 +151,9 @@
     <sys:String x:Key="ChkAutoClipboardText">Copiar automáticamente al portapapeles</sys:String>
     <sys:String x:Key="ChkAutoClipboardTooltip">Copiar automáticamente la transcripción y pegarla mediante Ctrl+V</sys:String>
     <sys:String x:Key="ChkAutoClipboardHint">Desactivar para mantener las transcripciones solo en el historial (modo de privacidad)</sys:String>
-<sys:String x:Key="MsgVulkanCpuFallback">вљ пёЏ Advertencia: La inferencia se estГЎ ejecutando en la CPU. Verifique el soporte de Vulkan.</sys:String>
+<sys:String x:Key="MsgVulkanCpuFallback">⚠️ Advertencia: la inferencia se ejecuta en la CPU. Compruebe el soporte de Vulkan.</sys:String>
+
+    <sys:String x:Key="ModePushToTalk">Pulsar para hablar</sys:String>
+    <sys:String x:Key="ModeToggle">Alternar</sys:String>
+    <sys:String x:Key="ToolTipPrivacyPolicy">El audio se almacena temporalmente a nivel local antes de la transcripción y se elimina al salir.</sys:String>
 </ResourceDictionary>

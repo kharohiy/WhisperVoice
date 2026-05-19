@@ -72,13 +72,30 @@
 
     </Window.Resources>
 
-    <StackPanel Margin="13" VerticalAlignment="Top">
+    <Grid Margin="13">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-        <!-- ── Header: active recording language (Task 2) ────────────── -->
+        <StackPanel Grid.Row="0">
+
+        <!-- ── Header: Top Info Bar ────────────── -->
         <Grid Margin="0,0,0,10">
+            <!-- Hotkey Mode Indicator -->
+            <Border HorizontalAlignment="Left" Background="#E0E0E0" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                <TextBlock x:Name="LblHotkeyMode" FontSize="10" Foreground="#555" FontWeight="SemiBold"/>
+            </Border>
+
+            <!-- Active recording language -->
             <TextBlock x:Name="LblCurrentLanguage"
                        FontSize="14" FontWeight="SemiBold"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+            <!-- Privacy Policy Note -->
+            <TextBlock x:Name="IconPrivacy" Text="ℹ" FontSize="16" Foreground="#1565C0" 
+                       HorizontalAlignment="Right" VerticalAlignment="Center" Cursor="Help" 
+                       ToolTipService.InitialShowDelay="150" ToolTipService.ShowDuration="10000"/>
         </Grid>
 
         <!-- ── Mic status label (moved; see VolumePanel for device name) ── -->
@@ -165,9 +182,17 @@
         </StackPanel>
 
         <Separator Margin="0,4,0,8" Background="#CCCCCC"/>
+        </StackPanel>
 
         <!-- ── Transcription history ──────────────────────────────────── -->
-        <Grid Margin="0,0,0,4">
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,4">
             <TextBlock Text="{DynamicResource LblHistoryHeader}"
                FontSize="12" Foreground="#444"
                VerticalAlignment="Center"/>
@@ -194,7 +219,7 @@
             </StackPanel>
         </Grid>
 
-        <ListBox x:Name="HistoryList" Height="200"
+        <ListBox Grid.Row="1" x:Name="HistoryList"
                  ItemContainerStyle="{StaticResource HistoryItemStyle}"
                  SelectionChanged="HistoryList_SelectionChanged"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -224,12 +249,13 @@
         </ListBox>
 
         <!-- Copy-feedback tooltip-style overlay -->
-        <Border x:Name="CopyFeedback" Background="#4CAF50" CornerRadius="4"
+        <Border Grid.Row="2" x:Name="CopyFeedback" Background="#4CAF50" CornerRadius="4"
                 Padding="10,4" HorizontalAlignment="Center" Margin="0,4,0,0"
                 Visibility="Collapsed">
             <TextBlock Text="{DynamicResource CopyFeedbackText}"
                        Foreground="White" FontSize="11"/>
         </Border>
+        </Grid>
 
-    </StackPanel>
+    </Grid>
 </Window>

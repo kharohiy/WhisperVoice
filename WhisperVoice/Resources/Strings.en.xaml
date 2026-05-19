@@ -150,5 +150,9 @@
     <sys:String x:Key="ChkAutoClipboardText">Auto-copy to clipboard</sys:String>
     <sys:String x:Key="ChkAutoClipboardTooltip">Automatically copy transcription and paste it via Ctrl+V</sys:String>
     <sys:String x:Key="ChkAutoClipboardHint">Disable to keep transcriptions in history only (privacy mode)</sys:String>
-<sys:String x:Key="MsgVulkanCpuFallback">вљ пёЏ Warning: Inference is running on CPU. Check Vulkan support.</sys:String>
+<sys:String x:Key="MsgVulkanCpuFallback">⚠️ Warning: Inference is running on CPU. Check Vulkan support.</sys:String>
+
+    <sys:String x:Key="ModePushToTalk">Push-To-Talk</sys:String>
+    <sys:String x:Key="ModeToggle">Toggle</sys:String>
+    <sys:String x:Key="ToolTipPrivacyPolicy">Audio is temporarily stored locally before transcription and deleted upon exit.</sys:String>
 </ResourceDictionary>

@@ -151,5 +151,9 @@
     <sys:String x:Key="ChkAutoClipboardText">Автокопіювання в буфер</sys:String>
     <sys:String x:Key="ChkAutoClipboardTooltip">Автоматично копіювати транскрипцію та вставляти через Ctrl+V</sys:String>
     <sys:String x:Key="ChkAutoClipboardHint">Вимкніть, щоб результат зберігався лише в історії (режим приватності)</sys:String>
-<sys:String x:Key="MsgVulkanCpuFallback">вљ пёЏ РЈРІР°РіР°: С–РЅС„РµСЂРµРЅСЃ Р№РґРµ РЅР° CPU. РџРµСЂРµРІС–СЂС‚Рµ РїС–РґС‚СЂРёРјРєСѓ Vulkan.</sys:String>
+<sys:String x:Key="MsgVulkanCpuFallback">⚠️ Увага: інференс працює на CPU. Перевірте підтримку Vulkan.</sys:String>
+
+    <sys:String x:Key="ModePushToTalk">Утримання (Push)</sys:String>
+    <sys:String x:Key="ModeToggle">Перемикання</sys:String>
+    <sys:String x:Key="ToolTipPrivacyPolicy">Аудіо тимчасово зберігається локально перед розпізнаванням та видаляється при виході.</sys:String>
 </ResourceDictionary>

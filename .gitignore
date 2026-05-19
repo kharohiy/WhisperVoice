@@ -25,3 +25,5 @@ models/
 
 # Нативные библиотеки whisper.cpp в корне проекта
 WhisperVoice/*.dll
+
+WhisperVoice/.agent/

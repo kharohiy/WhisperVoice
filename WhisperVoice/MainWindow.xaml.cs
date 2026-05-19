@@ -124,6 +124,7 @@ namespace WhisperVoice
 
             LoadMicFromSettings();
             UpdateLanguageButton();
+            UpdateTopBar();
 
             IsVisibleChanged += (_, _) => { if (IsVisible) SyncVolumeFromSystem(); };
             System.Windows.Application.Current.Exit += (_, _) => FullShutdown();
@@ -540,11 +541,28 @@ namespace WhisperVoice
                 LblCurrentLanguage.Text = string.IsNullOrEmpty(activeKey) ? $"🌐 {langName}" : $"🌐 {langName} [{activeKey}]";
         }
 
+        private void UpdateTopBar()
+        {
+            _settings = AppSettings.Load();
+            
+            string defaultModeText = _settings.IsPushToTalkEnabled ? "Push-To-Talk" : "Toggle";
+            if (LblHotkeyMode != null)
+            {
+                LblHotkeyMode.Text = TryGetResource(_settings.IsPushToTalkEnabled ? "ModePushToTalk" : "ModeToggle", defaultModeText);
+            }
+
+            if (IconPrivacy != null)
+            {
+                IconPrivacy.ToolTip = TryGetResource("ToolTipPrivacyPolicy", 
+                    "Audio is temporarily stored locally before transcription and deleted upon exit.");
+            }
+        }
+
         private void BtnLanguageSettings_Click(object sender, RoutedEventArgs e)
         {
             if (_settingsWindow.IsVisible) { _settingsWindow.Activate(); return; }
             _settingsWindow = new SettingsWindow { Owner = this };
-            _settingsWindow.Closed += (_, _) => { UpdateLanguageButton(); RebindHotkeys(); };
+            _settingsWindow.Closed += (_, _) => { UpdateLanguageButton(); RebindHotkeys(); UpdateTopBar(); };
             _settingsWindow.Show();
         }
 
