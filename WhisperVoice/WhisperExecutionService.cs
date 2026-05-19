@@ -26,7 +26,6 @@ namespace WhisperVoice.Services
             double temperature,
             double noSpeechThreshold)
         {
-            // Core arguments
             psi.ArgumentList.Add("-m");
             psi.ArgumentList.Add(modelPath);
             psi.ArgumentList.Add("-f");
@@ -45,18 +44,20 @@ namespace WhisperVoice.Services
                 psi.ArgumentList.Add(techPrompt);
             }
 
-            // Strictly using official long arguments to prevent CLI crashes
+            // Always explicitly pass parameters from Settings, retaining user control
             psi.ArgumentList.Add("--beam-size");
             psi.ArgumentList.Add(beamSize.ToString());
             
             psi.ArgumentList.Add("--best-of");
             psi.ArgumentList.Add(bestOf.ToString());
             
-            psi.ArgumentList.Add("--temperature");
-            psi.ArgumentList.Add(temperature.ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
+            if (temperature > 0.0)
+            {
+                psi.ArgumentList.Add("--temperature");
+                psi.ArgumentList.Add(temperature.ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
+            }
             
-            psi.ArgumentList.Add("--no-timestamps");
-            psi.ArgumentList.Add("-otxt"); // CRITICAL FIX 1: Force whisper to save .txt file
+            psi.ArgumentList.Add("-otxt");
         }
 
         public async Task<string?> RunAsync(
@@ -81,7 +82,6 @@ namespace WhisperVoice.Services
                 return null;
             }
 
-            // Direct mapping to Windows Temp folder to match audio capture
             string tempWav = Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav");
             if (!File.Exists(tempWav))
             {
@@ -98,7 +98,7 @@ namespace WhisperVoice.Services
                 RedirectStandardError = true,
                 StandardOutputEncoding = Encoding.UTF8,
                 StandardErrorEncoding = Encoding.UTF8,
-                WorkingDirectory = Path.GetTempPath() // CRITICAL FIX 2: Save directly to Temp folder
+                WorkingDirectory = Path.GetTempPath()
             };
 
             PopulateArgumentList(psi, modelPath, tempWav, lang, isTranslate, techPrompt, beamSize, bestOf, temperature, noSpeechThreshold);
@@ -174,14 +174,30 @@ namespace WhisperVoice.Services
             int exitCode = process.ExitCode;
             logAction?.Invoke($"whisper-cli exited with code {exitCode}");
 
-            string txtPath = tempWav + ".txt";
-            if (!File.Exists(txtPath))
+            string foundPath = null;
+            string[] possiblePaths = {
+                tempWav + ".txt",
+                Path.ChangeExtension(tempWav, ".txt"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "WhisperVoice_temp.wav.txt"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "WhisperVoice_temp.txt")
+            };
+
+            foreach (var p in possiblePaths) {
+                if (File.Exists(p)) {
+                    foundPath = p;
+                    break;
+                }
+            }
+
+            if (foundPath == null)
             {
-                logAction?.Invoke("Error: Transcription output file missing.");
+                logAction?.Invoke("Error: Transcription output file missing. Checked multiple path variants.");
                 return string.Empty;
             }
 
-            string result = await File.ReadAllTextAsync(txtPath, Encoding.UTF8);
+            string result = await File.ReadAllTextAsync(foundPath, Encoding.UTF8);
+            try { File.Delete(foundPath); } catch { }
+            
             return result;
         }
     }

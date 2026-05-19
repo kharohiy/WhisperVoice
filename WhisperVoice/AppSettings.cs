@@ -69,9 +69,9 @@ namespace WhisperVoice
 
         // ── Whisper inference params ───────────────────────────────────────
         /// <summary>--beam-size N  (1–10). Default 5 matches whisper.cpp default.</summary>
-        public int BeamSize { get; set; } = 5;
+        public int BeamSize { get; set; } = 1; // Changed to 1 to prevent VRAM KV Cache explosion
         /// <summary>--best-of N  (1–10). Candidates sampled when beam_size == 1.</summary>
-        public int BestOf { get; set; } = 5;
+        public int BestOf { get; set; } = 1;
         /// <summary>--temperature F  (0.0–1.0). 0 = greedy / deterministic.</summary>
         public double Temperature { get; set; } = 0.0;
         /// <summary>--no-speech-thold F  (0.0–1.0). Segments below this probability are suppressed.</summary>

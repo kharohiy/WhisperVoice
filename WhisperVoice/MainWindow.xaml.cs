@@ -681,10 +681,27 @@ namespace WhisperVoice
                 _settings = AppSettings.Load();
                 if (_settings.AutoClipboardCopy)
                 {
-                    System.Windows.Clipboard.SetText(e.Text);
-                    await Task.Delay(100);
-                    _inputSim.Keyboard.ModifiedKeyStroke(
-                        VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
+                    bool copied = false;
+                    for (int i = 0; i < 5; i++)
+                    {
+                        try
+                        {
+                            System.Windows.Clipboard.SetText(e.Text);
+                            copied = true;
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            DiagnosticLogger.Instance.Warn("MainWindow", $"Clipboard lock: {ex.Message}. Retrying...");
+                            await Task.Delay(50);
+                        }
+                    }
+                    
+                    if (copied)
+                    {
+                        await Task.Delay(100);
+                        _inputSim.Keyboard.ModifiedKeyStroke(VirtualKeyCode.CONTROL, VirtualKeyCode.VK_V);
+                    }
                 }
             });
         }
