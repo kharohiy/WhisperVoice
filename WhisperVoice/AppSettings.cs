@@ -122,6 +122,13 @@ namespace WhisperVoice
             }
         }
 
+        /// <summary>Models directory: always execution base / models folder.</summary>
+        public static string ModelsDir => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "models");
+
+        /// <summary>Resolved models directory for monolithic compatibility.</summary>
+        [JsonIgnore]
+        public string ResolvedModelsDir => ModelsDir;
+
         private static string SettingsPath =>
             Path.Combine(AppDataDir, "settings.json");
 

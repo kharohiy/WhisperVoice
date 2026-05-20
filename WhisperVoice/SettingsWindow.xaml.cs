@@ -112,7 +112,7 @@ namespace WhisperVoice
         public void LoadModels()
         {
             ModelCombo.Items.Clear();
-            string modelsDir = Path.Combine(BaseDir, "models");
+            string modelsDir = AppSettings.ModelsDir;
 
             try
             {
@@ -185,7 +185,7 @@ namespace WhisperVoice
 
         private void BtnGetModels_Click(object sender, RoutedEventArgs e)
         {
-            string modelsDir = Path.Combine(BaseDir, "models");
+            string modelsDir = AppSettings.ModelsDir;
             var win = new WhisperVoice.Views.ModelsWindow(modelsDir, onModelAdded: LoadModels)
             {
                 Owner = this
@@ -206,7 +206,7 @@ namespace WhisperVoice
                 return;
 
             string sourceFile = dialog.FileName;
-            string modelsDir = Path.Combine(BaseDir, "models");
+            string modelsDir = AppSettings.ModelsDir;
 
             try
             {

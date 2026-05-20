@@ -17,8 +17,7 @@ namespace WhisperVoice
 
         private void BtnGetModels_Click(object sender, RoutedEventArgs e)
         {
-            string modelsDir = System.IO.Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, "models");
+            string modelsDir = AppSettings.ModelsDir;
 
             var win = new ModelsWindow(modelsDir, onModelAdded: () => 
             {

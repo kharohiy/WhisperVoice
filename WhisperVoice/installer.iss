@@ -55,15 +55,14 @@ Name: "polish";    MessagesFile: "compiler:Languages\Polish.isl"
 ; ------------------------------------------------------------------
 Source: "bin\Release\net8.0-windows\*"; \
   DestDir: "{app}"; \
-  Excludes: "*.pdb,*.bin,*.xml"; \
+  Excludes: "*.pdb,*.bin,*.xml,*.log,*.wav,*.txt,settings.json,settings.ini"; \
   Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Dirs]
-; CRITICAL FOR DIAGNOSTIC LOGGER: 
-; Grant modify permissions to the app folder so the application 
-; can create and write the whisper_diagnostic.log directly in its directory.
+; CRITICAL FOR MONOLITHIC INSTALLS:
+; Grant modify permissions to standard users so the application can write its
+; diagnostic logs and download AI model files inside its directory under standard UAC.
 Name: "{app}"; Permissions: users-modify
-; Models directory with modify permissions
 Name: "{app}\models"; Permissions: users-modify
 
 [Icons]
@@ -87,13 +86,40 @@ Filename: "{app}\WhisperVoice.exe"; Description: "{cm:LaunchProgram,WhisperVoice
 Type: filesandordirs; Name: "{app}\*.log"
 
 [Code]
-// Optional: warn if .NET 8 Desktop Runtime is not installed
 function IsDotNet8Installed(): Boolean;
 var
   key: String;
+  names: TArrayOfString;
+  i: Integer;
 begin
+  Result := False;
   key := 'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedfx\Microsoft.WindowsDesktop.App';
-  Result := RegKeyExists(HKLM, key) or RegKeyExists(HKCU, key);
+  
+  // Check HKLM (system-wide install)
+  if RegGetValueNames(HKLM, key, names) then
+  begin
+    for i := 0 to GetArrayLength(names) - 1 do
+    begin
+      if Pos('8.', names[i]) = 1 then
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
+  end;
+  
+  // Check HKCU (per-user install)
+  if RegGetValueNames(HKCU, key, names) then
+  begin
+    for i := 0 to GetArrayLength(names) - 1 do
+    begin
+      if Pos('8.', names[i]) = 1 then
+      begin
+        Result := True;
+        Exit;
+      end;
+    end;
+  end;
 end;
 
 procedure InitializeWizard();

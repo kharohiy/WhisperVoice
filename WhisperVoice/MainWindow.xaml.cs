@@ -547,7 +547,7 @@ namespace WhisperVoice
             TransientDataCleaner.Cleanup(
                 TempWavPath, 
                 TempTxtPath, 
-                Path.Combine(BaseDir, "models"),
+                AppSettings.ModelsDir,
                 onError: (msg, ex) => DiagnosticLogger.Instance.Warn("MainWindow", $"{msg}: {ex.Message}"),
                 onInfo: msg => DiagnosticLogger.Instance.Info("MainWindow", msg));
         }

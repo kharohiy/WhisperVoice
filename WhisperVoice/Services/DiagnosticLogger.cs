@@ -139,24 +139,34 @@ namespace WhisperVoice
         private static string ResolveLogPath()
         {
             const string fileName = "whisper_diagnostic.log";
+            string primaryPath = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, fileName);
 
-            // Primary: installation directory
             try
             {
-                string basePath = Path.Combine(
-                    AppDomain.CurrentDomain.BaseDirectory, fileName);
-
-                // Probe write access before committing
-                using var probe = new FileStream(basePath, FileMode.Append,
-                    FileAccess.Write, FileShare.Read);
-                return basePath;
+                // Probe write access to primary installation folder
+                using (var probe = new FileStream(primaryPath, FileMode.Append,
+                    FileAccess.Write, FileShare.Read))
+                {
+                }
+                return primaryPath;
             }
-            catch (UnauthorizedAccessException) { /* fall through */ }
-            catch (IOException)                 { /* fall through */ }
-
-            // Fallback: Desktop (always writable)
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.Desktop), fileName);
+            catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException)
+            {
+                // Fallback: LocalAppData to bypass UAC permission restrictions
+                string fallbackDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WhisperVoice");
+                try
+                {
+                    if (!Directory.Exists(fallbackDir))
+                    {
+                        Directory.CreateDirectory(fallbackDir);
+                    }
+                }
+                catch { }
+                return Path.Combine(fallbackDir, fileName);
+            }
         }
 
         public void Dispose()
