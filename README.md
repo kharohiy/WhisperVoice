@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="WhisperVoiceIcons/icons/WhisperVoice.png" width="128" alt="WhisperVoice Logo"/>
+  <img src="WhisperVoice/WhisperVoice.png" width="128" alt="WhisperVoice Logo"/>
 </p>
 
 <h1 align="center">WhisperVoice</h1>
