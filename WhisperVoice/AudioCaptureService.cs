@@ -51,7 +51,7 @@ namespace WhisperVoice.Services
             }
         }
 
-        public Action<Exception> RecordingAborted { get; internal set; }
+        public Action<Exception>? RecordingAborted { get; internal set; }
 
         public event Action<double>? PeakAvailable;
         public event Action? SilenceDetected;

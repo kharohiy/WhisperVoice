@@ -180,7 +180,7 @@ namespace WhisperVoice.Services
             int exitCode = process.ExitCode;
             logAction?.Invoke($"whisper-cli exited with code {exitCode}");
 
-            string foundPath = null;
+            string? foundPath = null;
             string[] possiblePaths = {
                 tempWav + ".txt",
                 Path.ChangeExtension(tempWav, ".txt"),

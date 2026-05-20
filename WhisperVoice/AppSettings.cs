@@ -99,6 +99,9 @@ namespace WhisperVoice
         /// </summary>
         public bool IsPushToTalkEnabled { get; set; } = false;
 
+        // ── Whitelist ──────────────────────────────────────────────────────
+        public string[] WhitelistedDomains { get; set; } = new[] { "raw.githubusercontent.com", "huggingface.co" };
+
         // ── Static helpers ─────────────────────────────────────────────────
 
         private static readonly JsonSerializerOptions _jsonOpts =

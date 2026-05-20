@@ -1,5 +1,6 @@
 # Папки сборки и мусор VS (рекурсивно)
 .vs/
+.antigravitycli
 [Bb]in/
 [Oo]bj/
 **/bin/
@@ -13,10 +14,14 @@ temp.wav.txt
 whisper_debug.log
 repomix.config.json
 repomix-output.md
+TODO.MD
+task.md
+perplex_conclusion_20_05_Whisper.txt
 
 # Проектные папки вывода и ресурсов
 WhisperVoice/Output/
 WhisperVoiceIcons/
+
 
 # Игнорируем ВСЕ тяжелые зависимости и модели (во всех папках)
 *.bin

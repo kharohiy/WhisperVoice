@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 
 namespace WhisperVoice.Services
 {
@@ -21,6 +21,9 @@ namespace WhisperVoice.Services
 
         public string Process(string text)
         {
+            // Flatten newlines and tabs to single spaces before further processing
+            text = text.Replace("\r", " ").Replace("\n", " ").Replace("\t", " ");
+
             // 0. Вырезаем все акустические галлюцинации (в скобках и звездочках)
             text = _acousticTags.Replace(text, "").Trim();
 

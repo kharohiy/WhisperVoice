@@ -27,5 +27,15 @@ namespace WhisperVoice.Tests
             var result = _processor.Process(input);
             result.Should().Be(expected);
         }
+
+        [Theory]
+        [InlineData("hello\r\nworld\nthis\tfield", "Hello world this field")]
+        [InlineData("  line1\n  line2\r\nline3\t  ", "Line1 line2 line3")]
+        [InlineData("[00:00:00.000 --> 00:00:05.000] first segment\n[00:00:05.000 --> 00:00:10.000] second segment", "First segment second segment")]
+        public void Process_FlattensNewlinesAndTabs(string input, string expected)
+        {
+            var result = _processor.Process(input);
+            result.Should().Be(expected);
+        }
     }
 }

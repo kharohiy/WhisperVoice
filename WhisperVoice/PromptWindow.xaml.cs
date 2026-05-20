@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -56,14 +56,14 @@ namespace WhisperVoice
         {
             if (LbTags.SelectedItem != null)
             {
-                Tags.Remove(LbTags.SelectedItem.ToString());
+                Tags.Remove(LbTags.SelectedItem.ToString() ?? "");
                 TxtInput.Clear();
             }
         }
 
         private void LbTags_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            if (LbTags.SelectedItem != null) TxtInput.Text = LbTags.SelectedItem.ToString();
+            if (LbTags.SelectedItem != null) TxtInput.Text = LbTags.SelectedItem.ToString() ?? "";
         }
 
         private void BtnSave_Click(object sender, RoutedEventArgs e)

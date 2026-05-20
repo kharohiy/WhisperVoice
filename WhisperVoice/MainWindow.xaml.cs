@@ -66,7 +66,6 @@ namespace WhisperVoice
         private SettingsWindow _settingsWindow = new();
 
         // ── Recording state (owned by RecordingOrchestrationService) ───────
-        private CancellationTokenSource? _whisperCts;
 
         private DoubleAnimation? _vadAnim;
 
@@ -100,9 +99,8 @@ namespace WhisperVoice
                 _postProcessor,
                 TempWavPath);
 
-            _recorder.StateChanged           += Recorder_StateChanged;
+            _recorder.StatusReported         += Recorder_StatusReported;
             _recorder.TranscriptionCompleted += Recorder_TranscriptionCompleted;
-            _recorder.StatusUpdated          += (_, msg) => Dispatcher.InvokeAsync(() => LblStatus.Text = msg);
             _recorder.RecordingTimerTick      += Recorder_TimerTick;
             _recorder.MissingModelRequested   += (_, _) => Dispatcher.InvokeAsync(() => { Show(); new MissingModelWindow { Owner = this }.ShowDialog(); });
             _recorder.ErrorOccurred           += (_, key) => ShowErrorPopup(key);
@@ -582,21 +580,26 @@ namespace WhisperVoice
 
         // ── RecordingOrchestrationService event handlers ──────────────────
 
-        private void Recorder_StateChanged(object? sender, Services.RecordingStateChangedEventArgs e)
+        private void Recorder_StatusReported(object? sender, Services.PipelineStatusReport e)
         {
             Dispatcher.InvokeAsync(() =>
             {
+                if (!string.IsNullOrWhiteSpace(e.Message) && e.State != PipelineLifecycleState.Idle)
+                {
+                    LblStatus.Text = e.Message;
+                }
+
                 switch (e.State)
                 {
-                    case Services.RecordingState.Recording:
+                    case PipelineLifecycleState.Recording:
                         StartVadAnimation();
-                        string keyBase = e.Mode switch
+                        string keyBase = _recorder.ActiveMode switch
                         {
                             Services.ProcessingMode.Primary   => _settings.HotkeyPrimary,
                             Services.ProcessingMode.Translate => _settings.HotkeyTranslate,
                             _                                  => _settings.HotkeyPrompt
                         };
-                        string keySig = e.Source == Services.AudioSource.Loopback
+                        string keySig = _recorder.ActiveSource == Services.AudioSource.Loopback
                             ? "Ctrl+" + keyBase : keyBase;
                         UpdateLanguageButton(keySig);
                         LblMicName.Visibility  = Visibility.Visible;
@@ -606,30 +609,54 @@ namespace WhisperVoice
                         BtnActionRecord.SetResourceReference(System.Windows.Controls.ContentControl.ContentProperty, "BtnHeroRecording");
                         BtnActionRecord.Background = System.Windows.Media.Brushes.Crimson;
                         BtnActionRecord.IsEnabled = true;
+
+                        // Ensure inputs are visible, and processing panel is hidden
+                        VolumePanel.Visibility = Visibility.Visible;
+                        ShowProcessingPanel(false);
                         break;
 
-                    case Services.RecordingState.Processing:
+                    case PipelineLifecycleState.ProcessingAudio:
+                    case PipelineLifecycleState.RunningInference:
+                    case PipelineLifecycleState.FilteringHallucinations:
                         StopVadAnimation();
                         LblMicName.Text       = TryGetResource("LblProcessing", "Processing…");
                         LblMicName.Foreground = System.Windows.Media.Brushes.Orange;
                         UpdateLanguageButton();
+                        
+                        // Wipe VuMeter and hide audio panels
                         VuMeter.Value = 0;
+                        VolumePanel.Visibility = Visibility.Collapsed;
+                        
+                        // Strictly show only processing panel
                         ShowProcessingPanel(true);
                         
                         BtnActionRecord.SetResourceReference(System.Windows.Controls.ContentControl.ContentProperty, "BtnHeroProcessing");
                         BtnActionRecord.IsEnabled = false;
-                        BtnActionRecord.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#3A3A3A");
+                        BtnActionRecord.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#3A3A3A")!;
                         BtnActionRecord.Foreground = System.Windows.Media.Brushes.Orange;
                         break;
 
-                    case Services.RecordingState.Idle:
+                    case PipelineLifecycleState.Idle:
+                    case PipelineLifecycleState.Completed:
+                    case PipelineLifecycleState.Failed:
                         StopVadAnimation();
                         ShowProcessingPanel(false);
-                        UpdateMicLabel(_settings.MicName, ok: true);
+                        UpdateLanguageButton();
                         
+                        // Restore Left-hand mic status labels to nominal configurations
+                        if (_settings.HasMic)
+                        {
+                            UpdateMicLabel(_settings.MicName, ok: true);
+                        }
+                        else
+                        {
+                            UpdateMicLabel(TryGetResource("LblNoMicSelected", "⚠️ SELECT A MICROPHONE!"), ok: false);
+                        }
+                        
+                        // Restore Hero button to nominal idle state
                         BtnActionRecord.SetResourceReference(System.Windows.Controls.ContentControl.ContentProperty, "BtnHeroIdle");
                         BtnActionRecord.IsEnabled = true;
-                        BtnActionRecord.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#1565C0");
+                        BtnActionRecord.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#1565C0")!;
                         BtnActionRecord.Foreground = System.Windows.Media.Brushes.White;
                         break;
                 }

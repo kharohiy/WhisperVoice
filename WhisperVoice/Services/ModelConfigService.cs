@@ -33,8 +33,22 @@ namespace WhisperVoice.Services
             try
             {
                 var uri = new Uri(remoteUrl);
-                var host = uri.Host.ToLowerInvariant();
-                if (host != "raw.githubusercontent.com" && host != "huggingface.co")
+                var host = uri.Host;
+                
+                var settings = AppSettings.Load();
+                var whitelist = settings.WhitelistedDomains ?? Array.Empty<string>();
+                
+                bool isWhitelisted = false;
+                foreach (var domain in whitelist)
+                {
+                    if (string.Equals(domain?.Trim(), host, StringComparison.OrdinalIgnoreCase))
+                    {
+                        isWhitelisted = true;
+                        break;
+                    }
+                }
+
+                if (!isWhitelisted)
                 {
                     DiagnosticLogger.Instance.Warn("ModelConfigService", $"Blocked untrusted config URL domain: {host}");
                     return GetFallbackConfig();

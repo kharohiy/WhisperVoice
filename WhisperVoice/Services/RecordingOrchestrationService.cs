@@ -44,7 +44,9 @@ namespace WhisperVoice.Services
     {
         public event EventHandler<RecordingStateChangedEventArgs>? StateChanged;
         public event EventHandler<TranscriptionResultEventArgs>?   TranscriptionCompleted;
+        [Obsolete("Use StatusReported event instead.")]
         public event EventHandler<string>?                         StatusUpdated;
+        public event EventHandler<PipelineStatusReport>?           StatusReported;
         public event EventHandler<int>?                            RecordingTimerTick;
         public event EventHandler?                                 MissingModelRequested;
         public event EventHandler<string>?                         ErrorOccurred;
@@ -60,20 +62,35 @@ namespace WhisperVoice.Services
 
         private IAudioCaptureService _activeCapture;
         private enum InternalMode { None, Primary, Translate, Prompt }
-        private InternalMode _activeMode    = InternalMode.None;
+        
+        private readonly object _stateLock = new();
+        private PipelineLifecycleState _state = PipelineLifecycleState.Idle;
+        private InternalMode _activeMode = InternalMode.None;
+
         private string       _currentLang   = "ru";
         private bool         _currentTranslate;
-        private volatile bool _isProcessing;
-        private int           _stopGuard;
-        private int           _startGuard;
         private CancellationTokenSource? _whisperCts;
         private System.Windows.Threading.DispatcherTimer? _recTimer;
         private int _recSeconds;
 
-        public bool IsProcessing => _isProcessing;
-        public bool IsRecording  => _activeCapture.IsRecording;
+        public PipelineLifecycleState CurrentState
+        {
+            get
+            {
+                lock (_stateLock)
+                {
+                    return _state;
+                }
+            }
+        }
+
+        public bool IsProcessing => CurrentState != PipelineLifecycleState.Idle && CurrentState != PipelineLifecycleState.Recording;
+        public bool IsRecording  => CurrentState == PipelineLifecycleState.Recording;
         public IAudioCaptureService MicCapture      => _micCapture;
         public IAudioCaptureService LoopbackCapture => _loopbackCapture;
+
+        public ProcessingMode ActiveMode { get; private set; } = ProcessingMode.Primary;
+        public AudioSource ActiveSource { get; private set; } = AudioSource.Microphone;
 
         public RecordingOrchestrationService(IAudioCaptureService micCapture, IAudioCaptureService loopbackCapture, IWhisperExecutionService whisper, HardwareCheckService hardware, HallucinationFilter hallucinationFilter, TextPostProcessorService postProcessor, string tempWavPath)
         {
@@ -87,76 +104,132 @@ namespace WhisperVoice.Services
             _activeCapture       = micCapture;
         }
 
+        private void TransitionTo(PipelineLifecycleState newState, double progressPercentage = -1.0, string message = "", DiagnosticLogger.Level logLevel = DiagnosticLogger.Level.INFO, PipelineError error = PipelineError.None)
+        {
+            lock (_stateLock)
+            {
+                _state = newState;
+            }
+            switch (logLevel)
+            {
+                case DiagnosticLogger.Level.TRACE:
+                    DiagnosticLogger.Instance.Trace("RecordingOrchestrationService", $"Transitioned to {newState}. Msg: {message}");
+                    break;
+                case DiagnosticLogger.Level.INFO:
+                    DiagnosticLogger.Instance.Info("RecordingOrchestrationService", $"Transitioned to {newState}. Msg: {message}");
+                    break;
+                case DiagnosticLogger.Level.WARN:
+                    DiagnosticLogger.Instance.Warn("RecordingOrchestrationService", $"Transitioned to {newState}. Msg: {message}");
+                    break;
+                case DiagnosticLogger.Level.ERROR:
+                    DiagnosticLogger.Instance.Error("RecordingOrchestrationService", $"Transitioned to {newState}. Msg: {message}");
+                    break;
+            }
+            StatusReported?.Invoke(this, new PipelineStatusReport(newState, progressPercentage, message, logLevel, error));
+        }
+
         public void StartRecording(RecordingRequest request)
         {
-            if (Interlocked.Exchange(ref _startGuard, 1) != 0) return;
+            lock (_stateLock)
+            {
+                if (_state != PipelineLifecycleState.Idle) return;
+                _state = PipelineLifecycleState.Recording;
+                _activeMode = (InternalMode)(int)request.Mode;
+                ActiveMode = request.Mode;
+                ActiveSource = request.Source;
+            }
+
             try
             {
                 var settings = AppSettings.Load();
-            if (string.IsNullOrEmpty(settings.MicId) && request.Source == AudioSource.Microphone)
-            {
-                ErrorOccurred?.Invoke(this, "ErrMicUnplugged");
-                return;
+                if (string.IsNullOrEmpty(settings.MicId) && request.Source == AudioSource.Microphone)
+                {
+                    TransitionTo(PipelineLifecycleState.Failed, -1.0, "ErrMicUnplugged", DiagnosticLogger.Level.ERROR, PipelineError.MicDisconnected);
+                    TransitionTo(PipelineLifecycleState.Idle, 0.0, "");
+                    ErrorOccurred?.Invoke(this, "ErrMicUnplugged");
+                    return;
+                }
+                if (string.IsNullOrEmpty(settings.LastModelPath) || !File.Exists(settings.LastModelPath))
+                {
+                    TransitionTo(PipelineLifecycleState.Failed, -1.0, "ModelMissing", DiagnosticLogger.Level.ERROR, PipelineError.ModelMissing);
+                    TransitionTo(PipelineLifecycleState.Idle, 0.0, "");
+                    MissingModelRequested?.Invoke(this, EventArgs.Empty);
+                    return;
+                }
+
+                _currentTranslate = request.Mode == ProcessingMode.Translate || request.Mode == ProcessingMode.Prompt;
+                _currentLang      = request.Mode == ProcessingMode.Primary ? settings.LanguagePrimary : "en";
+
+                try { if (File.Exists(_tempWavPath)) File.Delete(_tempWavPath); } catch { }
+                _activeCapture = request.Source == AudioSource.Loopback ? _loopbackCapture : _micCapture;
+
+                double silenceTimeout = request.Source == AudioSource.Loopback ? settings.VadSilenceSeconds + 3.0 : settings.VadSilenceSeconds;
+                bool enableVad = !settings.IsPushToTalkEnabled;
+
+                bool started = _activeCapture.StartRecording(settings.MicId, _tempWavPath, settings.VadThreshold, silenceTimeout, enableVad);
+                if (!started)
+                {
+                    TransitionTo(PipelineLifecycleState.Failed, -1.0, "ErrMicUnplugged", DiagnosticLogger.Level.ERROR, PipelineError.MicDisconnected);
+                    TransitionTo(PipelineLifecycleState.Idle, 0.0, "");
+                    ErrorOccurred?.Invoke(this, "ErrMicUnplugged");
+                    return;
+                }
+
+                if (settings.SoundNotifications) SystemSounds.Beep.Play();
+                StartTimer();
+                
+                TransitionTo(PipelineLifecycleState.Recording, 0.0, "Recording started");
+                StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Recording, request.Source, request.Mode));
             }
-            if (string.IsNullOrEmpty(settings.LastModelPath) || !File.Exists(settings.LastModelPath))
+            catch (Exception ex)
             {
-                MissingModelRequested?.Invoke(this, EventArgs.Empty);
-                return;
-            }
-
-            _activeMode       = (InternalMode)(int)request.Mode;
-            _currentTranslate = request.Mode == ProcessingMode.Translate || request.Mode == ProcessingMode.Prompt;
-            _currentLang      = request.Mode == ProcessingMode.Primary ? settings.LanguagePrimary : "en";
-
-            try { if (File.Exists(_tempWavPath)) File.Delete(_tempWavPath); } catch { }
-            _activeCapture = request.Source == AudioSource.Loopback ? _loopbackCapture : _micCapture;
-
-            double silenceTimeout = request.Source == AudioSource.Loopback ? settings.VadSilenceSeconds + 3.0 : settings.VadSilenceSeconds;
-            bool enableVad = !settings.IsPushToTalkEnabled;
-
-            bool started = _activeCapture.StartRecording(settings.MicId, _tempWavPath, settings.VadThreshold, silenceTimeout, enableVad);
-            if (!started)
-            {
-                ErrorOccurred?.Invoke(this, "ErrMicUnplugged");
-                return;
-            }
-
-            if (settings.SoundNotifications) SystemSounds.Beep.Play();
-            StartTimer();
-            StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Recording, request.Source, request.Mode));
-            }
-            finally
-            {
-                Interlocked.Exchange(ref _startGuard, 0);
+                TransitionTo(PipelineLifecycleState.Failed, -1.0, ex.Message, DiagnosticLogger.Level.ERROR, PipelineError.RecordingAborted);
+                TransitionTo(PipelineLifecycleState.Idle, 0.0, "");
+                ErrorOccurred?.Invoke(this, ex.Message);
             }
         }
 
         public async Task StopAndProcessAsync(AppSettings settings, Func<string, string> getResource)
         {
-            if (Interlocked.Exchange(ref _stopGuard, 1) != 0) return;
-            _isProcessing = true;
+            InternalMode mode;
+            lock (_stateLock)
+            {
+                if (_state != PipelineLifecycleState.Recording) return;
+                _state = PipelineLifecycleState.ProcessingAudio;
+                mode = _activeMode;
+                _activeMode = InternalMode.None;
+            }
+
             try
             {
+                TransitionTo(PipelineLifecycleState.ProcessingAudio, 10.0, getResource("LblProcessing"));
                 await _activeCapture.StopRecordingAsync();
                 StopTimer();
                 StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Processing));
 
                 if (!IsAudioWorthProcessing(_tempWavPath))
                 {
-                    _activeMode = InternalMode.None;
+                    TransitionTo(PipelineLifecycleState.Idle, 0.0, "Audio below threshold; skipping processing");
                     StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Idle));
                     return;
                 }
 
                 if (settings.SoundNotifications) SystemSounds.Exclamation.Play();
 
-                var mode      = _activeMode;
                 var lang      = _currentLang;
                 var translate = _currentTranslate;
-                _activeMode = InternalMode.None;
 
                 _whisperCts = new CancellationTokenSource();
-                var progress = new Progress<string>(msg => { if (!string.IsNullOrWhiteSpace(msg)) StatusUpdated?.Invoke(this, msg); });
+                var progress = new Progress<string>(msg => 
+                { 
+                    if (!string.IsNullOrWhiteSpace(msg)) 
+                    {
+#pragma warning disable CS0618
+                        StatusUpdated?.Invoke(this, msg);
+#pragma warning restore CS0618
+                        StatusReported?.Invoke(this, new PipelineStatusReport(PipelineLifecycleState.RunningInference, -1.0, msg));
+                    } 
+                });
 
                 string selectedPrompt = mode switch
                 {
@@ -167,10 +240,26 @@ namespace WhisperVoice.Services
 
                 await RunWhisperPipelineAsync(lang, translate, selectedPrompt, progress, settings, getResource, _whisperCts.Token);
             }
+            catch (Exception ex)
+            {
+                var error = PipelineError.RecordingAborted;
+                if (ex is NAudio.MmException || ex is System.Runtime.InteropServices.COMException || ex.Message.Contains("disconnected") || ex.Message.Contains("unplugged"))
+                {
+                    error = PipelineError.MicDisconnected;
+                    try { TransientDataCleaner.Cleanup(_tempWavPath, "", ""); } catch { }
+                }
+                TransitionTo(PipelineLifecycleState.Failed, -1.0, ex.Message, DiagnosticLogger.Level.ERROR, error);
+                ErrorOccurred?.Invoke(this, ex.Message);
+            }
             finally
             {
-                _isProcessing = false;
-                Interlocked.Exchange(ref _stopGuard, 0);
+                lock (_stateLock)
+                {
+                    _state = PipelineLifecycleState.Idle;
+                    _activeMode = InternalMode.None;
+                    ActiveMode = ProcessingMode.Primary;
+                    ActiveSource = AudioSource.Microphone;
+                }
                 _activeCapture = _micCapture;
                 StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Idle));
             }
@@ -215,6 +304,7 @@ namespace WhisperVoice.Services
                 var (ramOk, ramMsg) = await _hardware.CheckRamAsync(ramFmt);
                 if (!ramOk)
                 {
+                    TransitionTo(PipelineLifecycleState.Failed, -1.0, ramMsg, DiagnosticLogger.Level.ERROR, PipelineError.LowMemoryFallback);
                     ErrorOccurred?.Invoke(this, ramMsg);
                     return;
                 }
@@ -223,9 +313,12 @@ namespace WhisperVoice.Services
                 if (string.IsNullOrEmpty(model) || !File.Exists(model))
                 {
                     DiagnosticLogger.Instance.Error("RecordingOrchestrationService", "Model file missing before inference: " + model);
+                    TransitionTo(PipelineLifecycleState.Failed, -1.0, "ModelMissing", DiagnosticLogger.Level.ERROR, PipelineError.ModelMissing);
                     MissingModelRequested?.Invoke(this, EventArgs.Empty);
                     return;
                 }
+
+                TransitionTo(PipelineLifecycleState.RunningInference, 30.0, getResource("LblProcessing"));
 
                 string? rawResult = await _whisper.RunAsync(
                     model, lang, isTranslate, techPrompt, progress,
@@ -242,28 +335,38 @@ namespace WhisperVoice.Services
                         VulkanStatusChecked?.Invoke(this, status);
                     });
 
-                if (rawResult is null) return;
+                if (rawResult is null)
+                {
+                    TransitionTo(PipelineLifecycleState.Failed, -1.0, "Inference returned null", DiagnosticLogger.Level.WARN);
+                    return;
+                }
+
+                TransitionTo(PipelineLifecycleState.FilteringHallucinations, 80.0, getResource("MsgHallucinationFiltered"));
 
                 if (!_hallucinationFilter.Check(rawResult, out string cleanResult))
                 {
-                    progress.Report(getResource("MsgHallucinationFiltered"));
+                    TransitionTo(PipelineLifecycleState.Completed, 100.0, getResource("MsgHallucinationFiltered"));
                     return;
                 }
 
                 string finalResult = _postProcessor.Process(cleanResult);
                 if (string.IsNullOrWhiteSpace(finalResult) || !finalResult.Any(char.IsLetterOrDigit))
                 {
-                    progress.Report("Silence / Ignored");
+                    TransitionTo(PipelineLifecycleState.Completed, 100.0, "Silence / Ignored");
                     return;
                 }
 
-                progress.Report(getResource("MsgWhisperDone"));
+                TransitionTo(PipelineLifecycleState.Completed, 100.0, getResource("MsgWhisperDone"));
                 TranscriptionCompleted?.Invoke(this, new TranscriptionResultEventArgs(finalResult, lang, isTranslate));
             }
-            catch (OperationCanceledException) { }
+            catch (OperationCanceledException)
+            {
+                TransitionTo(PipelineLifecycleState.Failed, -1.0, "RecordingAborted", DiagnosticLogger.Level.INFO, PipelineError.RecordingAborted);
+            }
             catch (Exception ex)
             {
                 DiagnosticLogger.Instance.Error("RecordingOrchestrationService", ex, "Pipeline failed");
+                TransitionTo(PipelineLifecycleState.Failed, -1.0, ex.Message, DiagnosticLogger.Level.ERROR, PipelineError.RecordingAborted);
                 ErrorOccurred?.Invoke(this, ex.Message);
             }
         }
