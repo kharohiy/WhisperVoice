@@ -83,6 +83,7 @@ namespace WhisperVoice.ViewModels
             }
             catch (Exception ex)
             {
+                WhisperVoice.DiagnosticLogger.Instance.Error("ModelDownload", ex, "Abrupt network or integrity validation failure during model download setup.");
                 item.IsDownloading    = false;
                 item.DownloadProgress = 0;
                 StatusMessage         = $"Download failed: {ex.Message}";

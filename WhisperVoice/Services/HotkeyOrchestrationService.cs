@@ -1,4 +1,4 @@
-﻿using NHotkey;
+using NHotkey;
 using NHotkey.Wpf;
 using System;
 using System.Runtime.InteropServices;
@@ -101,7 +101,7 @@ namespace WhisperVoice.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Hotkey] Failed to install PTT hook for VK {vk}: {ex.Message}");
+                WhisperVoice.DiagnosticLogger.Instance.Error("HotkeyOrchestrationService", ex, $"Failed to install PTT hook for VK {vk}");
                 return null;
             }
         }
@@ -146,7 +146,7 @@ namespace WhisperVoice.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Hotkey] Failed to register '{name}' ({keyString}): {ex.Message}");
+                WhisperVoice.DiagnosticLogger.Instance.Error("HotkeyOrchestrationService", ex, $"Failed to register '{name}' ({keyString})");
             }
         }
 
@@ -163,8 +163,7 @@ namespace WhisperVoice.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"[Hotkey] Failed to register explicit '{name}' ({mods}+{key}): {ex.Message}");
+                WhisperVoice.DiagnosticLogger.Instance.Error("HotkeyOrchestrationService", ex, $"Failed to register explicit '{name}' ({mods}+{key})");
             }
         }
 

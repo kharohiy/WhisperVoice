@@ -253,9 +253,9 @@ namespace WhisperVoice.Services
             }
             finally
             {
+                TransitionTo(PipelineLifecycleState.Idle, 0.0, "Pipeline released to Idle");
                 lock (_stateLock)
                 {
-                    _state = PipelineLifecycleState.Idle;
                     _activeMode = InternalMode.None;
                     ActiveMode = ProcessingMode.Primary;
                     ActiveSource = AudioSource.Microphone;
@@ -333,6 +333,7 @@ namespace WhisperVoice.Services
                         var status = isVulkan ? VulkanStatus.Active : VulkanStatus.CpuFallback;
                         _hardware.LastVulkanStatus = status;
                         VulkanStatusChecked?.Invoke(this, status);
+                        DiagnosticLogger.Instance.Info("HardwareCheck", $"Inference engine acceleration finalized: {(isVulkan ? "VULKAN_GPU_ACTIVE" : "HARDWARE_FALLBACK_TO_CPU")}");
                     });
 
                 if (rawResult is null)
