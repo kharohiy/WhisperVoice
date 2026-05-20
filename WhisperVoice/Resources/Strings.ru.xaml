@@ -155,4 +155,9 @@
     <sys:String x:Key="ModePushToTalk">Удержание (Push)</sys:String>
     <sys:String x:Key="ModeToggle">Переключение</sys:String>
     <sys:String x:Key="ToolTipPrivacyPolicy">Аудио временно сохраняется локально перед распознаванием и удаляется при выходе.</sys:String>
+
+    <!-- ══ Hero Button ═══════════════════════════════════════════════════ -->
+    <sys:String x:Key="BtnHeroIdle">Запись</sys:String>
+    <sys:String x:Key="BtnHeroRecording">СТОП</sys:String>
+    <sys:String x:Key="BtnHeroProcessing">Обработка...</sys:String>
 </ResourceDictionary>

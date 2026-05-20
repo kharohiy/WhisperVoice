@@ -61,10 +61,10 @@ namespace WhisperVoice
             bool known = Array.Exists(SupportedLangs, l => l == langCode);
             if (!known) langCode = "en";
 
-            string uri = $"Resources/Strings.{langCode}.xaml";
+            string uri = $"pack://application:,,,/WhisperVoice;component/Resources/Strings.{langCode}.xaml";
             var dict = new ResourceDictionary
             {
-                Source = new Uri(uri, UriKind.Relative)
+                Source = new Uri(uri, UriKind.Absolute)
             };
 
             // Replace the first merged dictionary (the strings file) in-place.

@@ -155,5 +155,10 @@
 
     <sys:String x:Key="ModePushToTalk">Pulsar para hablar</sys:String>
     <sys:String x:Key="ModeToggle">Alternar</sys:String>
-    <sys:String x:Key="ToolTipPrivacyPolicy">El audio se almacena temporalmente a nivel local antes de la transcripción y se elimina al salir.</sys:String>
+    <sys:String x:Key="ToolTipPrivacyPolicy">El audio se almacena temporalmente de forma local antes de la transcripción y se elimina al salir.</sys:String>
+
+    <!-- ══ Hero Button ═══════════════════════════════════════════════════ -->
+    <sys:String x:Key="BtnHeroIdle">Grabar</sys:String>
+    <sys:String x:Key="BtnHeroRecording">DETENER</sys:String>
+    <sys:String x:Key="BtnHeroProcessing">Procesando...</sys:String>
 </ResourceDictionary>

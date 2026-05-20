@@ -1,12 +1,11 @@
 <Window x:Class="WhisperVoice.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{DynamicResource AppTitle}" Height="700" Width="400"
+        Title="{DynamicResource AppTitle}" Height="450" Width="660"
         ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
         Topmost="True" Background="#F0F0F0">
 
     <Window.Resources>
-
         <!-- ═══ VU Meter — horizontal segmented bar ═════════════════════════ -->
         <Style x:Key="VuMeterStyle" TargetType="ProgressBar">
             <Setter Property="Template">
@@ -25,22 +24,10 @@
                                     </ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.Items>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
-                                    <Border/>
+                                    <Border/><Border/><Border/><Border/>
+                                    <Border/><Border/><Border/><Border/>
+                                    <Border/><Border/><Border/><Border/>
+                                    <Border/><Border/><Border/><Border/>
                                 </ItemsControl.Items>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -72,190 +59,129 @@
 
     </Window.Resources>
 
-    <Grid Margin="13">
+    <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="0">
-
-        <!-- ── Header: Top Info Bar ────────────── -->
-        <Grid Margin="0,0,0,10">
-            <!-- Hotkey Mode Indicator -->
+        <!-- ── Row 0 (Span 2): Global Status Strip ────────────── -->
+        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,10">
             <Border HorizontalAlignment="Left" Background="#E0E0E0" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
                 <TextBlock x:Name="LblHotkeyMode" FontSize="10" Foreground="#555" FontWeight="SemiBold"/>
             </Border>
 
-            <!-- Active recording language -->
             <TextBlock x:Name="LblCurrentLanguage"
                        FontSize="14" FontWeight="SemiBold"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-            <!-- Privacy Policy Note -->
             <TextBlock x:Name="IconPrivacy" Text="ℹ" FontSize="16" Foreground="#1565C0" 
                        HorizontalAlignment="Right" VerticalAlignment="Center" Cursor="Help" 
                        ToolTipService.InitialShowDelay="150" ToolTipService.ShowDuration="10000"/>
         </Grid>
 
-        <!-- ── Mic status label (moved; see VolumePanel for device name) ── -->
-        <TextBlock x:Name="LblMicName"
-                   Text="{DynamicResource LblNoMicSelected}"
-                   Foreground="Red" FontSize="14" FontWeight="Bold"
-                   HorizontalAlignment="Center" Margin="0,0,0,10"
-                   TextWrapping="Wrap" TextAlignment="Center"/>
+        <!-- ── Column 0 (Left Side): Utility Controls ────────────── -->
+        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,12,0">
+            <Button Content="{DynamicResource BtnSelectMicText}" Height="28" Margin="0,0,0,6" Click="BtnSelectMic_Click" HorizontalContentAlignment="Left" Padding="8,0,5,0" FontSize="12"/>
+            <Button Content="{DynamicResource BtnPromptText}" Height="28" Margin="0,0,0,6" Click="BtnPrompt_Click" HorizontalContentAlignment="Left" Padding="8,0,5,0" FontSize="12"/>
+            <Button x:Name="BtnLanguageSettings" Content="{DynamicResource BtnSettingsText}" Height="28" Margin="0,0,0,6" Click="BtnLanguageSettings_Click" HorizontalContentAlignment="Left" Padding="8,0,5,0" FontSize="12" ToolTip="{DynamicResource BtnSettingsTooltip}"/>
+            <Button Content="{DynamicResource BtnOpenNotepadText}" Height="28" Margin="0,0,0,10" Click="BtnOpenNotepad_Click" HorizontalContentAlignment="Left" Padding="8,0,5,0" FontSize="12"/>
 
-        <!-- ── Action buttons ─────────────────────────────────────────── -->
-        <Button Content="{DynamicResource BtnSelectMicText}"
-                Height="32" Margin="0,0,0,8"
-                Click="BtnSelectMic_Click"
-                HorizontalContentAlignment="Left"
-                Padding="10,0,5,0" FontSize="13"/>
+            <Separator Margin="0,0,0,10" Background="#CCCCCC"/>
 
-        <Button Content="{DynamicResource BtnPromptText}"
-                Height="32" Margin="0,0,0,8"
-                Click="BtnPrompt_Click"
-                HorizontalContentAlignment="Left"
-                Padding="10,0,5,0" FontSize="13"/>
+            <!-- Mic Name Label -->
+            <TextBlock x:Name="LblMicName" Text="{DynamicResource LblNoMicSelected}" Foreground="Red" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,6" TextWrapping="Wrap" TextAlignment="Center" Visibility="Collapsed"/>
 
-        <Button x:Name="BtnLanguageSettings"
-                Content="{DynamicResource BtnSettingsText}"
-                Height="32" Margin="0,0,0,8"
-                Click="BtnLanguageSettings_Click"
-                HorizontalContentAlignment="Left"
-                Padding="10,0,5,0" FontSize="13"
-                ToolTip="{DynamicResource BtnSettingsTooltip}"/>
-
-        <Button Content="{DynamicResource BtnOpenNotepadText}"
-                Height="32" Margin="0,0,0,10"
-                Click="BtnOpenNotepad_Click"
-                HorizontalContentAlignment="Left"
-                Padding="10,0,5,0" FontSize="13"/>
-
-        <Separator Margin="0,0,0,10" Background="#CCCCCC"/>
-
-        <!-- ── Volume + VU meter ───────────────────────────────────────── -->
-        <StackPanel x:Name="VolumePanel" Margin="0,0,0,8" Visibility="Collapsed">
-            <!-- Task 2c: selected device label sits directly above VU meter -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
-                <TextBlock Text="{DynamicResource LblSelectedDevice}"
-                           FontSize="11" Foreground="#777"/>
-                <TextBlock x:Name="LblSelectedDeviceName"
-                           FontSize="11" FontWeight="SemiBold" Foreground="#1565C0"
-                           Margin="4,0,0,0" TextWrapping="Wrap"/>
+            <!-- Volume + VU meter -->
+            <StackPanel x:Name="VolumePanel" Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                    <TextBlock Text="{DynamicResource LblSelectedDevice}" FontSize="10" Foreground="#777"/>
+                    <TextBlock x:Name="LblSelectedDeviceName" FontSize="10" FontWeight="SemiBold" Foreground="#1565C0" Margin="4,0,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+                
+                <TextBlock Text="{DynamicResource LblSignalLevel}" FontSize="11" Foreground="#555" Margin="0,0,0,2"/>
+                <ProgressBar x:Name="VuMeter" Style="{StaticResource VuMeterStyle}" Height="12" Minimum="0" Maximum="100" Value="0" Foreground="LimeGreen" Margin="0,0,0,8"/>
+                
+                <TextBlock x:Name="LblVolume" Text="{DynamicResource LblMicVolume}" FontSize="11" FontWeight="Medium" Margin="0,0,0,2"/>
+                <Slider x:Name="SldVolume" Minimum="0" Maximum="100" TickFrequency="1" IsSnapToTickEnabled="True" Height="22" Margin="0,0,0,8"/>
             </StackPanel>
-            <TextBlock Text="{DynamicResource LblSignalLevel}"
-                       FontSize="12" Foreground="#555" Margin="0,0,0,4"/>
-            <ProgressBar x:Name="VuMeter" Style="{StaticResource VuMeterStyle}"
-                         Height="16" Minimum="0" Maximum="100" Value="0"
-                         Foreground="LimeGreen" Margin="0,0,0,10"/>
-            <TextBlock x:Name="LblVolume"
-                       Text="{DynamicResource LblMicVolume}"
-                       FontSize="13" FontWeight="Medium" Margin="0,0,0,6"/>
-            <Slider x:Name="SldVolume" Minimum="0" Maximum="100"
-                    TickFrequency="1" IsSnapToTickEnabled="True"
-                    Height="25" Margin="0,0,0,4"/>
+
+            <!-- VAD indicator -->
+            <StackPanel x:Name="VadPanel" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,6" Visibility="Collapsed">
+                <Ellipse x:Name="VadDot" Width="10" Height="10" Fill="LimeGreen" Opacity="1" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBlock Text="{DynamicResource VadStatusText}" FontSize="11" Foreground="#555" VerticalAlignment="Center"/>
+            </StackPanel>
         </StackPanel>
 
-        <!-- ── VAD indicator ─────────────────────────────────────────── -->
-        <StackPanel x:Name="VadPanel" Orientation="Horizontal"
-                    HorizontalAlignment="Center" Margin="0,0,0,6"
-                    Visibility="Collapsed">
-            <Ellipse x:Name="VadDot" Width="11" Height="11"
-                     Fill="LimeGreen" Opacity="1"
-                     VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <TextBlock Text="{DynamicResource VadStatusText}"
-                       FontSize="11" Foreground="#555"
-                       VerticalAlignment="Center"/>
-        </StackPanel>
-
-        <!-- ── Processing panel (status + cancel) ────────────────────── -->
-        <StackPanel x:Name="ProcessingPanel" Visibility="Collapsed" Margin="0,0,0,6">
-            <TextBlock x:Name="LblStatus" FontSize="11" Foreground="#444"
-                       TextWrapping="Wrap" Margin="0,0,0,4"/>
-            <Button x:Name="BtnCancel"
-                    Content="{DynamicResource BtnCancelText}"
-                    Height="28"
-                    Background="#FFE4E4" Foreground="DarkRed"
-                    FontWeight="Bold" FontSize="12"
-                    Click="BtnCancel_Click"/>
-        </StackPanel>
-
-        <Separator Margin="0,4,0,8" Background="#CCCCCC"/>
-        </StackPanel>
-
-        <!-- ── Transcription history ──────────────────────────────────── -->
-        <Grid Grid.Row="1">
+        <!-- ── Column 1 (Right Side): Hero Button & History ────────────── -->
+        <Grid Grid.Row="1" Grid.Column="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/> <!-- Hero Button -->
+                <RowDefinition Height="Auto"/> <!-- Processing Panel -->
+                <RowDefinition Height="Auto"/> <!-- History Header -->
+                <RowDefinition Height="*"/>    <!-- History List -->
+                <RowDefinition Height="Auto"/> <!-- Copy Feedback -->
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" Margin="0,0,0,4">
-            <TextBlock Text="{DynamicResource LblHistoryHeader}"
-               FontSize="12" Foreground="#444"
-               VerticalAlignment="Center"/>
+            <!-- Hero Button -->
+            <Button x:Name="BtnActionRecord" Grid.Row="0"
+                    Content="{DynamicResource BtnHeroIdle}"
+                    Height="80" Margin="0,0,0,10"
+                    FontSize="24" FontWeight="Bold" Foreground="White"
+                    Background="#1565C0" BorderThickness="0"
+                    Cursor="Hand" Click="BtnActionRecord_Click">
+                <Button.Resources>
+                    <Style TargetType="Border">
+                        <Setter Property="CornerRadius" Value="8"/>
+                    </Style>
+                </Button.Resources>
+            </Button>
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-
-                <Button x:Name="BtnDiagLog" Content="📋" Width="24" Height="22"
-                FontSize="11" Margin="0,0,6,0"
-                FontFamily="Segoe UI Emoji"
-                ToolTip="Open diagnostic log (whisper_diagnostic.log)"
-                Click="BtnDiagLog_Click"/>
-
-                <Button x:Name="BtnExportHistory" Content="💾" Width="24" Height="22"
-                FontSize="11" Margin="0,0,6,0"
-                FontFamily="Segoe UI Emoji"
-                ToolTip="Export history to file"
-                Click="BtnExportHistory_Click"/>
-
-                <Button x:Name="BtnClearHistory" Content="🗑" Width="24" Height="22"
-                FontSize="11"
-                FontFamily="Segoe UI Emoji"
-                ToolTip="{DynamicResource BtnClearHistoryTooltip}"
-                Click="BtnClearHistory_Click"/>
+            <!-- Processing Panel (Status + Cancel) -->
+            <StackPanel x:Name="ProcessingPanel" Grid.Row="1" Margin="0,0,0,10" Visibility="Collapsed" HorizontalAlignment="Right" Orientation="Horizontal">
+                <TextBlock x:Name="LblStatus" FontSize="12" Foreground="#444" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Button x:Name="BtnCancel" Content="{DynamicResource BtnCancelText}" Height="28" Background="#FFE4E4" Foreground="DarkRed" FontWeight="Bold" FontSize="12" Padding="10,0" Click="BtnCancel_Click"/>
             </StackPanel>
+
+            <!-- History Header & Toolbar -->
+            <Grid Grid.Row="2" Margin="0,0,0,6">
+                <TextBlock Text="{DynamicResource LblHistoryHeader}" FontSize="12" Foreground="#444" VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="BtnDiagLog" Content="📋" Width="26" Height="24" FontSize="12" Margin="0,0,6,0" FontFamily="Segoe UI Emoji" ToolTip="Open diagnostic log" Click="BtnDiagLog_Click"/>
+                    <Button x:Name="BtnExportHistory" Content="💾" Width="26" Height="24" FontSize="12" Margin="0,0,6,0" FontFamily="Segoe UI Emoji" ToolTip="Export history to file" Click="BtnExportHistory_Click"/>
+                    <Button x:Name="BtnClearHistory" Content="🗑" Width="26" Height="24" FontSize="12" FontFamily="Segoe UI Emoji" ToolTip="{DynamicResource BtnClearHistoryTooltip}" Click="BtnClearHistory_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- History List -->
+            <ListBox Grid.Row="3" x:Name="HistoryList" ItemContainerStyle="{StaticResource HistoryItemStyle}" SelectionChanged="HistoryList_SelectionChanged" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Background="White" BorderBrush="#CCC" BorderThickness="1">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{Binding TimeLabel}" FontSize="9" Foreground="#999"/>
+                                <TextBlock Text="{Binding ShortText}" TextWrapping="Wrap" FontSize="12" Foreground="#222"/>
+                            </StackPanel>
+                            <Border Grid.Column="1" Background="#3D7EAA" CornerRadius="3" Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Badge}" FontSize="9" Foreground="White" FontWeight="Bold"/>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Copy-feedback -->
+            <Border Grid.Row="4" x:Name="CopyFeedback" Background="#4CAF50" CornerRadius="4" Padding="10,4" HorizontalAlignment="Center" Margin="0,6,0,0" Visibility="Collapsed">
+                <TextBlock Text="{DynamicResource CopyFeedbackText}" Foreground="White" FontSize="11"/>
+            </Border>
         </Grid>
-
-        <ListBox Grid.Row="1" x:Name="HistoryList"
-                 ItemContainerStyle="{StaticResource HistoryItemStyle}"
-                 SelectionChanged="HistoryList_SelectionChanged"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                 Background="White" BorderBrush="#CCC" BorderThickness="1">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="{Binding TimeLabel}"
-                                       FontSize="9" Foreground="#999"/>
-                            <TextBlock Text="{Binding ShortText}"
-                                       TextWrapping="Wrap" FontSize="11"
-                                       Foreground="#222"/>
-                        </StackPanel>
-                        <Border Grid.Column="1" Background="#3D7EAA" CornerRadius="3"
-                                Padding="4,1" Margin="6,0,0,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Badge}"
-                                       FontSize="9" Foreground="White" FontWeight="Bold"/>
-                        </Border>
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-
-        <!-- Copy-feedback tooltip-style overlay -->
-        <Border Grid.Row="2" x:Name="CopyFeedback" Background="#4CAF50" CornerRadius="4"
-                Padding="10,4" HorizontalAlignment="Center" Margin="0,4,0,0"
-                Visibility="Collapsed">
-            <TextBlock Text="{DynamicResource CopyFeedbackText}"
-                       Foreground="White" FontSize="11"/>
-        </Border>
-        </Grid>
-
     </Grid>
 </Window>

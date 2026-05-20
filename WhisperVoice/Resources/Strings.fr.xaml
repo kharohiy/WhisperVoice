@@ -156,4 +156,9 @@
     <sys:String x:Key="ModePushToTalk">Appuyer pour parler</sys:String>
     <sys:String x:Key="ModeToggle">Basculer</sys:String>
     <sys:String x:Key="ToolTipPrivacyPolicy">L'audio est temporairement stocké localement avant la transcription et supprimé à la fermeture.</sys:String>
+
+    <!-- ══ Hero Button ═══════════════════════════════════════════════════ -->
+    <sys:String x:Key="BtnHeroIdle">Enregistrer</sys:String>
+    <sys:String x:Key="BtnHeroRecording">STOP</sys:String>
+    <sys:String x:Key="BtnHeroProcessing">Traitement...</sys:String>
 </ResourceDictionary>

@@ -155,5 +155,10 @@
 
     <sys:String x:Key="ModePushToTalk">Naciśnij i mów</sys:String>
     <sys:String x:Key="ModeToggle">Przełączanie</sys:String>
-    <sys:String x:Key="ToolTipPrivacyPolicy">Dźwięk jest tymczasowo zapisywany lokalnie przed transkrypcją i usuwany po wyjściu.</sys:String>
+    <sys:String x:Key="ToolTipPrivacyPolicy">Dźwięk jest tymczasowo przechowywany lokalnie przed transkrypcją i usuwany po wyjściu.</sys:String>
+
+    <!-- ══ Hero Button ═══════════════════════════════════════════════════ -->
+    <sys:String x:Key="BtnHeroIdle">Nagrywaj</sys:String>
+    <sys:String x:Key="BtnHeroRecording">STOP</sys:String>
+    <sys:String x:Key="BtnHeroProcessing">Przetwarzanie...</sys:String>
 </ResourceDictionary>

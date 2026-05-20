@@ -82,6 +82,12 @@ namespace WhisperVoice.Services
                 return null;
             }
 
+            if (string.IsNullOrWhiteSpace(modelPath) || !File.Exists(modelPath))
+            {
+                logAction?.Invoke($"Error: Model file is invalid or missing at {modelPath}");
+                return null;
+            }
+
             string tempWav = Path.Combine(Path.GetTempPath(), "WhisperVoice_temp.wav");
             if (!File.Exists(tempWav))
             {

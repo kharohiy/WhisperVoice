@@ -337,6 +337,8 @@ namespace WhisperVoice.Services
             {
                 RestartSilentCapture();
             }
+
+            RecordingAborted?.Invoke(ex);
         }
     }
 }

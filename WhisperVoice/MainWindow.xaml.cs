@@ -154,7 +154,7 @@ namespace WhisperVoice
             Dispatcher.InvokeAsync(async () =>
             {
                 if (_recorder.IsRecording) await StopAndProcessAsync();
-                ShowErrorPopup("ErrRecordingAborted");
+                ShowErrorPopup("ErrRecordingAborted", ex.Message);
             });
         }
 
@@ -546,29 +546,20 @@ namespace WhisperVoice
 
         private void CleanupTempFiles()
         {
-            try { if (File.Exists(TempWavPath)) File.Delete(TempWavPath); } catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Temp WAV cleanup failed: {ex.Message}"); }
-            try { if (File.Exists(TempTxtPath)) File.Delete(TempTxtPath); } catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Temp TXT cleanup failed: {ex.Message}"); }
-            
-            try 
-            { 
-                string modelsDir = Path.Combine(BaseDir, "models");
-                if (Directory.Exists(modelsDir))
-                {
-                    foreach (var file in Directory.GetFiles(modelsDir, "*.part"))
-                    {
-                        File.Delete(file);
-                        DiagnosticLogger.Instance.Info("MainWindow", $"Cleaned up orphaned download: {Path.GetFileName(file)}");
-                    }
-                }
-            } 
-            catch (Exception ex) { DiagnosticLogger.Instance.Warn("MainWindow", $"Orphaned .part models cleanup failed: {ex.Message}"); }
+            TransientDataCleaner.Cleanup(
+                TempWavPath, 
+                TempTxtPath, 
+                Path.Combine(BaseDir, "models"),
+                onError: (msg, ex) => DiagnosticLogger.Instance.Warn("MainWindow", $"{msg}: {ex.Message}"),
+                onInfo: msg => DiagnosticLogger.Instance.Info("MainWindow", msg));
         }
 
-        private void ShowErrorPopup(string resourceKey)
+        private void ShowErrorPopup(string resourceKey, string? details = null)
         {
             Dispatcher.InvokeAsync(() =>
             {
                 string message = TryGetResource(resourceKey, resourceKey);
+                if (details != null) message += $"\n\nDetails: {details}";
                 string title = TryGetResource("MsgErrorTitle", "Error");
                 System.Windows.MessageBox.Show(this, message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             });
@@ -611,6 +602,10 @@ namespace WhisperVoice
                         LblMicName.Visibility  = Visibility.Visible;
                         LblMicName.Text        = TryGetResource("LblRecording", "Recording") + " 0:00";
                         LblMicName.Foreground  = System.Windows.Media.Brushes.Red;
+                        
+                        BtnActionRecord.SetResourceReference(System.Windows.Controls.ContentControl.ContentProperty, "BtnHeroRecording");
+                        BtnActionRecord.Background = System.Windows.Media.Brushes.Crimson;
+                        BtnActionRecord.IsEnabled = true;
                         break;
 
                     case Services.RecordingState.Processing:
@@ -620,12 +615,22 @@ namespace WhisperVoice
                         UpdateLanguageButton();
                         VuMeter.Value = 0;
                         ShowProcessingPanel(true);
+                        
+                        BtnActionRecord.SetResourceReference(System.Windows.Controls.ContentControl.ContentProperty, "BtnHeroProcessing");
+                        BtnActionRecord.IsEnabled = false;
+                        BtnActionRecord.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#3A3A3A");
+                        BtnActionRecord.Foreground = System.Windows.Media.Brushes.Orange;
                         break;
 
                     case Services.RecordingState.Idle:
                         StopVadAnimation();
                         ShowProcessingPanel(false);
                         UpdateMicLabel(_settings.MicName, ok: true);
+                        
+                        BtnActionRecord.SetResourceReference(System.Windows.Controls.ContentControl.ContentProperty, "BtnHeroIdle");
+                        BtnActionRecord.IsEnabled = true;
+                        BtnActionRecord.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFrom("#1565C0");
+                        BtnActionRecord.Foreground = System.Windows.Media.Brushes.White;
                         break;
                 }
             });
@@ -654,6 +659,18 @@ namespace WhisperVoice
                 string recLabel = TryGetResource("LblRecording", "Recording");
                 LblMicName.Text = $"{recLabel} {m}:{s:D2}";
             });
+        }
+
+        private async void BtnActionRecord_Click(object sender, RoutedEventArgs e)
+        {
+            if (_recorder.IsRecording)
+            {
+                await StopAndProcessAsync();
+            }
+            else if (!_recorder.IsProcessing)
+            {
+                StartMatrixRecording(Services.ProcessingMode.Primary, Services.AudioSource.Microphone);
+            }
         }
     }
 }
