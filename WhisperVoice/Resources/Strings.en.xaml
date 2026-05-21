@@ -164,4 +164,18 @@
     <sys:String x:Key="SettingsTabGeneral">General</sys:String>
     <sys:String x:Key="SettingsTabAudio">Audio &amp; AI</sys:String>
     <sys:String x:Key="SettingsTabHotkeys">Hotkeys</sys:String>
+    <sys:String x:Key="SettingsTabProfiles">Profiles</sys:String>
+
+    <!-- Profiles Tab -->
+    <sys:String x:Key="SettingsSectionProfiles">AI Profiles</sys:String>
+    <sys:String x:Key="SettingsWarnProfilesModel">Profiles are optimized for large models (e.g. ggml-large-v3.bin). If you use a smaller model, you may experience hallucinations or ignored prompts. Tweak the Temperature manually if issues arise.</sys:String>
+    <sys:String x:Key="SettingsLblProfileMapping">Hotkey Assignment</sys:String>
+    <sys:String x:Key="SettingsLblProfilePrimary">Primary (Dictation):</sys:String>
+    <sys:String x:Key="SettingsLblProfileTranslate">Translate to EN:</sys:String>
+    <sys:String x:Key="SettingsLblProfilePrompt">Prompt (Tech):</sys:String>
+    <sys:String x:Key="SettingsLblProfileEditor">Profile Editor</sys:String>
+    <sys:String x:Key="SettingsLblProfileName">Profile Name:</sys:String>
+    <sys:String x:Key="SettingsLblProfileTemperature">Temperature (Creativity):</sys:String>
+    <sys:String x:Key="SettingsLblProfilePromptTags">Prompt Context (Comma separated):</sys:String>
+    <sys:String x:Key="LblNoProfile">None (Standard Whisper)</sys:String>
 </ResourceDictionary>
