@@ -609,6 +609,7 @@ namespace WhisperVoice
                         BtnActionRecord.SetResourceReference(System.Windows.Controls.ContentControl.ContentProperty, "BtnHeroRecording");
                         BtnActionRecord.Background = System.Windows.Media.Brushes.Crimson;
                         BtnActionRecord.IsEnabled = true;
+                        _trayIconService.SetRecordingState(true);
 
                         // Ensure inputs are visible, and processing panel is hidden
                         VolumePanel.Visibility = Visibility.Visible;
@@ -642,6 +643,7 @@ namespace WhisperVoice
                         StopVadAnimation();
                         ShowProcessingPanel(false);
                         UpdateLanguageButton();
+                        _trayIconService.SetRecordingState(false);
                         
                         // Restore Left-hand mic status labels to nominal configurations
                         if (_settings.HasMic)
