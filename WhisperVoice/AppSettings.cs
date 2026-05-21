@@ -61,6 +61,24 @@ namespace WhisperVoice
         /// <summary>Prompt used when HotkeyTranslate fires (translate mode). Empty = no prompt.</summary>
         public string PromptTranslate { get; set; } = "";
 
+        // ── Profiles ───────────────────────────────────────────────────────
+        public System.Collections.Generic.List<WhisperProfile> CustomProfiles { get; set; } = new();
+        public string? PrimaryProfileId { get; set; } = null;
+        public string? TranslateProfileId { get; set; } = null;
+        public string? PromptProfileId { get; set; } = null;
+
+        public void InitializeDefaultProfiles()
+        {
+            if (CustomProfiles == null) CustomProfiles = new();
+            if (CustomProfiles.Count == 0)
+            {
+                CustomProfiles.Add(new WhisperProfile { Id = "dev", Name = "Developer", PromptTags = "C#, Python, IDE, Visual Studio, Git, Code, Programming, Syntax", Temperature = 0.2, IsPredefined = true });
+                CustomProfiles.Add(new WhisperProfile { Id = "eng", Name = "English Teacher", PromptTags = "Grammar, Punctuation, Spelling, Academic English, Formal", Temperature = 0.1, IsPredefined = true });
+                CustomProfiles.Add(new WhisperProfile { Id = "copy", Name = "Copywriter", PromptTags = "Paragraphs, commas, exclamation marks, clear structure, storytelling", Temperature = 0.4, IsPredefined = true });
+                PromptProfileId = "dev";
+            }
+        }
+
         // ── VAD ────────────────────────────────────────────────────────────
         /// <summary>Peak percentage below which the microphone is considered silent.</summary>
         public double VadThreshold { get; set; } = 5.0;
@@ -156,6 +174,7 @@ namespace WhisperVoice
                     var loaded = JsonSerializer.Deserialize<AppSettings>(json, _jsonOpts)
                                  ?? new AppSettings();
 
+                    loaded.InitializeDefaultProfiles();
                     loaded.Save();
                     return loaded;
                 }
@@ -172,13 +191,16 @@ namespace WhisperVoice
                         MicId = lines.Length > 0 ? lines[0].Trim() : "",
                         MicName = lines.Length > 1 ? lines[1].Trim() : ""
                     };
+                    migrated.InitializeDefaultProfiles();
                     migrated.Save();
                     return migrated;
                 }
                 catch (Exception ex) { DiagnosticLogger.Instance.Error("AppSettings", ex, "I/O operation failed"); }
             }
 
-            return new AppSettings();
+            var def = new AppSettings();
+            def.InitializeDefaultProfiles();
+            return def;
         }
 
         /// <summary>Persist the current state to settings.json.</summary>

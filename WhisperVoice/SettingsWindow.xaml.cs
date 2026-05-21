@@ -20,6 +20,7 @@ namespace WhisperVoice
     public partial class SettingsWindow : Window
     {
         private AppSettings _settings;
+        private WhisperProfile? _editingProfile;
 
         private string BaseDir => AppDomain.CurrentDomain.BaseDirectory;
 
@@ -329,6 +330,29 @@ namespace WhisperVoice
 
             // ── Startup ───────────────────────────────────────────────────
             LoadStartupCheckbox();
+
+            // ── Profiles ──────────────────────────────────────────────────
+            var allProfiles = new List<WhisperProfile>();
+            var nullProfile = new WhisperProfile { Id = "", Name = TryGetResource("LblNoProfile", "None (Standard Whisper)") };
+            allProfiles.Add(nullProfile);
+            allProfiles.AddRange(_settings.CustomProfiles);
+
+            ComboProfilePrimary.ItemsSource = allProfiles;
+            ComboProfileTranslate.ItemsSource = allProfiles;
+            ComboProfilePrompt.ItemsSource = allProfiles;
+            ComboProfileEditorSelect.ItemsSource = _settings.CustomProfiles; // Exclude null from editor
+
+            ComboProfilePrimary.DisplayMemberPath = "Name";
+            ComboProfileTranslate.DisplayMemberPath = "Name";
+            ComboProfilePrompt.DisplayMemberPath = "Name";
+            ComboProfileEditorSelect.DisplayMemberPath = "Name";
+
+            ComboProfilePrimary.SelectedItem = allProfiles.FirstOrDefault(p => p.Id == _settings.PrimaryProfileId) ?? nullProfile;
+            ComboProfileTranslate.SelectedItem = allProfiles.FirstOrDefault(p => p.Id == _settings.TranslateProfileId) ?? nullProfile;
+            ComboProfilePrompt.SelectedItem = allProfiles.FirstOrDefault(p => p.Id == _settings.PromptProfileId) ?? nullProfile;
+
+            if (_settings.CustomProfiles.Count > 0)
+                ComboProfileEditorSelect.SelectedIndex = 0;
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -336,17 +360,19 @@ namespace WhisperVoice
         // ══════════════════════════════════════════════════════════════════
         private void TabMenu_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (PanelGeneral == null || PanelAudio == null || PanelHotkeys == null) return;
+            if (PanelGeneral == null || PanelAudio == null || PanelHotkeys == null || PanelProfiles == null) return;
 
             PanelGeneral.Visibility = Visibility.Collapsed;
             PanelAudio.Visibility = Visibility.Collapsed;
             PanelHotkeys.Visibility = Visibility.Collapsed;
+            PanelProfiles.Visibility = Visibility.Collapsed;
 
             switch (TabMenu.SelectedIndex)
             {
                 case 0: PanelGeneral.Visibility = Visibility.Visible; break;
                 case 1: PanelAudio.Visibility = Visibility.Visible; break;
                 case 2: PanelHotkeys.Visibility = Visibility.Visible; break;
+                case 3: PanelProfiles.Visibility = Visibility.Visible; break;
             }
         }
 
@@ -431,6 +457,70 @@ namespace WhisperVoice
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // Profiles Editor
+        // ══════════════════════════════════════════════════════════════════
+        private void ComboProfileEditorSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ComboProfileEditorSelect.SelectedItem is WhisperProfile profile)
+            {
+                _editingProfile = profile;
+                TxtProfileName.Text = profile.Name;
+                TxtProfileName.IsEnabled = !profile.IsPredefined;
+                SldProfileTemperature.Value = profile.Temperature;
+                TxtProfilePromptTags.Text = profile.PromptTags;
+            }
+        }
+
+        private void ProfileEditor_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_editingProfile != null && ComboProfileEditorSelect.SelectedItem == _editingProfile)
+            {
+                if (!_editingProfile.IsPredefined)
+                    _editingProfile.Name = TxtProfileName.Text;
+                _editingProfile.PromptTags = TxtProfilePromptTags.Text;
+                
+                ComboProfilePrimary.Items.Refresh();
+                ComboProfileTranslate.Items.Refresh();
+                ComboProfilePrompt.Items.Refresh();
+                ComboProfileEditorSelect.Items.Refresh();
+            }
+        }
+
+        private void SldProfileTemperature_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (TxtProfileTemperatureValue != null)
+                TxtProfileTemperatureValue.Text = $"{SldProfileTemperature.Value:F2}";
+
+            if (_editingProfile != null)
+                _editingProfile.Temperature = SldProfileTemperature.Value;
+        }
+
+        private void BtnAddProfile_Click(object sender, RoutedEventArgs e)
+        {
+            var newProfile = new WhisperProfile { Name = "New Profile" };
+            _settings.CustomProfiles.Add(newProfile);
+            
+            // Rebind the lists to include the new profile
+            var allProfiles = new List<WhisperProfile> { new WhisperProfile { Id = "", Name = TryGetResource("LblNoProfile", "None (Standard Whisper)") } };
+            allProfiles.AddRange(_settings.CustomProfiles);
+            
+            var prevPrimary = ComboProfilePrimary.SelectedItem;
+            var prevTrans = ComboProfileTranslate.SelectedItem;
+            var prevPrompt = ComboProfilePrompt.SelectedItem;
+
+            ComboProfilePrimary.ItemsSource = allProfiles;
+            ComboProfileTranslate.ItemsSource = allProfiles;
+            ComboProfilePrompt.ItemsSource = allProfiles;
+
+            ComboProfilePrimary.SelectedItem = prevPrimary;
+            ComboProfileTranslate.SelectedItem = prevTrans;
+            ComboProfilePrompt.SelectedItem = prevPrompt;
+
+            ComboProfileEditorSelect.Items.Refresh();
+            ComboProfileEditorSelect.SelectedItem = newProfile;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // Save & Close
         // ══════════════════════════════════════════════════════════════════
         private void BtnSaveClose_Click(object sender, RoutedEventArgs e)
@@ -483,6 +573,16 @@ namespace WhisperVoice
 
             if (ComboHotkeyPrompt.SelectedItem is string hkPrompt)
                 _settings.HotkeyPrompt = hkPrompt;
+
+            // Profiles Mapping
+            _settings.PrimaryProfileId = (ComboProfilePrimary.SelectedItem as WhisperProfile)?.Id;
+            if (string.IsNullOrEmpty(_settings.PrimaryProfileId)) _settings.PrimaryProfileId = null;
+
+            _settings.TranslateProfileId = (ComboProfileTranslate.SelectedItem as WhisperProfile)?.Id;
+            if (string.IsNullOrEmpty(_settings.TranslateProfileId)) _settings.TranslateProfileId = null;
+
+            _settings.PromptProfileId = (ComboProfilePrompt.SelectedItem as WhisperProfile)?.Id;
+            if (string.IsNullOrEmpty(_settings.PromptProfileId)) _settings.PromptProfileId = null;
 
             _settings.Save();
         }

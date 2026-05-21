@@ -163,5 +163,19 @@
     <!-- Settings Tabs -->
     <sys:String x:Key="SettingsTabGeneral">Основные</sys:String>
     <sys:String x:Key="SettingsTabAudio">Аудио и AI</sys:String>
-    <sys:String x:Key="SettingsTabHotkeys">Горячие клавиши</sys:String>
+    <sys:String x:Key="SettingsTabHotkeys">Хоткеи</sys:String>
+    <sys:String x:Key="SettingsTabProfiles">Профили</sys:String>
+
+    <!-- Profiles Tab -->
+    <sys:String x:Key="SettingsSectionProfiles">ИИ Профили</sys:String>
+    <sys:String x:Key="SettingsWarnProfilesModel">Профили оптимизированы для больших моделей (например, ggml-large-v3.bin). При использовании слабых моделей возможны галлюцинации или игнорирование промптов. Настраивайте температуру аккуратно.</sys:String>
+    <sys:String x:Key="SettingsLblProfileMapping">Привязка к кнопкам</sys:String>
+    <sys:String x:Key="SettingsLblProfilePrimary">Обычная диктовка:</sys:String>
+    <sys:String x:Key="SettingsLblProfileTranslate">Перевод на Англ:</sys:String>
+    <sys:String x:Key="SettingsLblProfilePrompt">Промпт (Тех):</sys:String>
+    <sys:String x:Key="SettingsLblProfileEditor">Редактор профилей</sys:String>
+    <sys:String x:Key="SettingsLblProfileName">Название профиля:</sys:String>
+    <sys:String x:Key="SettingsLblProfileTemperature">Температура (Креативность):</sys:String>
+    <sys:String x:Key="SettingsLblProfilePromptTags">Контекст для промпта (Через запятую):</sys:String>
+    <sys:String x:Key="LblNoProfile">Без профиля (Стандарт)</sys:String>
 </ResourceDictionary>

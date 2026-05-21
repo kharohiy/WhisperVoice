@@ -51,6 +51,7 @@
             <ListBoxItem Content="{DynamicResource SettingsTabGeneral}"/>
             <ListBoxItem Content="{DynamicResource SettingsTabAudio}"/>
             <ListBoxItem Content="{DynamicResource SettingsTabHotkeys}"/>
+            <ListBoxItem Content="{DynamicResource SettingsTabProfiles}"/>
         </ListBox>
 
         <!-- General Panel -->
@@ -180,6 +181,81 @@
                     <StackPanel Margin="0,0,0,20">
                         <TextBlock Text="{DynamicResource SettingsLblHotkeyPrompt}" FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
                         <ComboBox x:Name="ComboHotkeyPrompt" Height="32" FontSize="12" VerticalContentAlignment="Center" ToolTip="{DynamicResource SettingsTooltipHotkeyPrompt}"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Profiles Panel -->
+        <Border Grid.Row="0" Grid.Column="1" x:Name="PanelProfiles" Visibility="Collapsed"
+                Background="#FFFFFF" CornerRadius="6" BorderBrush="#E0E0E0" BorderThickness="1" Padding="16">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource SettingsSectionProfiles}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" Foreground="#333"/>
+                    
+                    <Border Background="#FFF9C4" BorderBrush="#FBC02D" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,16">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚠️" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="{DynamicResource SettingsWarnProfilesModel}" TextWrapping="Wrap" FontSize="11" Foreground="#5A4E0A" VerticalAlignment="Center" Width="400"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Text="{DynamicResource SettingsLblProfileMapping}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12" Foreground="#444"/>
+                    
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{DynamicResource SettingsLblProfilePrimary}" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="ComboProfilePrimary" Grid.Column="1" Height="30" FontSize="12" VerticalContentAlignment="Center"/>
+                    </Grid>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{DynamicResource SettingsLblProfileTranslate}" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="ComboProfileTranslate" Grid.Column="1" Height="30" FontSize="12" VerticalContentAlignment="Center"/>
+                    </Grid>
+                    <Grid Margin="0,0,0,24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{DynamicResource SettingsLblProfilePrompt}" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="ComboProfilePrompt" Grid.Column="1" Height="30" FontSize="12" VerticalContentAlignment="Center"/>
+                    </Grid>
+
+                    <Border BorderBrush="#EEEEEE" BorderThickness="0,1,0,0" Margin="0,0,0,16"/>
+
+                    <TextBlock Text="{DynamicResource SettingsLblProfileEditor}" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12" Foreground="#444"/>
+                    
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="ComboProfileEditorSelect" Grid.Column="0" Height="30" FontSize="12" VerticalContentAlignment="Center" Margin="0,0,8,0" SelectionChanged="ComboProfileEditorSelect_SelectionChanged"/>
+                        <Button x:Name="BtnAddProfile" Grid.Column="1" Content="➕" Width="30" Height="30" ToolTip="Add Profile" Click="BtnAddProfile_Click"/>
+                    </Grid>
+                    
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="{DynamicResource SettingsLblProfileName}" FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
+                        <TextBox x:Name="TxtProfileName" Height="30" FontSize="12" VerticalContentAlignment="Center" Padding="4,0" TextChanged="ProfileEditor_TextChanged"/>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,12">
+                        <Grid Margin="0,0,0,6">
+                            <TextBlock Text="{DynamicResource SettingsLblProfileTemperature}" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtProfileTemperatureValue" HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Slider x:Name="SldProfileTemperature" Minimum="0.0" Maximum="1.0" TickFrequency="0.05" IsSnapToTickEnabled="True" Height="28" ValueChanged="SldProfileTemperature_ValueChanged"/>
+                    </StackPanel>
+                    
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="{DynamicResource SettingsLblProfilePromptTags}" FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
+                        <TextBox x:Name="TxtProfilePromptTags" Height="80" FontSize="12" TextWrapping="Wrap" AcceptsReturn="True" Padding="4" TextChanged="ProfileEditor_TextChanged"/>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>

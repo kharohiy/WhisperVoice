@@ -231,14 +231,30 @@ namespace WhisperVoice.Services
                     } 
                 });
 
-                string selectedPrompt = mode switch
+                string? targetProfileId = ActiveMode switch
                 {
-                    InternalMode.Translate => settings.PromptTranslate,
-                    InternalMode.Prompt    => LoadDictPrompt(settings),
-                    _                      => string.Empty
+                    ProcessingMode.Primary => settings.PrimaryProfileId,
+                    ProcessingMode.Translate => settings.TranslateProfileId,
+                    ProcessingMode.Prompt => settings.PromptProfileId,
+                    _ => null
                 };
 
-                await RunWhisperPipelineAsync(lang, translate, selectedPrompt, progress, settings, getResource, _whisperCts.Token);
+                WhisperProfile? activeProfile = string.IsNullOrEmpty(targetProfileId) 
+                    ? null 
+                    : settings.CustomProfiles?.Find(p => p.Id == targetProfileId);
+
+                string selectedPrompt = activeProfile != null 
+                    ? activeProfile.PromptTags 
+                    : (mode switch
+                    {
+                        InternalMode.Translate => settings.PromptTranslate,
+                        InternalMode.Prompt    => LoadDictPrompt(settings),
+                        _                      => string.Empty
+                    });
+
+                double activeTemp = activeProfile != null ? activeProfile.Temperature : settings.Temperature;
+
+                await RunWhisperPipelineAsync(lang, translate, selectedPrompt, activeTemp, progress, settings, getResource, _whisperCts.Token);
             }
             catch (Exception ex)
             {
@@ -296,7 +312,7 @@ namespace WhisperVoice.Services
             }
         }
 
-        private async Task RunWhisperPipelineAsync(string lang, bool isTranslate, string techPrompt, IProgress<string> progress, AppSettings settings, Func<string, string> getResource, CancellationToken token)
+        private async Task RunWhisperPipelineAsync(string lang, bool isTranslate, string techPrompt, double temperature, IProgress<string> progress, AppSettings settings, Func<string, string> getResource, CancellationToken token)
         {
             try
             {
@@ -326,7 +342,7 @@ namespace WhisperVoice.Services
                     token,
                     beamSize:           settings.BeamSize,
                     bestOf:             settings.BestOf,
-                    temperature:        settings.Temperature,
+                    temperature:        temperature,
                     noSpeechThreshold:  settings.NoSpeechThreshold,
                     vulkanStatusCallback: isVulkan =>
                     {
