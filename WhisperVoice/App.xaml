@@ -9,9 +9,7 @@
                 <ResourceDictionary Source="Resources/Strings.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             
-            <system:String x:Key="SettingsTabGeneral">Основные</system:String>
-            <system:String x:Key="SettingsTabAudio">Аудио и AI</system:String>
-            <system:String x:Key="SettingsTabHotkeys">Горячие клавиши</system:String>
+
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         </ResourceDictionary>
     </Application.Resources>
