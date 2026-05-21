@@ -1,7 +1,7 @@
 <Window x:Class="WhisperVoice.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{DynamicResource SettingsTitle}" Height="550" Width="700"
+        Title="{DynamicResource SettingsTitle}" Height="620" Width="700"
         ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
         Background="#F0F0F0" WindowStyle="SingleBorderWindow">
 
@@ -204,7 +204,8 @@
                     
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="250"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{DynamicResource SettingsLblProfilePrimary}" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
@@ -212,7 +213,8 @@
                     </Grid>
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="250"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{DynamicResource SettingsLblProfileTranslate}" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
@@ -220,7 +222,8 @@
                     </Grid>
                     <Grid Margin="0,0,0,24">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="100"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="250"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{DynamicResource SettingsLblProfilePrompt}" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
@@ -235,9 +238,11 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <ComboBox x:Name="ComboProfileEditorSelect" Grid.Column="0" Height="30" FontSize="12" VerticalContentAlignment="Center" Margin="0,0,8,0" SelectionChanged="ComboProfileEditorSelect_SelectionChanged"/>
-                        <Button x:Name="BtnAddProfile" Grid.Column="1" Content="➕" Width="30" Height="30" ToolTip="Add Profile" Click="BtnAddProfile_Click"/>
+                        <Button x:Name="BtnAddProfile" Grid.Column="1" Content="➕" Width="30" Height="30" Margin="0,0,4,0" ToolTip="Add Profile" Click="BtnAddProfile_Click"/>
+                        <Button x:Name="BtnDeleteProfile" Grid.Column="2" Content="🗑️" Width="30" Height="30" ToolTip="Delete Profile" Click="BtnDeleteProfile_Click"/>
                     </Grid>
                     
                     <StackPanel Margin="0,0,0,12">

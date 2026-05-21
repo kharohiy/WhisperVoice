@@ -21,6 +21,7 @@ namespace WhisperVoice
     {
         private AppSettings _settings;
         private WhisperProfile? _editingProfile;
+        private bool _isUpdatingProfileUI = false;
 
         private string BaseDir => AppDomain.CurrentDomain.BaseDirectory;
 
@@ -463,26 +464,42 @@ namespace WhisperVoice
         {
             if (ComboProfileEditorSelect.SelectedItem is WhisperProfile profile)
             {
+                _isUpdatingProfileUI = true;
                 _editingProfile = profile;
+                
                 TxtProfileName.Text = profile.Name;
                 TxtProfileName.IsEnabled = !profile.IsPredefined;
+                BtnDeleteProfile.IsEnabled = !profile.IsPredefined;
+                
                 SldProfileTemperature.Value = profile.Temperature;
                 TxtProfilePromptTags.Text = profile.PromptTags;
+                
+                _isUpdatingProfileUI = false;
             }
         }
 
         private void ProfileEditor_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (_isUpdatingProfileUI) return;
+
             if (_editingProfile != null && ComboProfileEditorSelect.SelectedItem == _editingProfile)
             {
-                if (!_editingProfile.IsPredefined)
+                bool nameChanged = false;
+                if (!_editingProfile.IsPredefined && _editingProfile.Name != TxtProfileName.Text)
+                {
                     _editingProfile.Name = TxtProfileName.Text;
+                    nameChanged = true;
+                }
+                
                 _editingProfile.PromptTags = TxtProfilePromptTags.Text;
                 
-                ComboProfilePrimary.Items.Refresh();
-                ComboProfileTranslate.Items.Refresh();
-                ComboProfilePrompt.Items.Refresh();
-                ComboProfileEditorSelect.Items.Refresh();
+                if (nameChanged)
+                {
+                    // Only refresh combo boxes if the name actually changed to reflect the new name in dropdowns
+                    ComboProfilePrimary.Items.Refresh();
+                    ComboProfileTranslate.Items.Refresh();
+                    ComboProfilePrompt.Items.Refresh();
+                }
             }
         }
 
@@ -490,6 +507,8 @@ namespace WhisperVoice
         {
             if (TxtProfileTemperatureValue != null)
                 TxtProfileTemperatureValue.Text = $"{SldProfileTemperature.Value:F2}";
+
+            if (_isUpdatingProfileUI) return;
 
             if (_editingProfile != null)
                 _editingProfile.Temperature = SldProfileTemperature.Value;
@@ -518,6 +537,42 @@ namespace WhisperVoice
 
             ComboProfileEditorSelect.Items.Refresh();
             ComboProfileEditorSelect.SelectedItem = newProfile;
+        }
+
+        private void BtnDeleteProfile_Click(object sender, RoutedEventArgs e)
+        {
+            if (_editingProfile != null && !_editingProfile.IsPredefined)
+            {
+                var result = System.Windows.MessageBox.Show(
+                    $"Are you sure you want to delete the profile '{_editingProfile.Name}'?",
+                    "Delete Profile",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    _settings.CustomProfiles.Remove(_editingProfile);
+
+                    var allProfiles = new List<WhisperProfile> { new WhisperProfile { Id = "", Name = TryGetResource("LblNoProfile", "None (Standard Whisper)") } };
+                    allProfiles.AddRange(_settings.CustomProfiles);
+
+                    var prevPrimary = ComboProfilePrimary.SelectedItem;
+                    var prevTrans = ComboProfileTranslate.SelectedItem;
+                    var prevPrompt = ComboProfilePrompt.SelectedItem;
+
+                    ComboProfilePrimary.ItemsSource = allProfiles;
+                    ComboProfileTranslate.ItemsSource = allProfiles;
+                    ComboProfilePrompt.ItemsSource = allProfiles;
+
+                    // If the deleted profile was assigned, reset to None
+                    ComboProfilePrimary.SelectedItem = prevPrimary == _editingProfile ? allProfiles[0] : prevPrimary;
+                    ComboProfileTranslate.SelectedItem = prevTrans == _editingProfile ? allProfiles[0] : prevTrans;
+                    ComboProfilePrompt.SelectedItem = prevPrompt == _editingProfile ? allProfiles[0] : prevPrompt;
+
+                    ComboProfileEditorSelect.Items.Refresh();
+                    ComboProfileEditorSelect.SelectedIndex = 0;
+                }
+            }
         }
 
         // ══════════════════════════════════════════════════════════════════
