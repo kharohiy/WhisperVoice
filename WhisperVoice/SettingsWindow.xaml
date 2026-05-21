@@ -269,20 +269,14 @@
         <!-- Footer -->
         <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BorderThickness="0,1,0,0" BorderBrush="#DDDDDD" Margin="0,16,0,0" Padding="0,12,0,0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button x:Name="BtnResetSliders" Content="{DynamicResource BtnResetSlidersText}" Height="34" Padding="16,0" Margin="0,0,8,0" Click="BtnResetSliders_Click" Background="#E0E0E0" Foreground="#333" FontSize="12" Cursor="Hand" ToolTip="{DynamicResource BtnResetSlidersTooltip}">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="6"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
-                <Button x:Name="BtnSaveClose" Content="{DynamicResource BtnSaveCloseText}" Height="34" Padding="20,0" Click="BtnSaveClose_Click" Background="#4CAF50" Foreground="White" FontSize="13" FontWeight="SemiBold" Cursor="Hand" ToolTip="{DynamicResource BtnSaveCloseTooltip}">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="6"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
+                <Button x:Name="BtnResetSliders" Content="{DynamicResource BtnResetSlidersText}"
+                        Style="{StaticResource BtnDefault}"
+                        Margin="0,0,8,0" Click="BtnResetSliders_Click"
+                        ToolTip="{DynamicResource BtnResetSlidersTooltip}"/>
+                <Button x:Name="BtnSaveClose" Content="{DynamicResource BtnSaveCloseText}"
+                        Style="{StaticResource BtnPrimary}"
+                        Click="BtnSaveClose_Click"
+                        ToolTip="{DynamicResource BtnSaveCloseTooltip}"/>
             </StackPanel>
         </Border>
     </Grid>
