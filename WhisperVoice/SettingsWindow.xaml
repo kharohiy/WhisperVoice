@@ -1,7 +1,7 @@
 <Window x:Class="WhisperVoice.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{DynamicResource SettingsTitle}" Height="550" Width="600"
+        Title="{DynamicResource SettingsTitle}" Height="550" Width="700"
         ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
         Background="#F0F0F0" WindowStyle="SingleBorderWindow">
 
@@ -56,7 +56,7 @@
         <!-- General Panel -->
         <Border Grid.Row="0" Grid.Column="1" x:Name="PanelGeneral" Visibility="Visible"
                 Background="#FFFFFF" CornerRadius="6" BorderBrush="#E0E0E0" BorderThickness="1" Padding="16">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
                 <StackPanel>
                     <!-- App Interface Language -->
                     <TextBlock Text="{DynamicResource SettingsSectionAppLanguage}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" Foreground="#333"/>
@@ -98,7 +98,7 @@
         <!-- Audio & AI Panel -->
         <Border Grid.Row="0" Grid.Column="1" x:Name="PanelAudio" Visibility="Collapsed"
                 Background="#FFFFFF" CornerRadius="6" BorderBrush="#E0E0E0" BorderThickness="1" Padding="16">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
                 <StackPanel>
                     <!-- VAD -->
                     <TextBlock Text="{DynamicResource SettingsSectionVad}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" Foreground="#333"/>

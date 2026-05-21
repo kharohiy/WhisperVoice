@@ -156,4 +156,8 @@
     <sys:String x:Key="BtnHeroIdle">Record</sys:String>
     <sys:String x:Key="BtnHeroRecording">STOP</sys:String>
     <sys:String x:Key="BtnHeroProcessing">Processing...</sys:String>
+    <!-- Settings Tabs -->
+    <sys:String x:Key="SettingsTabGeneral">General</sys:String>
+    <sys:String x:Key="SettingsTabAudio">Audio &amp; AI</sys:String>
+    <sys:String x:Key="SettingsTabHotkeys">Hotkeys</sys:String>
 </ResourceDictionary>

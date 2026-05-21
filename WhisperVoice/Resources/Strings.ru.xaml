@@ -160,4 +160,8 @@
     <sys:String x:Key="BtnHeroIdle">Запись</sys:String>
     <sys:String x:Key="BtnHeroRecording">СТОП</sys:String>
     <sys:String x:Key="BtnHeroProcessing">Обработка...</sys:String>
+    <!-- Settings Tabs -->
+    <sys:String x:Key="SettingsTabGeneral">Основные</sys:String>
+    <sys:String x:Key="SettingsTabAudio">Аудио и AI</sys:String>
+    <sys:String x:Key="SettingsTabHotkeys">Горячие клавиши</sys:String>
 </ResourceDictionary>

@@ -161,4 +161,8 @@
     <sys:String x:Key="BtnHeroIdle">Grabar</sys:String>
     <sys:String x:Key="BtnHeroRecording">DETENER</sys:String>
     <sys:String x:Key="BtnHeroProcessing">Procesando...</sys:String>
+    <!-- Settings Tabs -->
+    <sys:String x:Key="SettingsTabGeneral">General</sys:String>
+    <sys:String x:Key="SettingsTabAudio">Audio e IA</sys:String>
+    <sys:String x:Key="SettingsTabHotkeys">Atajos</sys:String>
 </ResourceDictionary>

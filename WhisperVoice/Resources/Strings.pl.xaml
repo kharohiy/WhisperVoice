@@ -161,4 +161,8 @@
     <sys:String x:Key="BtnHeroIdle">Nagrywaj</sys:String>
     <sys:String x:Key="BtnHeroRecording">STOP</sys:String>
     <sys:String x:Key="BtnHeroProcessing">Przetwarzanie...</sys:String>
+    <!-- Settings Tabs -->
+    <sys:String x:Key="SettingsTabGeneral">Ogólne</sys:String>
+    <sys:String x:Key="SettingsTabAudio">Dźwięk i AI</sys:String>
+    <sys:String x:Key="SettingsTabHotkeys">Skróty klawiszowe</sys:String>
 </ResourceDictionary>
