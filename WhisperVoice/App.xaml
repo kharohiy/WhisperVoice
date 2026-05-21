@@ -13,99 +13,104 @@
 
             <!-- ═══ Global Button Styles ══════════════════════════════════════ -->
 
-            <!-- Shared corner-radius helper used by all button styles -->
-            <Style x:Key="RoundedBorderStyle" TargetType="Border">
-                <Setter Property="CornerRadius" Value="6"/>
-            </Style>
-
             <!-- Secondary / neutral button (grey) -->
             <Style x:Key="BtnDefault" TargetType="Button">
-                <Setter Property="Height"          Value="34"/>
-                <Setter Property="Padding"         Value="16,0"/>
-                <Setter Property="Background"      Value="#E0E0E0"/>
-                <Setter Property="Foreground"      Value="#333333"/>
-                <Setter Property="FontSize"        Value="12"/>
-                <Setter Property="FontWeight"      Value="SemiBold"/>
-                <Setter Property="Cursor"          Value="Hand"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="Resources">
+                <Setter Property="Height"     Value="34"/>
+                <Setter Property="Padding"    Value="16,0"/>
+                <Setter Property="Cursor"     Value="Hand"/>
+                <Setter Property="FontSize"   Value="12"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Template">
                     <Setter.Value>
-                        <ResourceDictionary>
-                            <Style TargetType="Border" BasedOn="{StaticResource RoundedBorderStyle}"/>
-                        </ResourceDictionary>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="#E0E0E0" CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="Center"
+                                                  TextElement.Foreground="#333333"
+                                                  TextElement.FontSize="{TemplateBinding FontSize}"
+                                                  TextElement.FontWeight="{TemplateBinding FontWeight}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#CACACA"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#B0B0B0"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
                     </Setter.Value>
                 </Setter>
-                <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
-                        <Setter Property="Background" Value="#CACACA"/>
-                    </Trigger>
-                    <Trigger Property="IsPressed" Value="True">
-                        <Setter Property="Background" Value="#B0B0B0"/>
-                    </Trigger>
-                    <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Opacity" Value="0.5"/>
-                    </Trigger>
-                </Style.Triggers>
             </Style>
 
             <!-- Primary / CTA button (green) -->
             <Style x:Key="BtnPrimary" TargetType="Button">
-                <Setter Property="Height"          Value="34"/>
-                <Setter Property="Padding"         Value="20,0"/>
-                <Setter Property="Background"      Value="#4CAF50"/>
-                <Setter Property="Foreground"      Value="White"/>
-                <Setter Property="FontSize"        Value="13"/>
-                <Setter Property="FontWeight"      Value="SemiBold"/>
-                <Setter Property="Cursor"          Value="Hand"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="Resources">
+                <Setter Property="Height"     Value="34"/>
+                <Setter Property="Padding"    Value="20,0"/>
+                <Setter Property="Cursor"     Value="Hand"/>
+                <Setter Property="FontSize"   Value="13"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Template">
                     <Setter.Value>
-                        <ResourceDictionary>
-                            <Style TargetType="Border" BasedOn="{StaticResource RoundedBorderStyle}"/>
-                        </ResourceDictionary>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="#4CAF50" CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  TextElement.Foreground="White"
+                                                  TextElement.FontSize="{TemplateBinding FontSize}"
+                                                  TextElement.FontWeight="{TemplateBinding FontWeight}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#43A047"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#388E3C"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
                     </Setter.Value>
                 </Setter>
-                <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
-                        <Setter Property="Background" Value="#43A047"/>
-                    </Trigger>
-                    <Trigger Property="IsPressed" Value="True">
-                        <Setter Property="Background" Value="#388E3C"/>
-                    </Trigger>
-                    <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Opacity" Value="0.5"/>
-                    </Trigger>
-                </Style.Triggers>
             </Style>
 
             <!-- Small icon/emoji button (toolbar icons) -->
             <Style x:Key="BtnIconSm" TargetType="Button">
-                <Setter Property="Width"           Value="30"/>
-                <Setter Property="Height"          Value="30"/>
-                <Setter Property="Padding"         Value="0"/>
-                <Setter Property="Background"      Value="#E8E8E8"/>
-                <Setter Property="Foreground"      Value="#333333"/>
-                <Setter Property="FontSize"        Value="13"/>
-                <Setter Property="Cursor"          Value="Hand"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="Resources">
+                <Setter Property="Width"   Value="30"/>
+                <Setter Property="Height"  Value="30"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="Cursor"  Value="Hand"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Template">
                     <Setter.Value>
-                        <ResourceDictionary>
-                            <Style TargetType="Border" BasedOn="{StaticResource RoundedBorderStyle}"/>
-                        </ResourceDictionary>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="#E8E8E8" CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  TextElement.FontSize="{TemplateBinding FontSize}"
+                                                  TextElement.Foreground="#333333"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#D0D0D0"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#B8B8B8"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
                     </Setter.Value>
                 </Setter>
-                <Style.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
-                        <Setter Property="Background" Value="#D0D0D0"/>
-                    </Trigger>
-                    <Trigger Property="IsPressed" Value="True">
-                        <Setter Property="Background" Value="#B8B8B8"/>
-                    </Trigger>
-                </Style.Triggers>
             </Style>
 
         </ResourceDictionary>
     </Application.Resources>
 </Application>
-
