@@ -11,7 +11,7 @@ namespace WhisperVoice.Services
         private static readonly DiagnosticLogger Log = DiagnosticLogger.Instance;
         private const string Comp = "AudioCaptureService";
 
-        // Работаем через интерфейс вместо конкретного AudioRecorder
+        // Operate via interface instead of concrete AudioRecorder
         private readonly IAudioSource _source;
         private WasapiCapture? _silentCapture;
         private MMDevice? _device;
@@ -59,25 +59,25 @@ namespace WhisperVoice.Services
         public event Action? DeviceDisconnected;
 
         /// <summary>
-        /// Конструктор теперь принимает флаг режима.
+        /// Constructor now accepts a mode flag.
         /// </summary>
-        /// <param name="loopbackMode">true для захвата системного звука, false для микрофона.</param>
+        /// <param name="loopbackMode">true for loopback capture, false for microphone.</param>
         public AudioCaptureService(bool loopbackMode = false)
         {
             _loopbackMode = loopbackMode;
 
-            // Выбор стратегии захвата
+            // Capture strategy selection
             if (_loopbackMode)
             {
                 _source = new LoopbackSource();
             }
             else
             {
-                // AudioRecorder должен реализовывать IAudioSource
+                // AudioRecorder must implement IAudioSource
                 _source = new AudioRecorder();
             }
 
-            // Переподписываем события от источника на сервис
+            // Re-subscribe events from source to service
             _source.PeakAvailable += val => PeakAvailable?.Invoke(val);
             _source.SilenceDetected += () => SilenceDetected?.Invoke();
             _source.RecordingAborted += OnRecordingAborted;
@@ -87,8 +87,8 @@ namespace WhisperVoice.Services
 
         public bool AttachDevice(string micId)
         {
-            // Для режима Loopback выбор устройства микрофона не нужен для записи, 
-            // но мы оставляем логику для работы индикатора громкости (SilentCapture)
+            // Loopback mode does not require mic selection for recording,
+            // but we keep the logic for the volume indicator (SilentCapture)
             Log.Info(Comp, $"AttachDevice called  micId={micId}");
 
             try
@@ -229,7 +229,7 @@ namespace WhisperVoice.Services
             {
                 try
                 {
-                    // Используем статический метод из AudioRecorder для расчета пика
+                    // Use static method from AudioRecorder for peak calculation
                     double peak = AudioRecorder.CalculatePeak(e.Buffer, e.BytesRecorded, _silentCapture.WaveFormat);
                     PeakAvailable?.Invoke(peak);
                 }
@@ -251,7 +251,7 @@ namespace WhisperVoice.Services
             _source.VadSilenceTimeout = TimeSpan.FromSeconds(vadSilenceSeconds);
             _source.VadEnabled = vadEnabled;
 
-            // Запуск записи. В режиме Loopback micId будет проигнорирован внутри.
+            // Start recording. In Loopback mode, micId is ignored internally.
             bool result = _source.StartRecording(micId, outputPath);
 
             Log.Info(Comp, $"StartRecording result={result}");
