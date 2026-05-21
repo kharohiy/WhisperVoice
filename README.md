@@ -18,6 +18,19 @@
 
 ---
 
+## 📸 Screenshots
+
+<p align="center">
+  <img src="assets/dashboard_idle.png" width="48%" alt="Dashboard"/>
+  <img src="assets/dashboard_recording.png" width="48%" alt="Recording"/>
+</p>
+<p align="center">
+  <img src="assets/settings_general.png" width="48%" alt="General Settings"/>
+  <img src="assets/settings_profiles.png" width="48%" alt="Profiles"/>
+</p>
+
+---
+
 ## 🛡️ Why WhisperVoice Over Cloud-Based Alternatives?
 
 | | **WhisperVoice** | **Cloud Services** (Google, Azure, Deepgram, AssemblyAI) |

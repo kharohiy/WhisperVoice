@@ -77,6 +77,14 @@ namespace WhisperVoice
                     PromptTags = ""
                 });
             }
+            else
+            {
+                var existingNone = CustomProfiles.First(p => p.Id == "none");
+                if (existingNone.Name == "Без профиля (Стандарт)")
+                {
+                    existingNone.Name = "None (Standard Whisper)";
+                }
+            }
 
             if (!CustomProfiles.Any(p => p.Id == "dev"))
             {

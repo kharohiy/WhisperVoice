@@ -333,8 +333,6 @@ namespace WhisperVoice
             LoadStartupCheckbox();
 
             // ── Profiles ──────────────────────────────────────────────────
-            var noneProfile = _settings.CustomProfiles.FirstOrDefault(p => p.Id == "none");
-            if (noneProfile != null) noneProfile.Name = TryGetResource("LblNoProfile", "None (Standard Whisper)");
 
             ComboProfilePrimary.ItemsSource = _settings.CustomProfiles;
             ComboProfileTranslate.ItemsSource = _settings.CustomProfiles;
