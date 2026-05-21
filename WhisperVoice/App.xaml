@@ -1,12 +1,18 @@
 <Application x:Class="WhisperVoice.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:system="clr-namespace:System;assembly=mscorlib">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <!-- All localised UI strings live here. -->
                 <ResourceDictionary Source="Resources/Strings.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+            
+            <system:String x:Key="SettingsTabGeneral">Основные</system:String>
+            <system:String x:Key="SettingsTabAudio">Аудио и AI</system:String>
+            <system:String x:Key="SettingsTabHotkeys">Горячие клавиши</system:String>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
