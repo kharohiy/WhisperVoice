@@ -63,12 +63,21 @@ namespace WhisperVoice
 
         // ── Profiles ───────────────────────────────────────────────────────
         public System.Collections.Generic.List<WhisperProfile> CustomProfiles { get; set; } = new();
-        public string? PrimaryProfileId { get; set; } = null;
-        public string? TranslateProfileId { get; set; } = null;
-        public string? PromptProfileId { get; set; } = null;
+        public string PrimaryProfileId { get; set; } = "dev";
+        public string TranslateProfileId { get; set; } = "none";
+        public string PromptProfileId { get; set; } = "dev";
 
         public void InitializeDefaultProfiles()
         {
+            if (!CustomProfiles.Any(p => p.Id == "none"))
+            {
+                CustomProfiles.Insert(0, new WhisperProfile
+                {
+                    Id = "none", Name = "None (Standard Whisper)", Temperature = 0.2, IsPredefined = true,
+                    PromptTags = ""
+                });
+            }
+
             if (!CustomProfiles.Any(p => p.Id == "dev"))
             {
                 CustomProfiles.Insert(Math.Min(0, CustomProfiles.Count), new WhisperProfile
@@ -114,10 +123,8 @@ namespace WhisperVoice
                 });
             }
 
-            // Default mappings if empty
-            if (string.IsNullOrEmpty(PrimaryProfileId)) PrimaryProfileId = "dev";
-            if (TranslateProfileId == null) TranslateProfileId = "";
-            if (string.IsNullOrEmpty(PromptProfileId)) PromptProfileId = "dev";
+            // Removed legacy Default mappings overwriting here. 
+            // They are now handled by property defaults so explicit nulls are preserved.
         }
 
         // ── VAD ────────────────────────────────────────────────────────────

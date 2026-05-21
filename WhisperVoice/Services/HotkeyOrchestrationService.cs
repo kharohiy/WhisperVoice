@@ -44,6 +44,10 @@ namespace WhisperVoice.Services
         private ProcessingMode _currentPttMode;
         private AudioSource _currentPttSource;
 
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+        private const int VK_CONTROL = 0x11;
+
         public HotkeyOrchestrationService()
         {
         }
@@ -108,7 +112,8 @@ namespace WhisperVoice.Services
 
         private AudioSource EvaluateCurrentSource()
         {
-            return (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control 
+            bool isCtrlDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+            return isCtrlDown 
                 ? AudioSource.Loopback 
                 : AudioSource.Microphone;
         }

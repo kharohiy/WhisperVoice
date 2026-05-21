@@ -7,14 +7,15 @@ namespace WhisperVoice.Tests
     public class AppSettingsProfileTests
     {
         [Fact]
-        public void InitializeDefaultProfiles_PopulatesThreeProfiles_WhenEmpty()
+        public void InitializeDefaultProfiles_PopulatesProfiles_WhenEmpty()
         {
             var settings = new AppSettings();
             settings.CustomProfiles.Should().BeEmpty();
 
             settings.InitializeDefaultProfiles();
 
-            settings.CustomProfiles.Should().HaveCount(5);
+            settings.CustomProfiles.Should().HaveCount(6);
+            settings.CustomProfiles.Should().Contain(p => p.Id == "none" && p.Name == "None (Standard Whisper)");
             settings.CustomProfiles.Should().Contain(p => p.Id == "dev" && p.Name == "Developer");
             settings.CustomProfiles.Should().Contain(p => p.Id == "eng" && p.Name == "English Teacher");
             settings.CustomProfiles.Should().Contain(p => p.Id == "copy" && p.Name == "Copywriter");
@@ -25,15 +26,16 @@ namespace WhisperVoice.Tests
         }
 
         [Fact]
-        public void InitializeDefaultProfiles_DoesNotOverwrite_IfAlreadyPopulated()
+        public void InitializeDefaultProfiles_AddsMissingPredefinedProfiles_IfPartiallyPopulated()
         {
             var settings = new AppSettings();
             settings.CustomProfiles.Add(new WhisperProfile { Id = "custom", Name = "Custom" });
 
             settings.InitializeDefaultProfiles();
 
-            settings.CustomProfiles.Should().HaveCount(1);
-            settings.CustomProfiles.First().Id.Should().Be("custom");
+            settings.CustomProfiles.Should().HaveCount(7); // 6 predefined + 1 custom
+            settings.CustomProfiles.Should().Contain(p => p.Id == "custom");
+            settings.CustomProfiles.Should().Contain(p => p.Id == "none");
         }
     }
 }

@@ -81,7 +81,7 @@ namespace WhisperVoice.Services
 
             string lower = text.ToLowerInvariant();
             foreach (string pat in _patterns)
-                if (lower.Contains(pat)) return false;
+                if (!string.IsNullOrWhiteSpace(pat) && lower.Contains(pat.ToLowerInvariant())) return false;
 
             cleaned = text.Trim('\0', '\r', '\n', ' ', '\t');
             return cleaned.Length > 0;

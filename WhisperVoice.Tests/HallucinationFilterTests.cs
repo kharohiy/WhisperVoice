@@ -19,7 +19,7 @@ namespace WhisperVoice.Tests
 
             // Create the test dictionary file (hallucinations.json)
             var dictionaryPath = Path.Combine(_tempDir, "hallucinations.json");
-            var customPatterns = new[] { "amara.org", "watching", "dimatorzok" };
+            var customPatterns = new[] { "amara.org", "WATCHING", "Dimatorzok" };
             File.WriteAllText(dictionaryPath, JsonSerializer.Serialize(customPatterns));
 
             _filter = new HallucinationFilter(_tempDir);
@@ -29,6 +29,7 @@ namespace WhisperVoice.Tests
         [InlineData("Thank you for watching!")]
         [InlineData("Visit amara.org for more")]
         [InlineData("Субтитры создавал Dimatorzok")]
+        [InlineData("THANK YOU FOR watching!")]
         [InlineData("x")] // Too short to pass
         public void Check_ReturnsFalse_ForHallucinations(string input)
         {

@@ -333,24 +333,22 @@ namespace WhisperVoice
             LoadStartupCheckbox();
 
             // ── Profiles ──────────────────────────────────────────────────
-            var allProfiles = new List<WhisperProfile>();
-            var nullProfile = new WhisperProfile { Id = "", Name = TryGetResource("LblNoProfile", "None (Standard Whisper)") };
-            allProfiles.Add(nullProfile);
-            allProfiles.AddRange(_settings.CustomProfiles);
+            var noneProfile = _settings.CustomProfiles.FirstOrDefault(p => p.Id == "none");
+            if (noneProfile != null) noneProfile.Name = TryGetResource("LblNoProfile", "None (Standard Whisper)");
 
-            ComboProfilePrimary.ItemsSource = allProfiles;
-            ComboProfileTranslate.ItemsSource = allProfiles;
-            ComboProfilePrompt.ItemsSource = allProfiles;
-            ComboProfileEditorSelect.ItemsSource = _settings.CustomProfiles; // Exclude null from editor
+            ComboProfilePrimary.ItemsSource = _settings.CustomProfiles;
+            ComboProfileTranslate.ItemsSource = _settings.CustomProfiles;
+            ComboProfilePrompt.ItemsSource = _settings.CustomProfiles;
+            ComboProfileEditorSelect.ItemsSource = _settings.CustomProfiles;
 
             ComboProfilePrimary.DisplayMemberPath = "Name";
             ComboProfileTranslate.DisplayMemberPath = "Name";
             ComboProfilePrompt.DisplayMemberPath = "Name";
             ComboProfileEditorSelect.DisplayMemberPath = "Name";
 
-            ComboProfilePrimary.SelectedItem = allProfiles.FirstOrDefault(p => p.Id == _settings.PrimaryProfileId) ?? nullProfile;
-            ComboProfileTranslate.SelectedItem = allProfiles.FirstOrDefault(p => p.Id == _settings.TranslateProfileId) ?? nullProfile;
-            ComboProfilePrompt.SelectedItem = allProfiles.FirstOrDefault(p => p.Id == _settings.PromptProfileId) ?? nullProfile;
+            ComboProfilePrimary.SelectedItem = _settings.CustomProfiles.FirstOrDefault(p => p.Id == _settings.PrimaryProfileId) ?? _settings.CustomProfiles[0];
+            ComboProfileTranslate.SelectedItem = _settings.CustomProfiles.FirstOrDefault(p => p.Id == _settings.TranslateProfileId) ?? _settings.CustomProfiles[0];
+            ComboProfilePrompt.SelectedItem = _settings.CustomProfiles.FirstOrDefault(p => p.Id == _settings.PromptProfileId) ?? _settings.CustomProfiles[0];
 
             if (_settings.CustomProfiles.Count > 0)
                 ComboProfileEditorSelect.SelectedIndex = 0;
@@ -468,11 +466,17 @@ namespace WhisperVoice
                 _editingProfile = profile;
                 
                 TxtProfileName.Text = profile.Name;
-                TxtProfileName.IsEnabled = !profile.IsPredefined;
-                BtnDeleteProfile.IsEnabled = !profile.IsPredefined;
+                bool isStandard = profile.Id == "none";
+                bool isEditable = !profile.IsPredefined && !isStandard;
+                
+                TxtProfileName.IsEnabled = isEditable;
+                BtnDeleteProfile.IsEnabled = isEditable;
                 
                 SldProfileTemperature.Value = profile.Temperature;
                 TxtProfilePromptTags.Text = profile.PromptTags;
+                
+                SldProfileTemperature.IsEnabled = !isStandard;
+                TxtProfilePromptTags.IsEnabled = !isStandard;
                 
                 _isUpdatingProfileUI = false;
             }
@@ -519,23 +523,19 @@ namespace WhisperVoice
             var newProfile = new WhisperProfile { Name = "New Profile" };
             _settings.CustomProfiles.Add(newProfile);
             
-            // Rebind the lists to include the new profile
-            var allProfiles = new List<WhisperProfile> { new WhisperProfile { Id = "", Name = TryGetResource("LblNoProfile", "None (Standard Whisper)") } };
-            allProfiles.AddRange(_settings.CustomProfiles);
-            
-            var prevPrimary = ComboProfilePrimary.SelectedItem;
-            var prevTrans = ComboProfileTranslate.SelectedItem;
-            var prevPrompt = ComboProfilePrompt.SelectedItem;
+            var prevPrimaryId = (ComboProfilePrimary.SelectedItem as WhisperProfile)?.Id;
+            var prevTransId = (ComboProfileTranslate.SelectedItem as WhisperProfile)?.Id;
+            var prevPromptId = (ComboProfilePrompt.SelectedItem as WhisperProfile)?.Id;
 
-            ComboProfilePrimary.ItemsSource = allProfiles;
-            ComboProfileTranslate.ItemsSource = allProfiles;
-            ComboProfilePrompt.ItemsSource = allProfiles;
+            ComboProfilePrimary.ItemsSource = null; ComboProfilePrimary.ItemsSource = _settings.CustomProfiles;
+            ComboProfileTranslate.ItemsSource = null; ComboProfileTranslate.ItemsSource = _settings.CustomProfiles;
+            ComboProfilePrompt.ItemsSource = null; ComboProfilePrompt.ItemsSource = _settings.CustomProfiles;
+            ComboProfileEditorSelect.ItemsSource = null; ComboProfileEditorSelect.ItemsSource = _settings.CustomProfiles;
 
-            ComboProfilePrimary.SelectedItem = prevPrimary;
-            ComboProfileTranslate.SelectedItem = prevTrans;
-            ComboProfilePrompt.SelectedItem = prevPrompt;
+            ComboProfilePrimary.SelectedItem = _settings.CustomProfiles.FirstOrDefault(p => p.Id == prevPrimaryId) ?? _settings.CustomProfiles[0];
+            ComboProfileTranslate.SelectedItem = _settings.CustomProfiles.FirstOrDefault(p => p.Id == prevTransId) ?? _settings.CustomProfiles[0];
+            ComboProfilePrompt.SelectedItem = _settings.CustomProfiles.FirstOrDefault(p => p.Id == prevPromptId) ?? _settings.CustomProfiles[0];
 
-            ComboProfileEditorSelect.Items.Refresh();
             ComboProfileEditorSelect.SelectedItem = newProfile;
         }
 
@@ -553,23 +553,20 @@ namespace WhisperVoice
                 {
                     _settings.CustomProfiles.Remove(_editingProfile);
 
-                    var allProfiles = new List<WhisperProfile> { new WhisperProfile { Id = "", Name = TryGetResource("LblNoProfile", "None (Standard Whisper)") } };
-                    allProfiles.AddRange(_settings.CustomProfiles);
+                    var prevPrimaryId = (ComboProfilePrimary.SelectedItem as WhisperProfile)?.Id;
+                    var prevTransId = (ComboProfileTranslate.SelectedItem as WhisperProfile)?.Id;
+                    var prevPromptId = (ComboProfilePrompt.SelectedItem as WhisperProfile)?.Id;
 
-                    var prevPrimary = ComboProfilePrimary.SelectedItem;
-                    var prevTrans = ComboProfileTranslate.SelectedItem;
-                    var prevPrompt = ComboProfilePrompt.SelectedItem;
-
-                    ComboProfilePrimary.ItemsSource = allProfiles;
-                    ComboProfileTranslate.ItemsSource = allProfiles;
-                    ComboProfilePrompt.ItemsSource = allProfiles;
+                    ComboProfilePrimary.ItemsSource = null; ComboProfilePrimary.ItemsSource = _settings.CustomProfiles;
+                    ComboProfileTranslate.ItemsSource = null; ComboProfileTranslate.ItemsSource = _settings.CustomProfiles;
+                    ComboProfilePrompt.ItemsSource = null; ComboProfilePrompt.ItemsSource = _settings.CustomProfiles;
+                    ComboProfileEditorSelect.ItemsSource = null; ComboProfileEditorSelect.ItemsSource = _settings.CustomProfiles;
 
                     // If the deleted profile was assigned, reset to None
-                    ComboProfilePrimary.SelectedItem = prevPrimary == _editingProfile ? allProfiles[0] : prevPrimary;
-                    ComboProfileTranslate.SelectedItem = prevTrans == _editingProfile ? allProfiles[0] : prevTrans;
-                    ComboProfilePrompt.SelectedItem = prevPrompt == _editingProfile ? allProfiles[0] : prevPrompt;
+                    ComboProfilePrimary.SelectedItem = (prevPrimaryId == _editingProfile.Id) ? _settings.CustomProfiles[0] : (_settings.CustomProfiles.FirstOrDefault(p => p.Id == prevPrimaryId) ?? _settings.CustomProfiles[0]);
+                    ComboProfileTranslate.SelectedItem = (prevTransId == _editingProfile.Id) ? _settings.CustomProfiles[0] : (_settings.CustomProfiles.FirstOrDefault(p => p.Id == prevTransId) ?? _settings.CustomProfiles[0]);
+                    ComboProfilePrompt.SelectedItem = (prevPromptId == _editingProfile.Id) ? _settings.CustomProfiles[0] : (_settings.CustomProfiles.FirstOrDefault(p => p.Id == prevPromptId) ?? _settings.CustomProfiles[0]);
 
-                    ComboProfileEditorSelect.Items.Refresh();
                     ComboProfileEditorSelect.SelectedIndex = 0;
                 }
             }
@@ -630,14 +627,14 @@ namespace WhisperVoice
                 _settings.HotkeyPrompt = hkPrompt;
 
             // Profiles Mapping
-            _settings.PrimaryProfileId = (ComboProfilePrimary.SelectedItem as WhisperProfile)?.Id;
-            if (string.IsNullOrEmpty(_settings.PrimaryProfileId)) _settings.PrimaryProfileId = null;
+            if (ComboProfilePrimary.SelectedItem is WhisperProfile primaryProfile)
+                _settings.PrimaryProfileId = primaryProfile.Id;
 
-            _settings.TranslateProfileId = (ComboProfileTranslate.SelectedItem as WhisperProfile)?.Id;
-            if (string.IsNullOrEmpty(_settings.TranslateProfileId)) _settings.TranslateProfileId = null;
+            if (ComboProfileTranslate.SelectedItem is WhisperProfile translateProfile)
+                _settings.TranslateProfileId = translateProfile.Id;
 
-            _settings.PromptProfileId = (ComboProfilePrompt.SelectedItem as WhisperProfile)?.Id;
-            if (string.IsNullOrEmpty(_settings.PromptProfileId)) _settings.PromptProfileId = null;
+            if (ComboProfilePrompt.SelectedItem is WhisperProfile promptProfile)
+                _settings.PromptProfileId = promptProfile.Id;
 
             _settings.Save();
         }
