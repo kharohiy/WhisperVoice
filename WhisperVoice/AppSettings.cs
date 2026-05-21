@@ -69,14 +69,55 @@ namespace WhisperVoice
 
         public void InitializeDefaultProfiles()
         {
-            if (CustomProfiles == null) CustomProfiles = new();
-            if (CustomProfiles.Count == 0)
+            if (!CustomProfiles.Any(p => p.Id == "dev"))
             {
-                CustomProfiles.Add(new WhisperProfile { Id = "dev", Name = "Developer", PromptTags = "C#, Python, IDE, Visual Studio, Git, Code, Programming, Syntax", Temperature = 0.2, IsPredefined = true });
-                CustomProfiles.Add(new WhisperProfile { Id = "eng", Name = "English Teacher", PromptTags = "Grammar, Punctuation, Spelling, Academic English, Formal", Temperature = 0.1, IsPredefined = true });
-                CustomProfiles.Add(new WhisperProfile { Id = "copy", Name = "Copywriter", PromptTags = "Paragraphs, commas, exclamation marks, clear structure, storytelling", Temperature = 0.4, IsPredefined = true });
-                PromptProfileId = "dev";
+                CustomProfiles.Insert(Math.Min(0, CustomProfiles.Count), new WhisperProfile
+                {
+                    Id = "dev", Name = "Developer", Temperature = 0.2, IsPredefined = true,
+                    PromptTags = "C#, Python, IDE, Visual Studio, Git, Code, Programming, Syntax, Bug, Async, Await, Function, Class, Variable, Array, Dictionary, JSON, API, Debugging"
+                });
             }
+
+            if (!CustomProfiles.Any(p => p.Id == "eng"))
+            {
+                CustomProfiles.Insert(Math.Min(1, CustomProfiles.Count), new WhisperProfile
+                {
+                    Id = "eng", Name = "English Teacher", Temperature = 0.1, IsPredefined = true,
+                    PromptTags = "Grammar, Punctuation, Spelling, Academic English, Formal, Vocabulary, Pronunciation, Sentence structure, Syntax, Adjective, Noun, Verb, Pronoun, Adverb"
+                });
+            }
+
+            if (!CustomProfiles.Any(p => p.Id == "copy"))
+            {
+                CustomProfiles.Insert(Math.Min(2, CustomProfiles.Count), new WhisperProfile
+                {
+                    Id = "copy", Name = "Copywriter", Temperature = 0.4, IsPredefined = true,
+                    PromptTags = "Paragraphs, commas, exclamation marks, clear structure, storytelling, marketing, engagement, SEO, blog, article, sales, audience, headline, hook"
+                });
+            }
+
+            if (!CustomProfiles.Any(p => p.Id == "biz"))
+            {
+                CustomProfiles.Insert(Math.Min(3, CustomProfiles.Count), new WhisperProfile
+                {
+                    Id = "biz", Name = "Business / Corporate", Temperature = 0.2, IsPredefined = true,
+                    PromptTags = "Meeting, agenda, action items, KPI, management, strategy, marketing, finance, ROI, CEO, deadlines, B2B, B2C, stakeholder, revenue, budget, quarterly"
+                });
+            }
+
+            if (!CustomProfiles.Any(p => p.Id == "med"))
+            {
+                CustomProfiles.Insert(Math.Min(4, CustomProfiles.Count), new WhisperProfile
+                {
+                    Id = "med", Name = "Medical / Science", Temperature = 0.1, IsPredefined = true,
+                    PromptTags = "Diagnosis, treatment, anatomy, clinical, research, laboratory, physics, biology, symptoms, doctor, patient, disease, syndrome, therapy, medication, surgery"
+                });
+            }
+
+            // Default mappings if empty
+            if (string.IsNullOrEmpty(PrimaryProfileId)) PrimaryProfileId = "dev";
+            if (TranslateProfileId == null) TranslateProfileId = "";
+            if (string.IsNullOrEmpty(PromptProfileId)) PromptProfileId = "dev";
         }
 
         // ── VAD ────────────────────────────────────────────────────────────
