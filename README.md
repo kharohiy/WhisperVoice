@@ -37,7 +37,7 @@
 ### 🎙️ Speech Recognition
 - **Transcription** in 7 languages: English, Russian, Ukrainian, Polish, German, Spanish, French
 - **Translation** from any language to English with a single keystroke
-- **Prompt mode** — inject technical terminology hints for the neural network (programming, medicine, etc.)
+- **Profile system & Prompt mode** — built-in "Business" and "Medical" profiles, plus custom dictionary injection for terminology hints
 - **System audio capture (Loopback)** — transcribe audio from any app (Zoom, YouTube, Discord)
 
 ### ⌨️ Two Input Modes
@@ -52,7 +52,7 @@
 
 ### 🔧 Infrastructure
 - **Model Manager** — download models from HuggingFace with SHA-256 integrity verification
-- **Dictionary Prompt** — custom dictionary of technical terms to improve recognition accuracy
+- **Profiles & Dictionary** — switch between general, business, or medical profiles, or use a custom dictionary of technical terms
 - **Notepad** — built-in notepad for accumulating transcriptions
 - **History** — log of all transcriptions with export support (click to copy)
 - **Windows Autostart** — optional launch at system startup
@@ -194,7 +194,7 @@ WhisperVoice is a **Privacy-First** application:
 
 ## 🧪 Testing
 
-17 automated tests (xUnit + Moq + FluentAssertions):
+40 automated tests (xUnit + Moq + FluentAssertions):
 
 ```powershell
 dotnet test WhisperVoice.Tests/WhisperVoice.Tests.csproj
@@ -202,11 +202,15 @@ dotnet test WhisperVoice.Tests/WhisperVoice.Tests.csproj
 
 | Test Class | Coverage Area | Tests |
 |---|---|---|
-| `TextPostProcessorTests` | Whisper artifact cleanup (timestamps, tags) | 5 |
-| `HallucinationFilterTests` | False-positive pattern filtering | 3 |
-| `ModelConfigServiceTests` | Network isolation, domain whitelist, 404 fallback | 3 |
+| `TextPostProcessorTests` | Whisper artifact cleanup (timestamps, tags, spaces) | 10 |
+| `SilenceAndHallucinationTests` | Silence detection and repetitive loop filtering | 8 |
+| `HallucinationFilterTests` | False-positive pattern filtering | 6 |
+| `ModelConfigServiceTests` | Network isolation, domain whitelist, 404 fallback | 5 |
 | `RecordingOrchestratorTests` | State machine, race condition guards | 3 |
 | `ChaosStressTests` | Concurrency stress tests | 3 |
+| `AppSettingsProfileTests` | Default profile initialization (Business, Medical) | 2 |
+| `Phase1HardeningTests` | Temporary data cleanup, invalid model handling | 2 |
+| `LocalizationRuntimeTests` | Runtime interface language switching | 1 |
 
 ---
 

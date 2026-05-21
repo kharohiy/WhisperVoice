@@ -1,4 +1,4 @@
-# Папки сборки и мусор VS (рекурсивно)
+# Build folders and VS garbage (recursive)
 .vs/
 .antigravitycli
 [Bb]in/
@@ -8,7 +8,7 @@
 *.user
 *.suo
 
-# Временные файлы приложения
+# Temporary application files
 temp.wav
 temp.wav.txt
 whisper_debug.log
@@ -18,21 +18,21 @@ TODO.MD
 task.md
 perplex_conclusion_20_05_Whisper.txt
 
-# Проектные папки вывода и ресурсов
+# Project output and resource folders
 WhisperVoice/Output/
 WhisperVoiceIcons/
 
 
-# Игнорируем ВСЕ тяжелые зависимости и модели (во всех папках)
+# Ignore ALL heavy dependencies and models (in all folders)
 *.bin
 **/models/
 models/
 
-# Нативные библиотеки whisper.cpp в корне проекта
+# whisper.cpp native libraries in project root
 WhisperVoice/*.dll
 
 WhisperVoice/.agent/
 
-# Внутренняя документация
+# Internal documentation
 ARCHITECTURE_WIKI.md
 docs/superpowers/specs/
