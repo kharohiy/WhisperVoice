@@ -56,6 +56,10 @@ namespace WhisperVoice.Services
                 psi.ArgumentList.Add("--temperature");
                 psi.ArgumentList.Add(temperature.ToString("F1", System.Globalization.CultureInfo.InvariantCulture));
             }
+
+            // H1 fix: noSpeechThreshold was accepted but never forwarded to whisper-cli
+            psi.ArgumentList.Add("-nth");
+            psi.ArgumentList.Add(noSpeechThreshold.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
             
             psi.ArgumentList.Add("-otxt");
         }

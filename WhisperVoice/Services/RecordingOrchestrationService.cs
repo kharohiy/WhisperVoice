@@ -425,7 +425,22 @@ namespace WhisperVoice.Services
                 }
 
                 DiagnosticLogger.Instance.Info("RecordingOrchestrationService", $"[PCM Filter] DC Offset: {dcOffset} | True AC Peak: {maxAc}");
-                return _activeCapture == _loopbackCapture ? maxAc > 10 : maxAc > 500;
+
+                // H3: RMS energy is more robust than Peak for silence detection.
+                // Peak fires on single spikes; RMS averages across all samples.
+                double sumSq = 0;
+                for (int i = startSample; i < endSample; i++)
+                {
+                    double s = BitConverter.ToInt16(bytes, 44 + i * 2) - dcOffset;
+                    sumSq += s * s;
+                }
+                double rms = Math.Sqrt(sumSq / validCount);
+
+                DiagnosticLogger.Instance.Info("RecordingOrchestrationService", $"[PCM Filter] RMS: {rms:F1}");
+
+                // Loopback: lower RMS threshold (background audio can be quiet)
+                // Mic: higher threshold (ambient noise should not trigger processing)
+                return _activeCapture == _loopbackCapture ? rms > 80.0 : rms > 300.0;
             }
             catch (Exception ex)
             {

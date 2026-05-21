@@ -83,6 +83,10 @@ namespace WhisperVoice.Services
             foreach (string pat in _patterns)
                 if (!string.IsNullOrWhiteSpace(pat) && lower.Contains(pat.ToLowerInvariant())) return false;
 
+            // H4: Repetitive N-gram detection — catch hallucination loops not in the dictionary.
+            // Whisper often repeats the same 3-4 word phrase when confused by silence.
+            if (HasRepetitiveNgrams(lower)) return false;
+
             cleaned = text.Trim('\0', '\r', '\n', ' ', '\t');
             return cleaned.Length > 0;
         }
@@ -92,6 +96,33 @@ namespace WhisperVoice.Services
         {
             string path = Path.Combine(dictionaryDir, "hallucinations.json");
             _patterns = Load(path);
+        }
+
+        /// <summary>
+        /// Returns true if the text contains a repeated N-gram (phrase of N words)
+        /// that appears at least <paramref name="maxRepeats"/> times.
+        /// This catches hallucination loops that are not in the static dictionary.
+        /// </summary>
+        private static bool HasRepetitiveNgrams(string text, int n = 3, int maxRepeats = 2)
+        {
+            var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length < n * maxRepeats) return false;
+
+            var seen = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (int i = 0; i <= words.Length - n; i++)
+            {
+                string ng = string.Join(" ", words, i, n);
+                if (seen.TryGetValue(ng, out int count))
+                {
+                    if (count + 1 >= maxRepeats) return true;
+                    seen[ng] = count + 1;
+                }
+                else
+                {
+                    seen[ng] = 1;
+                }
+            }
+            return false;
         }
     }
 }
