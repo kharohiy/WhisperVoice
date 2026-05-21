@@ -1,278 +1,208 @@
 <Window x:Class="WhisperVoice.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="{DynamicResource SettingsTitle}" Height="650" Width="390"
+        Title="{DynamicResource SettingsTitle}" Height="550" Width="600"
         ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
         Background="#F0F0F0" WindowStyle="SingleBorderWindow">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
-        <StackPanel Margin="20" VerticalAlignment="Top">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="180"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-            <!-- ══ SECTION: App Interface Language ═══════════════════════ -->
-            <TextBlock Text="{DynamicResource SettingsSectionAppLanguage}"
-                 FontSize="14" FontWeight="SemiBold"
-                 Margin="0,0,0,14" Foreground="#333"/>
+        <!-- Left Navigation -->
+        <ListBox x:Name="TabMenu" Grid.Row="0" Grid.Column="0" 
+                 Background="Transparent" BorderThickness="0" Margin="0,0,10,0"
+                 SelectionChanged="TabMenu_SelectionChanged" SelectedIndex="0">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Padding" Value="10,8"/>
+                    <Setter Property="Margin" Value="0,0,0,4"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Foreground" Value="#555"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border x:Name="Bd" Background="{TemplateBinding Background}" 
+                                        CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#E0E0E0"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="#1565C0"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBoxItem Content="{DynamicResource SettingsTabGeneral}"/>
+            <ListBoxItem Content="{DynamicResource SettingsTabAudio}"/>
+            <ListBoxItem Content="{DynamicResource SettingsTabHotkeys}"/>
+        </ListBox>
 
-            <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="{DynamicResource SettingsLblAppLanguage}"
-                     FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
-                <ComboBox x:Name="AppLanguageCombo" Height="32" FontSize="12"
-                    VerticalContentAlignment="Center"
-                    SelectionChanged="AppLanguageCombo_SelectionChanged"
-                    ToolTip="{DynamicResource SettingsLblAppLanguageTooltip}"/>
+        <!-- General Panel -->
+        <Border Grid.Row="0" Grid.Column="1" x:Name="PanelGeneral" Visibility="Visible"
+                Background="#FFFFFF" CornerRadius="6" BorderBrush="#E0E0E0" BorderThickness="1" Padding="16">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- App Interface Language -->
+                    <TextBlock Text="{DynamicResource SettingsSectionAppLanguage}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" Foreground="#333"/>
+                    <StackPanel Margin="0,0,0,20">
+                        <TextBlock Text="{DynamicResource SettingsLblAppLanguage}" FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="AppLanguageCombo" Height="32" FontSize="12" VerticalContentAlignment="Center" SelectionChanged="AppLanguageCombo_SelectionChanged" ToolTip="{DynamicResource SettingsLblAppLanguageTooltip}"/>
+                    </StackPanel>
+
+                    <!-- Language & Model -->
+                    <TextBlock Text="{DynamicResource SettingsSectionLanguage}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" Foreground="#333"/>
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="{DynamicResource SettingsLblLanguage}" FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="LanguageCombo" Height="32" FontSize="12" VerticalContentAlignment="Center" ToolTip="{DynamicResource SettingsLblLanguageTooltip}"/>
+                    </StackPanel>
+                    <TextBlock Text="{DynamicResource SettingsLblModel}" Margin="0,12,0,4" FontSize="12" FontWeight="SemiBold"/>
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="ModelCombo" Grid.Column="0" Margin="0,0,6,0" SelectionChanged="ModelCombo_SelectionChanged"/>
+                        <Button x:Name="BtnAddModel" Grid.Column="1" Content="➕" Width="32" Height="32" Margin="0,0,4,0" ToolTip="Add model from file" Click="BtnAddModel_Click"/>
+                        <Button x:Name="BtnRefreshModels" Grid.Column="2" Content="🔄" Width="32" Height="32" Margin="0,0,4,0" ToolTip="Refresh models list" Click="BtnRefreshModels_Click"/>
+                        <Button x:Name="BtnGetModels" Grid.Column="3" Content="⬇ Get Models…" Height="32" Padding="8,0" ToolTip="Download models automatically" Click="BtnGetModels_Click"/>
+                    </Grid>
+
+                    <!-- System -->
+                    <TextBlock Text="{DynamicResource SettingsSectionSystem}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" Foreground="#333"/>
+                    <CheckBox x:Name="ChkRunAtStartup" Content="{DynamicResource ChkRunAtStartupText}" FontSize="12" Margin="0,0,0,12" Checked="ChkRunAtStartup_Changed" Unchecked="ChkRunAtStartup_Changed"/>
+                    <CheckBox x:Name="ChkSoundNotifications" Content="{DynamicResource ChkSoundNotificationsText}" FontSize="12" Margin="0,0,0,12"/>
+                    <CheckBox x:Name="ChkAutoClipboard" Content="{DynamicResource ChkAutoClipboardText}" FontSize="12" Margin="0,0,0,4" ToolTip="{DynamicResource ChkAutoClipboardTooltip}"/>
+                    <TextBlock Text="{DynamicResource ChkAutoClipboardHint}" TextWrapping="Wrap" FontSize="10" Foreground="#888" Margin="18,0,0,12"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Audio & AI Panel -->
+        <Border Grid.Row="0" Grid.Column="1" x:Name="PanelAudio" Visibility="Collapsed"
+                Background="#FFFFFF" CornerRadius="6" BorderBrush="#E0E0E0" BorderThickness="1" Padding="16">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- VAD -->
+                    <TextBlock Text="{DynamicResource SettingsSectionVad}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" Foreground="#333"/>
+                    <StackPanel Margin="0,0,0,14">
+                        <Grid Margin="0,0,0,6">
+                            <TextBlock Text="{DynamicResource SettingsLblVadThreshold}" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtVadThreshold" HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Slider x:Name="SldVadThreshold" Minimum="1.0" Maximum="20.0" TickFrequency="0.5" IsSnapToTickEnabled="True" Height="28" ValueChanged="SldVadThreshold_ValueChanged"/>
+                        <TextBlock Text="{DynamicResource SettingsHintVadThreshold}" FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,20">
+                        <Grid Margin="0,0,0,6">
+                            <TextBlock Text="{DynamicResource SettingsLblVadSilence}" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtVadSilence" HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Slider x:Name="SldVadSilence" Minimum="0.5" Maximum="5.0" TickFrequency="0.1" IsSnapToTickEnabled="True" Height="28" ValueChanged="SldVadSilence_ValueChanged"/>
+                        <TextBlock Text="{DynamicResource SettingsHintVadSilence}" FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+                    </StackPanel>
+
+                    <!-- Whisper Params -->
+                    <TextBlock Text="{DynamicResource SettingsSectionWhisperParams}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" Foreground="#333"/>
+                    <StackPanel Margin="0,0,0,14">
+                        <Grid Margin="0,0,0,6">
+                            <TextBlock Text="Beam Size" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtBeamSize" HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Slider x:Name="SldBeamSize" Minimum="1" Maximum="10" TickFrequency="1" IsSnapToTickEnabled="True" Height="28" ValueChanged="SldBeamSize_ValueChanged"/>
+                        <TextBlock Text="{DynamicResource SettingsHintBeamSize}" FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,14">
+                        <Grid Margin="0,0,0,6">
+                            <TextBlock Text="Best Of" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtBestOf" HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Slider x:Name="SldBestOf" Minimum="1" Maximum="10" TickFrequency="1" IsSnapToTickEnabled="True" Height="28" ValueChanged="SldBestOf_ValueChanged"/>
+                        <TextBlock Text="{DynamicResource SettingsHintBestOf}" FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+                        <TextBlock Text="{DynamicResource SettingsWarnBestOf}" FontSize="10" Foreground="#E65100" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,14">
+                        <Grid Margin="0,0,0,6">
+                            <TextBlock Text="Temperature" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtTemperature" HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Slider x:Name="SldTemperature" Minimum="0.0" Maximum="1.0" TickFrequency="0.05" IsSnapToTickEnabled="True" Height="28" ValueChanged="SldTemperature_ValueChanged"/>
+                        <TextBlock Text="{DynamicResource SettingsHintTemperature}" FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,20">
+                        <Grid Margin="0,0,0,6">
+                            <TextBlock Text="No-Speech Threshold" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtNoSpeechThold" HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Slider x:Name="SldNoSpeechThold" Minimum="0.0" Maximum="1.0" TickFrequency="0.05" IsSnapToTickEnabled="True" Height="28" ValueChanged="SldNoSpeechThold_ValueChanged"/>
+                        <TextBlock Text="{DynamicResource SettingsHintNoSpeech}" FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
+                    </StackPanel>
+
+                    <!-- Push-to-Talk mode -->
+                    <TextBlock Text="Push-to-Talk" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" Foreground="#333"/>
+                    <CheckBox x:Name="ChkPushToTalk" Content="{DynamicResource ChkPushToTalkText}" FontSize="12" Margin="0,0,0,4" ToolTip="{DynamicResource ChkPushToTalkTooltip}"/>
+                    <TextBlock Text="{DynamicResource ChkPushToTalkHint}" TextWrapping="Wrap" FontSize="10" Foreground="#888" Margin="18,0,0,12"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Hotkeys Panel -->
+        <Border Grid.Row="0" Grid.Column="1" x:Name="PanelHotkeys" Visibility="Collapsed"
+                Background="#FFFFFF" CornerRadius="6" BorderBrush="#E0E0E0" BorderThickness="1" Padding="16">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource SettingsSectionHotkeys}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" Foreground="#333"/>
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Text="{DynamicResource SettingsLblHotkeyPrimary}" FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="ComboHotkeyPrimary" Height="32" FontSize="12" VerticalContentAlignment="Center" ToolTip="{DynamicResource SettingsTooltipHotkeyPrimary}"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,20">
+                        <TextBlock Text="{DynamicResource SettingsLblHotkeyTranslate}" FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="ComboHotkeyTranslate" Height="32" FontSize="12" VerticalContentAlignment="Center" ToolTip="{DynamicResource SettingsTooltipHotkeyTranslate}"/>
+                    </StackPanel>
+                    <StackPanel Margin="0,0,0,20">
+                        <TextBlock Text="{DynamicResource SettingsLblHotkeyPrompt}" FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
+                        <ComboBox x:Name="ComboHotkeyPrompt" Height="32" FontSize="12" VerticalContentAlignment="Center" ToolTip="{DynamicResource SettingsTooltipHotkeyPrompt}"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Footer -->
+        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" BorderThickness="0,1,0,0" BorderBrush="#DDDDDD" Margin="0,16,0,0" Padding="0,12,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="BtnResetSliders" Content="{DynamicResource BtnResetSlidersText}" Height="34" Padding="16,0" Margin="0,0,8,0" Click="BtnResetSliders_Click" Background="#E0E0E0" Foreground="#333" FontSize="12" Cursor="Hand" ToolTip="{DynamicResource BtnResetSlidersTooltip}">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+                <Button x:Name="BtnSaveClose" Content="{DynamicResource BtnSaveCloseText}" Height="34" Padding="20,0" Click="BtnSaveClose_Click" Background="#4CAF50" Foreground="White" FontSize="13" FontWeight="SemiBold" Cursor="Hand" ToolTip="{DynamicResource BtnSaveCloseTooltip}">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="6"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
             </StackPanel>
-
-            <!-- ══ SECTION: Language & Model ══════════════════════════════ -->
-            <TextBlock Text="{DynamicResource SettingsSectionLanguage}"
-                    FontSize="14" FontWeight="SemiBold"
-                    Margin="0,0,0,14" Foreground="#333"/>
-
-            <!-- Language for Primary hotkey -->
-            <StackPanel Margin="0,0,0,12">
-                <TextBlock Text="{DynamicResource SettingsLblLanguage}"
-                           FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
-                <ComboBox x:Name="LanguageCombo" Height="32" FontSize="12"
-                          VerticalContentAlignment="Center"
-                          ToolTip="{DynamicResource SettingsLblLanguageTooltip}"/>
-            </StackPanel>
-
-            <Separator Margin="0,10,0,10" Background="#CCCCCC"/>
-
-            <!-- Model Whisper -->
-            <TextBlock Text="{DynamicResource SettingsLblModel}" Margin="0,12,0,4" FontSize="12" FontWeight="SemiBold"/>
-
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- Model ComboBox -->
-                <ComboBox x:Name="ModelCombo"
-                          Grid.Column="0"
-                          Margin="0,0,6,0"
-                          SelectionChanged="ModelCombo_SelectionChanged"/>
-
-                <!-- Add Button -->
-                <Button x:Name="BtnAddModel"
-                        Grid.Column="1"
-                        Content="➕"
-                        Width="32" Height="32"
-                        Margin="0,0,4,0"
-                        ToolTip="Add model from file"
-                        Click="BtnAddModel_Click"/>
-
-                <!-- Refresh Button -->
-                <Button x:Name="BtnRefreshModels"
-                        Grid.Column="2"
-                        Content="🔄"
-                        Width="32" Height="32"
-                        Margin="0,0,4,0"
-                        ToolTip="Refresh models list"
-                        Click="BtnRefreshModels_Click"/>
-
-                <!-- Get Models (opens Model Downloader window) -->
-                <Button x:Name="BtnGetModels"
-                        Grid.Column="3"
-                        Content="⬇ Get Models…"
-                        Height="32" Padding="8,0"
-                        ToolTip="Download models automatically"
-                        Click="BtnGetModels_Click"/>
-            </Grid>
-
-            <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
-
-            <!-- ══ SECTION: VAD ════════════════════════════════════════════ -->
-            <TextBlock Text="{DynamicResource SettingsSectionVad}"
-                       FontSize="14" FontWeight="SemiBold"
-                       Margin="0,0,0,14" Foreground="#333"/>
-
-            <!-- VAD Threshold -->
-            <StackPanel Margin="0,0,0,14">
-                <Grid Margin="0,0,0,6">
-                    <TextBlock Text="{DynamicResource SettingsLblVadThreshold}"
-                               FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="TxtVadThreshold"
-                               HorizontalAlignment="Right"
-                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0"
-                               VerticalAlignment="Center"/>
-                </Grid>
-                <Slider x:Name="SldVadThreshold"
-                        Minimum="1.0" Maximum="20.0" TickFrequency="0.5"
-                        IsSnapToTickEnabled="True" Height="28"
-                        ValueChanged="SldVadThreshold_ValueChanged"/>
-                <TextBlock Text="{DynamicResource SettingsHintVadThreshold}"
-                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
-            </StackPanel>
-
-            <!-- VAD Silence Timeout -->
-            <StackPanel Margin="0,0,0,4">
-                <Grid Margin="0,0,0,6">
-                    <TextBlock Text="{DynamicResource SettingsLblVadSilence}"
-                               FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="TxtVadSilence"
-                               HorizontalAlignment="Right"
-                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0"
-                               VerticalAlignment="Center"/>
-                </Grid>
-                <Slider x:Name="SldVadSilence"
-                        Minimum="0.5" Maximum="5.0" TickFrequency="0.1"
-                        IsSnapToTickEnabled="True" Height="28"
-                        ValueChanged="SldVadSilence_ValueChanged"/>
-                <TextBlock Text="{DynamicResource SettingsHintVadSilence}"
-                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
-            </StackPanel>
-
-            <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
-
-            <!-- ══ SECTION: Whisper Params ════════════════════════════════ -->
-            <TextBlock Text="{DynamicResource SettingsSectionWhisperParams}"
-                       FontSize="14" FontWeight="SemiBold"
-                       Margin="0,0,0,14" Foreground="#333"/>
-
-            <!-- Beam Size -->
-            <StackPanel Margin="0,0,0,14">
-                <Grid Margin="0,0,0,6">
-                    <TextBlock Text="Beam Size" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="TxtBeamSize" HorizontalAlignment="Right"
-                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
-                </Grid>
-                <Slider x:Name="SldBeamSize" Minimum="1" Maximum="10" TickFrequency="1"
-                        IsSnapToTickEnabled="True" Height="28"
-                        ValueChanged="SldBeamSize_ValueChanged"/>
-                <TextBlock Text="{DynamicResource SettingsHintBeamSize}"
-                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
-            </StackPanel>
-
-            <!-- Best Of -->
-            <StackPanel Margin="0,0,0,14">
-                <Grid Margin="0,0,0,6">
-                    <TextBlock Text="Best Of" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="TxtBestOf" HorizontalAlignment="Right"
-                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
-                </Grid>
-                <Slider x:Name="SldBestOf" Minimum="1" Maximum="10" TickFrequency="1"
-                        IsSnapToTickEnabled="True" Height="28"
-                        ValueChanged="SldBestOf_ValueChanged"/>
-                <TextBlock Text="{DynamicResource SettingsHintBestOf}"
-                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
-                <TextBlock Text="{DynamicResource SettingsWarnBestOf}"
-                           FontSize="10" Foreground="#E65100" Margin="0,2,0,0"/>
-            </StackPanel>
-
-            <!-- Temperature -->
-            <StackPanel Margin="0,0,0,14">
-                <Grid Margin="0,0,0,6">
-                    <TextBlock Text="Temperature" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="TxtTemperature" HorizontalAlignment="Right"
-                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
-                </Grid>
-                <Slider x:Name="SldTemperature" Minimum="0.0" Maximum="1.0" TickFrequency="0.05"
-                        IsSnapToTickEnabled="True" Height="28"
-                        ValueChanged="SldTemperature_ValueChanged"/>
-                <TextBlock Text="{DynamicResource SettingsHintTemperature}"
-                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
-            </StackPanel>
-
-            <!-- No-Speech Threshold -->
-            <StackPanel Margin="0,0,0,4">
-                <Grid Margin="0,0,0,6">
-                    <TextBlock Text="No-Speech Threshold" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="TxtNoSpeechThold" HorizontalAlignment="Right"
-                               FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center"/>
-                </Grid>
-                <Slider x:Name="SldNoSpeechThold" Minimum="0.0" Maximum="1.0" TickFrequency="0.05"
-                        IsSnapToTickEnabled="True" Height="28"
-                        ValueChanged="SldNoSpeechThold_ValueChanged"/>
-                <TextBlock Text="{DynamicResource SettingsHintNoSpeech}"
-                           FontSize="10" Foreground="#888" Margin="0,3,0,0"/>
-            </StackPanel>
-
-            <!-- ══ SECTION: Hotkeys ════════════════════════════════════════ -->
-            <TextBlock Text="{DynamicResource SettingsSectionHotkeys}"
-                       FontSize="14" FontWeight="SemiBold"
-                       Margin="0,0,0,14" Foreground="#333"/>
-
-            <!-- HotkeyPrimary (was HotkeyRu) -->
-            <StackPanel Margin="0,0,0,12">
-                <TextBlock Text="{DynamicResource SettingsLblHotkeyPrimary}"
-                           FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
-                <ComboBox x:Name="ComboHotkeyPrimary" Height="32" FontSize="12"
-                          VerticalContentAlignment="Center"
-                          ToolTip="{DynamicResource SettingsTooltipHotkeyPrimary}"/>
-            </StackPanel>
-
-            <!-- HotkeyTranslate (was HotkeyEn) -->
-            <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="{DynamicResource SettingsLblHotkeyTranslate}"
-                           FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
-                <ComboBox x:Name="ComboHotkeyTranslate" Height="32" FontSize="12"
-                          VerticalContentAlignment="Center"
-                          ToolTip="{DynamicResource SettingsTooltipHotkeyTranslate}"/>
-            </StackPanel>
-            
-            <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="{DynamicResource SettingsLblHotkeyPrompt}"
-                           FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
-                <ComboBox x:Name="ComboHotkeyPrompt" Height="32" FontSize="12"
-                          VerticalContentAlignment="Center"
-                          ToolTip="{DynamicResource SettingsTooltipHotkeyPrompt}"/>
-            </StackPanel>
-
-            <Separator Margin="0,16,0,14" Background="#CCCCCC"/>
-
-            <!-- ══ SECTION: System ════════════════════════════════════════ -->
-            <TextBlock Text="{DynamicResource SettingsSectionSystem}"
-                       FontSize="14" FontWeight="SemiBold"
-                       Margin="0,0,0,14" Foreground="#333"/>
-
-            <CheckBox x:Name="ChkRunAtStartup"
-                      Content="{DynamicResource ChkRunAtStartupText}"
-                      FontSize="12" Margin="0,0,0,12"
-                      Checked="ChkRunAtStartup_Changed"
-                      Unchecked="ChkRunAtStartup_Changed"/>
-
-            <CheckBox x:Name="ChkSoundNotifications"
-                      Content="{DynamicResource ChkSoundNotificationsText}"
-                      FontSize="12" Margin="0,0,0,12"/>
-
-            <CheckBox x:Name="ChkAutoClipboard"
-                      Content="{DynamicResource ChkAutoClipboardText}"
-                      FontSize="12" Margin="0,0,0,4"
-                      ToolTip="{DynamicResource ChkAutoClipboardTooltip}"/>
-            <TextBlock Text="{DynamicResource ChkAutoClipboardHint}"
-                      TextWrapping="Wrap"
-                      FontSize="10" Foreground="#888" Margin="18,0,0,12"/>
-
-            <!-- Push-to-Talk mode -->
-            <CheckBox x:Name="ChkPushToTalk"
-                      Content="{DynamicResource ChkPushToTalkText}"
-                      FontSize="12" Margin="0,0,0,4"
-                      ToolTip="{DynamicResource ChkPushToTalkTooltip}"/>
-            <TextBlock Text="{DynamicResource ChkPushToTalkHint}"
-                      TextWrapping="Wrap"
-                      FontSize="10" Foreground="#888" Margin="18,0,0,20"/>
-
-            <!-- Reset sliders button -->
-            <Button x:Name="BtnResetSliders"
-                    Content="{DynamicResource BtnResetSlidersText}"
-                    Height="34" Margin="0,0,0,8"
-                    Click="BtnResetSliders_Click"
-                    Background="#E0E0E0" Foreground="#333"
-                    FontSize="12" Cursor="Hand"
-                    ToolTip="{DynamicResource BtnResetSlidersTooltip}"/>
-
-            <!-- Save button -->
-            <Button x:Name="BtnSaveClose"
-                    Content="{DynamicResource BtnSaveCloseText}"
-                    Height="38"
-                    Click="BtnSaveClose_Click"
-                    Background="#4CAF50" Foreground="White"
-                    FontSize="13" FontWeight="SemiBold" Cursor="Hand"
-                    ToolTip="{DynamicResource BtnSaveCloseTooltip}"/>
-
-        </StackPanel>
-    </ScrollViewer>
+        </Border>
+    </Grid>
 </Window>

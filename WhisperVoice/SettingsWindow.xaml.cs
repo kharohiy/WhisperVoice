@@ -332,6 +332,25 @@ namespace WhisperVoice
         }
 
         // ══════════════════════════════════════════════════════════════════
+        // Tab Navigation
+        // ══════════════════════════════════════════════════════════════════
+        private void TabMenu_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (PanelGeneral == null || PanelAudio == null || PanelHotkeys == null) return;
+
+            PanelGeneral.Visibility = Visibility.Collapsed;
+            PanelAudio.Visibility = Visibility.Collapsed;
+            PanelHotkeys.Visibility = Visibility.Collapsed;
+
+            switch (TabMenu.SelectedIndex)
+            {
+                case 0: PanelGeneral.Visibility = Visibility.Visible; break;
+                case 1: PanelAudio.Visibility = Visibility.Visible; break;
+                case 2: PanelHotkeys.Visibility = Visibility.Visible; break;
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         // App interface language — live runtime switch
         // ══════════════════════════════════════════════════════════════════
         private void AppLanguageCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
