@@ -204,4 +204,17 @@
     <sys:String x:Key="WizardStep4Desc">Узнайте, как управлять записью с помощью горячих клавиш.</sys:String>
     <sys:String x:Key="WizardHotkeysInfo">По умолчанию клавиши работают в режиме переключения (нажал-отпустил: запись пошла, нажал-отпустил: стоп). Вы можете включить режим Push-to-Talk (удерживать для записи) в Расширенных настройках.</sys:String>
 
+    <!-- FAQ Tab & Hotkeys -->
+    <sys:String x:Key="FaqAboutTitle">О проекте WhisperVoice</sys:String>
+    <sys:String x:Key="FaqAboutDesc">WhisperVoice — это локальная open-source программа для голосового ввода на базе моделей OpenAI Whisper. Она работает прямо на вашем ПК, не отправляя аудио в облако, что гарантирует полную конфиденциальность.</sys:String>
+    
+    <sys:String x:Key="FaqFeaturesTitle">Ключевые возможности</sys:String>
+    <sys:String x:Key="FaqFeaturesList">• Офлайн-диктовка с высокой точностью&#10;• Автоматический перевод на английский с любого языка&#10;• Использование промптов для форматирования текста&#10;• VAD (Voice Activity Detection) — фильтрация тишины и шума</sys:String>
+    
+    <sys:String x:Key="FaqHotkeysTitle">Управление и Горячие клавиши</sys:String>
+    
+    <sys:String x:Key="FaqHotkeyMenu">Показать/скрыть главное окно программы.</sys:String>
+    <sys:String x:Key="FaqHotkeyNotepad">Открыть встроенный Блокнот с историей записей.</sys:String>
+    <sys:String x:Key="FaqHotkeyCtrlModifier">Удерживайте эту клавишу перед стартом записи (F8/F9/F10), чтобы записать системный звук ПК вместо микрофона.</sys:String>
+
 </ResourceDictionary>

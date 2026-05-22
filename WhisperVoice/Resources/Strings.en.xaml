@@ -204,4 +204,17 @@
     <sys:String x:Key="WizardStep4Desc">Here is how you control recording in WhisperVoice.</sys:String>
     <sys:String x:Key="WizardHotkeysInfo">By default, keys work in Toggle mode (press once to start, press again to stop). You can change this to Push-to-Talk (hold to speak) in the Advanced Settings.</sys:String>
 
+    <!-- FAQ Tab & Hotkeys -->
+    <sys:String x:Key="FaqAboutTitle">About WhisperVoice</sys:String>
+    <sys:String x:Key="FaqAboutDesc">WhisperVoice is an open-source, local-first dictation tool powered by OpenAI's Whisper models. It ensures complete privacy since your voice is processed directly on your hardware without using the cloud.</sys:String>
+    
+    <sys:String x:Key="FaqFeaturesTitle">Key Features</sys:String>
+    <sys:String x:Key="FaqFeaturesList">• Offline dictation with high accuracy&#10;• Automatic translation to English from any language&#10;• Custom AI prompts to format the transcribed text&#10;• VAD (Voice Activity Detection) to filter silence and noise</sys:String>
+    
+    <sys:String x:Key="FaqHotkeysTitle">Hotkeys &amp; Controls</sys:String>
+    
+    <sys:String x:Key="FaqHotkeyMenu">Toggle the main interface (this window).</sys:String>
+    <sys:String x:Key="FaqHotkeyNotepad">Open the built-in Notepad for dictation history.</sys:String>
+    <sys:String x:Key="FaqHotkeyCtrlModifier">Hold this modifier before pressing a record key (F8/F9/F10) to capture System Audio (loopback) instead of the microphone.</sys:String>
+
 </ResourceDictionary>

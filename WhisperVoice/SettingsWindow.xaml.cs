@@ -364,12 +364,13 @@ namespace WhisperVoice
         // ══════════════════════════════════════════════════════════════════
         private void TabMenu_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (PanelGeneral == null || PanelAudio == null || PanelHotkeys == null || PanelProfiles == null) return;
+            if (PanelGeneral == null || PanelAudio == null || PanelHotkeys == null || PanelProfiles == null || PanelFaq == null) return;
 
             PanelGeneral.Visibility = Visibility.Collapsed;
             PanelAudio.Visibility = Visibility.Collapsed;
             PanelHotkeys.Visibility = Visibility.Collapsed;
             PanelProfiles.Visibility = Visibility.Collapsed;
+            PanelFaq.Visibility = Visibility.Collapsed;
 
             switch (TabMenu.SelectedIndex)
             {
@@ -377,6 +378,7 @@ namespace WhisperVoice
                 case 1: PanelAudio.Visibility = Visibility.Visible; break;
                 case 2: PanelHotkeys.Visibility = Visibility.Visible; break;
                 case 3: PanelProfiles.Visibility = Visibility.Visible; break;
+                case 4: PanelFaq.Visibility = Visibility.Visible; break;
             }
 
             if (TabMenu.SelectedIndex != 1)

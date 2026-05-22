@@ -52,6 +52,7 @@
             <ListBoxItem Content="{DynamicResource SettingsTabAudio}"/>
             <ListBoxItem Content="{DynamicResource SettingsTabHotkeys}"/>
             <ListBoxItem Content="{DynamicResource SettingsTabProfiles}"/>
+            <ListBoxItem Content="FAQ"/>
         </ListBox>
 
         <!-- General Panel -->
@@ -301,6 +302,62 @@
                         <TextBlock Text="{DynamicResource SettingsLblProfilePromptTags}" FontSize="12" Foreground="#555" Margin="0,0,0,6"/>
                         <TextBox x:Name="TxtProfilePromptTags" Height="80" FontSize="12" TextWrapping="Wrap" AcceptsReturn="True" Padding="4" TextChanged="ProfileEditor_TextChanged"/>
                     </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- FAQ Panel -->
+        <Border Grid.Row="0" Grid.Column="1" x:Name="PanelFaq" Visibility="Collapsed"
+                Background="#FFFFFF" CornerRadius="6" BorderBrush="#E0E0E0" BorderThickness="1" Padding="16">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,12,0">
+                <StackPanel>
+                    <!-- About -->
+                    <TextBlock Text="{DynamicResource FaqAboutTitle}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,10" Foreground="#333"/>
+                    <TextBlock Text="{DynamicResource FaqAboutDesc}" TextWrapping="Wrap" FontSize="12" Foreground="#555" Margin="0,0,0,20" LineHeight="20"/>
+
+                    <!-- Features -->
+                    <TextBlock Text="{DynamicResource FaqFeaturesTitle}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="#333"/>
+                    <TextBlock Text="{DynamicResource FaqFeaturesList}" TextWrapping="Wrap" FontSize="12" Foreground="#555" Margin="0,0,0,20" LineHeight="20"/>
+
+                    <!-- Hotkeys -->
+                    <TextBlock Text="{DynamicResource FaqHotkeysTitle}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" Foreground="#333"/>
+                    <Border Background="#E3F2FD" BorderBrush="#90CAF9" BorderThickness="1" CornerRadius="6" Padding="15">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="F7" FontWeight="Bold" Margin="0,0,15,8" FontSize="12"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{DynamicResource FaqHotkeyMenu}" TextWrapping="Wrap" Margin="0,0,0,8" FontSize="12"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+F7" FontWeight="Bold" Margin="0,0,15,8" FontSize="12"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{DynamicResource FaqHotkeyNotepad}" TextWrapping="Wrap" Margin="0,0,0,8" FontSize="12"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="F8" FontWeight="Bold" Margin="0,0,15,8" FontSize="12"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyPrimary}" TextWrapping="Wrap" Margin="0,0,0,8" FontSize="12"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="F9" FontWeight="Bold" Margin="0,0,15,8" FontSize="12"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyTranslate}" TextWrapping="Wrap" Margin="0,0,0,8" FontSize="12"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="F10" FontWeight="Bold" Margin="0,0,15,12" FontSize="12"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyPrompt}" TextWrapping="Wrap" Margin="0,0,0,12" FontSize="12"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Ctrl+" FontWeight="Bold" Foreground="#1565C0" Margin="0,0,15,12" FontSize="12"/>
+                            <TextBlock Grid.Row="5" Grid.Column="1" Text="{DynamicResource FaqHotkeyCtrlModifier}" TextWrapping="Wrap" Foreground="#1565C0" Margin="0,0,0,12" FontSize="12"/>
+
+                            <TextBlock Grid.Row="6" Grid.ColumnSpan="2" Text="{DynamicResource WizardHotkeysInfo}" TextWrapping="Wrap" FontStyle="Italic" FontSize="11" Foreground="#777"/>
+                        </Grid>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </Border>

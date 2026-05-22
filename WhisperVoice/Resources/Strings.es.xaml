@@ -142,51 +142,17 @@
     <sys:String x:Key="ChkSoundNotificationsText">Notificaciones de sonido (inicio / fin de grabación)</sys:String>
 
     <!-- ══ SettingsWindow — Push-to-Talk ════════════════════════════════ -->
-    <sys:String x:Key="ChkPushToTalkText">Modo Push-to-Talk (mantener = grabar, soltar = parar)</sys:String>
-    <sys:String x:Key="ChkPushToTalkTooltip">Mantén la tecla para grabar, suéltala para transcribir. Sustituye el modo alternado para las teclas Primary y Translate.</sys:String>
-    <sys:String x:Key="ChkPushToTalkHint">Solo teclas Primary y Translate. Las teclas de Menú y Bloc de notas permanecen en modo alternado.</sys:String>
-    <sys:String x:Key="BtnResetSlidersText">↺ Restablecer valores predeterminados</sys:String>
-    <sys:String x:Key="BtnResetSlidersTooltip">Restablece el VAD (umbral de ruido, pausa de silencio) y los parámetros de Whisper (Beam Size, Best Of, Temperature, No-Speech Threshold). El idioma, el modelo, los atajos y la configuración del sistema no se ven afectados.</sys:String>
-
-    <sys:String x:Key="ChkAutoClipboardText">Copiar automáticamente al portapapeles</sys:String>
-    <sys:String x:Key="ChkAutoClipboardTooltip">Copiar automáticamente la transcripción y pegarla mediante Ctrl+V</sys:String>
-    <sys:String x:Key="ChkAutoClipboardHint">Desactivar para mantener las transcripciones solo en el historial (modo de privacidad)</sys:String>
-<sys:String x:Key="MsgVulkanCpuFallback">⚠️ Advertencia: la inferencia se ejecuta en la CPU. Compruebe el soporte de Vulkan.</sys:String>
-
-    <sys:String x:Key="ModePushToTalk">Pulsar para hablar</sys:String>
-    <sys:String x:Key="ModeToggle">Alternar</sys:String>
-    <sys:String x:Key="ToolTipPrivacyPolicy">El audio se almacena temporalmente de forma local antes de la transcripción y se elimina al salir.</sys:String>
-
-    <!-- ══ Hero Button ═══════════════════════════════════════════════════ -->
-    <sys:String x:Key="BtnHeroIdle">Grabar</sys:String>
-    <sys:String x:Key="BtnHeroRecording">DETENER</sys:String>
-    <sys:String x:Key="BtnHeroProcessing">Procesando...</sys:String>
-    <!-- Settings Tabs -->
-    <sys:String x:Key="SettingsTabGeneral">General</sys:String>
-    <sys:String x:Key="SettingsTabAudio">Audio e IA</sys:String>
-    <sys:String x:Key="SettingsTabHotkeys">Atajos</sys:String>
-    <sys:String x:Key="SettingsLblMicTest">Mic Test (VU Meter)</sys:String>
-    <sys:String x:Key="SettingsLblMicVolume">Microphone volume:</sys:String>
-    <sys:String x:Key="BtnTestMicStart">🎙️ Start Test</sys:String>
-    <sys:String x:Key="BtnTestMicStop">🛑 Stop Test</sys:String>
-    <sys:String x:Key="ToolTipMicTest">Start/Stop microphone test</sys:String>
-    <!-- ══ FirstRunWizard ═══════════════════════════════════════════════ -->
-    <sys:String x:Key="WizardTitle">WhisperVoice Setup</sys:String>
-    <sys:String x:Key="WizardHeader">Welcome to WhisperVoice!</sys:String>
-    <sys:String x:Key="WizardStep1Title">Step 1: Language</sys:String>
-    <sys:String x:Key="WizardStep1Desc">Select the language for the interface and the default language you want to dictate in.</sys:String>
-    <sys:String x:Key="WizardStep2Title">Step 2: Microphone</sys:String>
-    <sys:String x:Key="WizardStep2Desc">Select your microphone and adjust the volume. Speak into the mic to see the signal level.</sys:String>
     <sys:String x:Key="WizardStep3Title">Step 3: AI Model</sys:String>
     <sys:String x:Key="WizardStep3Desc">WhisperVoice needs an AI model to transcribe speech. We have analyzed your hardware and recommend a model below.</sys:String>
     <sys:String x:Key="WizardHardwareTitle">Your Hardware</sys:String>
     <sys:String x:Key="WizardAdvisorModelRec">Recommended Model: </sys:String>
-    <sys:String x:Key="WizardBtnNext">Next ➔</sys:String>
-    <sys:String x:Key="WizardBtnBack">🡄 Back</sys:String>
-    <sys:String x:Key="WizardBtnFinish">Finish ✔</sys:String>
-    <sys:String x:Key="WizardHardwareNote">Note: Transcription speed depends heavily on your GPU's Video RAM (VRAM). Choose a larger model if you have a dedicated GPU.</sys:String>
-    <sys:String x:Key="WizardStep4Title">Step 4: Hotkeys &amp; Usage</sys:String>
-    <sys:String x:Key="WizardStep4Desc">Here is how you control recording in WhisperVoice.</sys:String>
-    <sys:String x:Key="WizardHotkeysInfo">F8 - Start/Stop primary dictation.&#10;F9 - Start/Stop dictation with automatic translation to English.&#10;F10 - Speak a prompt (instructions for AI).&#10;&#10;By default, keys work in Toggle mode (press once to start, press again to stop). You can change this to Push-to-Talk (hold to speak) in the Advanced Settings.</sys:String>
+    <sys:String x:Key="FaqFeaturesTitle">Key Features</sys:String>
+    <sys:String x:Key="FaqFeaturesList">• Offline dictation with high accuracy&#10;• Automatic translation to English from any language&#10;• Custom AI prompts to format the transcribed text&#10;• VAD (Voice Activity Detection) to filter silence and noise</sys:String>
+    
+    <sys:String x:Key="FaqHotkeysTitle">Hotkeys &amp; Controls</sys:String>
+    
+    <sys:String x:Key="FaqHotkeyMenu">Toggle the main interface (this window).</sys:String>
+    <sys:String x:Key="FaqHotkeyNotepad">Open the built-in Notepad for dictation history.</sys:String>
+    <sys:String x:Key="FaqHotkeyCtrlModifier">Hold this modifier before pressing a record key (F8/F9/F10) to capture System Audio (loopback) instead of the microphone.</sys:String>
 
 </ResourceDictionary>
