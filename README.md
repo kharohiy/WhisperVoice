@@ -180,7 +180,7 @@ dotnet run --project WhisperVoice/WhisperVoice.csproj
 | `WhisperVoice/ViewModels/` | MVVM view models (model manager) |
 | `WhisperVoice/Resources/` | Localization files (7 languages) |
 | `WhisperVoice/dictionary/` | User dictionary + hallucination filter patterns |
-| `WhisperVoice.Tests/` | xUnit test suite (17 tests) |
+| `WhisperVoice.Tests/` | xUnit test suite (57 tests) |
 
 ### Tech Stack
 
@@ -207,23 +207,23 @@ WhisperVoice is a **Privacy-First** application:
 
 ## 🧪 Testing
 
-40 automated tests (xUnit + Moq + FluentAssertions):
+57 automated tests (xUnit + Moq + FluentAssertions):
 
 ```powershell
 dotnet test WhisperVoice.Tests/WhisperVoice.Tests.csproj
 ```
 
-| Test Class | Coverage Area | Tests |
-|---|---|---|
-| `TextPostProcessorTests` | Whisper artifact cleanup (timestamps, tags, spaces) | 10 |
-| `SilenceAndHallucinationTests` | Silence detection and repetitive loop filtering | 8 |
-| `HallucinationFilterTests` | False-positive pattern filtering | 6 |
-| `ModelConfigServiceTests` | Network isolation, domain whitelist, 404 fallback | 5 |
-| `RecordingOrchestratorTests` | State machine, race condition guards | 3 |
-| `ChaosStressTests` | Concurrency stress tests | 3 |
-| `AppSettingsProfileTests` | Default profile initialization (Business, Medical) | 2 |
-| `Phase1HardeningTests` | Temporary data cleanup, invalid model handling | 2 |
-| `LocalizationRuntimeTests` | Runtime interface language switching | 1 |
+| Test Class | Coverage Area |
+|---|---|
+| `TextPostProcessorTests` | Whisper artifact cleanup (timestamps, tags, spaces) |
+| `SilenceAndHallucinationTests` | Silence detection and repetitive loop filtering |
+| `HallucinationFilterTests` | False-positive pattern filtering |
+| `ModelConfigServiceTests` | Network isolation, domain whitelist, 404 fallback |
+| `RecordingOrchestratorTests` | State machine, race condition guards |
+| `ChaosStressTests` | Concurrency stress tests |
+| `AppSettingsProfileTests` | Default profile initialization (Business, Medical) |
+| `Phase1HardeningTests` | Temporary data cleanup, invalid model handling |
+| `LocalizationRuntimeTests` | Runtime interface language switching |
 
 ---
 
