@@ -3,8 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="{DynamicResource WizardTitle}" Height="500" Width="600"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
-        Background="#F5F5F5"
-        Icon="WhisperVoice.ico">
+        Background="#F5F5F5">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/> <!-- Header -->

@@ -42,7 +42,7 @@ namespace WhisperVoice
         public FirstRunWizardWindow()
         {
             InitializeComponent();
-            _settings = AppSettings.Current;
+            _settings = AppSettings.Load();
 
             CmbAppLanguage.ItemsSource = AppLangMap.Keys;
             CmbDictationLanguage.ItemsSource = ModelLangMap.Keys;
@@ -64,7 +64,7 @@ namespace WhisperVoice
                 CmbAppLanguage.SelectedItem = "English";
 
             // Dictation Language
-            string modelLangCode = _settings.Language ?? "";
+            string modelLangCode = _settings.LanguagePrimary ?? "";
             var modelLangPair = ModelLangMap.FirstOrDefault(x => x.Value == modelLangCode);
             if (modelLangPair.Key != null)
                 CmbDictationLanguage.SelectedItem = modelLangPair.Key;
@@ -186,7 +186,7 @@ namespace WhisperVoice
             if (_currentStep == 1)
             {
                 if (CmbDictationLanguage.SelectedItem is string displayName && ModelLangMap.TryGetValue(displayName, out string? langCode))
-                    _settings.Language = langCode;
+                    _settings.LanguagePrimary = langCode;
             }
             else if (_currentStep == 2)
             {
@@ -233,7 +233,7 @@ namespace WhisperVoice
 
         private string TryGetResource(string key, string fallback)
         {
-            return Application.Current.TryFindResource(key) as string ?? fallback;
+            return System.Windows.Application.Current.TryFindResource(key) as string ?? fallback;
         }
 
         private void StartMicTest()
@@ -243,7 +243,7 @@ namespace WhisperVoice
             BtnTestMic.SetResourceReference(System.Windows.Controls.ContentControl.ContentProperty, "BtnTestMicStop");
             PrgMicLevel.Value = 0;
             TxtMicPeak.Text = "0%";
-            PrgMicLevel.Foreground = new SolidColorBrush(Color.FromRgb(50, 205, 50));
+            PrgMicLevel.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(50, 205, 50));
             _lastMicPeakTime = DateTime.MinValue;
 
             _testRecorder = new AudioRecorder();
@@ -266,7 +266,7 @@ namespace WhisperVoice
             BtnTestMic.SetResourceReference(System.Windows.Controls.ContentControl.ContentProperty, "BtnTestMicStart");
             PrgMicLevel.Value = 0;
             TxtMicPeak.Text = "0%";
-            PrgMicLevel.Foreground = new SolidColorBrush(Color.FromRgb(50, 205, 50));
+            PrgMicLevel.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(50, 205, 50));
         }
 
         private void TestRecorder_PeakAvailable(double peak)
@@ -280,36 +280,30 @@ namespace WhisperVoice
                 if (val >= 98.0)
                 {
                     _lastMicPeakTime = DateTime.UtcNow;
-                    PrgMicLevel.Foreground = new SolidColorBrush(Color.FromRgb(244, 67, 54)); // Red
+                    PrgMicLevel.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(244, 67, 54)); // Red
                 }
                 else if ((DateTime.UtcNow - _lastMicPeakTime).TotalMilliseconds > 500)
                 {
-                    PrgMicLevel.Foreground = new SolidColorBrush(Color.FromRgb(50, 205, 50)); // LimeGreen
+                    PrgMicLevel.Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(50, 205, 50)); // LimeGreen
                 }
             });
         }
 
         private void RunModelAdvisor()
         {
-            var hw = new HardwareCheckService();
-            long totalRamMb = hw.GetTotalRamMb();
-            long availableRamMb = hw.GetAvailableRamMb();
-            long totalVramMb = hw.GetTotalVramMb();
+            long totalRamMb = 0;
+            try { totalRamMb = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 1024 / 1024; } catch { }
 
-            string info = $"RAM: {totalRamMb / 1024} GB Total, {availableRamMb / 1024} GB Free\n";
-            if (totalVramMb > 0)
-                info += $"VRAM: {totalVramMb / 1024} GB Dedicated";
-            else
-                info += "VRAM: N/A or Shared";
+            string info = $"RAM: {totalRamMb / 1024} GB Total";
 
             TxtHardwareInfo.Text = info;
 
             string recommended = "ggml-base.bin (Default)";
-            if (totalVramMb > 6000 || totalRamMb > 12000)
+            if (totalRamMb > 12000)
             {
                 recommended = "ggml-large-v3.bin (Best Quality)";
             }
-            else if (totalVramMb > 3000 || totalRamMb > 6000)
+            else if (totalRamMb > 6000)
             {
                 recommended = "ggml-small.bin (Balanced)";
             }
