@@ -55,7 +55,7 @@ namespace WhisperVoice
 
         public bool StartRecording(string deviceId, string filePath)
         {
-            // ── Guard: двойной start без предварительного Stop — игнорируем ────
+            // ── Guard: double start without prior Stop — ignore ────
             if (IsRecording)
             {
                 Log.Warn(Comp, $"StartRecording called while already recording — ignoring. deviceId={deviceId}");
@@ -255,7 +255,7 @@ namespace WhisperVoice
 
         public void Dispose()
         {
-            // ── Guard: двойной Dispose — безопасно игнорируем ─────────────────
+            // ── Guard: double Dispose — safely ignore ─────────────────
             if (_disposed) return;
             _disposed = true;
 

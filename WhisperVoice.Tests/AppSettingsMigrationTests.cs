@@ -12,14 +12,14 @@ namespace WhisperVoice.Tests
     /// </summary>
     public class AppSettingsMigrationTests
     {
-        // ── Проблема: string.Replace на JSON без версионирования.
-        //    Если ключ присутствует в значении — замена сломает JSON.
-        //    fix/settings-versioning: MigrateJsonIfNeeded() + SettingsVersion поле.
+        // ── Issue: string.Replace on JSON without versioning.
+        //    If a key is present in the value, the replacement breaks JSON.
+        //    fix/settings-versioning: MigrateJsonIfNeeded() + SettingsVersion field.
 
         [Fact]
         public void MigrateJsonIfNeeded_WithLegacyHotkeyRuKey_RenamesCorrectly()
         {
-            // Arrange — JSON с устаревшим ключом HotkeyRu
+            // Arrange — JSON with legacy key HotkeyRu
             string legacyJson = """
                 {
                   "HotkeyRu": "F8",
@@ -32,7 +32,7 @@ namespace WhisperVoice.Tests
             // Act
             string migratedJson = AppSettings.MigrateJsonIfNeeded(legacyJson);
 
-            // Assert — старые ключи заменены, JSON валиден
+            // Assert — old keys replaced, JSON is valid
             migratedJson.Should().Contain("\"HotkeyPrimary\"");
             migratedJson.Should().Contain("\"HotkeyTranslate\"");
             migratedJson.Should().Contain("\"LanguagePrimary\"");
@@ -40,7 +40,7 @@ namespace WhisperVoice.Tests
             migratedJson.Should().NotContain("\"HotkeyEn\"");
             migratedJson.Should().NotContain("\"LanguageF8\"");
 
-            // Результат должен быть валидным JSON
+            // The result must be valid JSON
             var ex = Record.Exception(() => JsonDocument.Parse(migratedJson));
             ex.Should().BeNull("migrated JSON must remain valid");
         }
@@ -48,7 +48,7 @@ namespace WhisperVoice.Tests
         [Fact]
         public void MigrateJsonIfNeeded_WithCurrentJson_ReturnsUnchanged()
         {
-            // Arrange — уже актуальный JSON без legacy ключей
+            // Arrange — already current JSON without legacy keys
             string currentJson = """
                 {
                   "HotkeyPrimary": "F8",
@@ -61,7 +61,7 @@ namespace WhisperVoice.Tests
             // Act
             string result = AppSettings.MigrateJsonIfNeeded(currentJson);
 
-            // Assert — содержимое не изменилось (нет лишних замен)
+            // Assert — content unchanged (no redundant replacements)
             result.Should().Contain("\"HotkeyPrimary\"");
             result.Should().Contain("\"HotkeyTranslate\"");
             result.Should().NotContain("\"HotkeyRu\"");
@@ -73,7 +73,7 @@ namespace WhisperVoice.Tests
             // Arrange & Act
             var settings = new AppSettings();
 
-            // Assert — каждый новый объект имеет версию
+            // Assert — every new object has a version
             settings.SettingsVersion.Should().BeGreaterThan(0,
                 because: "SettingsVersion must be set to allow future migrations");
         }
@@ -81,7 +81,7 @@ namespace WhisperVoice.Tests
         [Fact]
         public void AppSettings_SaveAndLoad_PreservesSettingsVersion()
         {
-            // Arrange — используем изолированный временный файл
+            // Arrange — use an isolated temporary directory
             string tempDir = Path.Combine(Path.GetTempPath(), "wv_migration_test_" + System.Guid.NewGuid());
             Directory.CreateDirectory(tempDir);
 
@@ -90,15 +90,15 @@ namespace WhisperVoice.Tests
                 var settings = new AppSettings();
                 int originalVersion = settings.SettingsVersion;
 
-                // Сохраняем через JSON напрямую (без привязки к реальному AppDataDir)
+                // Save via JSON directly (bypassing the real AppDataDir)
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 string json = JsonSerializer.Serialize(settings, options);
 
-                // Проверяем что SettingsVersion есть в JSON
+                // Verify that SettingsVersion is present in JSON
                 json.Should().Contain("SettingsVersion",
                     because: "SettingsVersion must be serialized to JSON");
 
-                // Загружаем обратно
+                // Load back
                 var loaded = JsonSerializer.Deserialize<AppSettings>(json, options);
                 loaded.Should().NotBeNull();
                 loaded!.SettingsVersion.Should().Be(originalVersion);
@@ -112,7 +112,7 @@ namespace WhisperVoice.Tests
         [Fact]
         public void MigrateJsonIfNeeded_WithEmptyJson_ReturnsEmpty()
         {
-            // Edge case: пустая строка не должна бросать
+            // Edge case: empty string should not throw
             var ex = Record.Exception(() => AppSettings.MigrateJsonIfNeeded("{}"));
             ex.Should().BeNull();
         }

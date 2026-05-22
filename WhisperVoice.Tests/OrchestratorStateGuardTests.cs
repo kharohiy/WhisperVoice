@@ -37,14 +37,14 @@ namespace WhisperVoice.Tests
                 hardware, filter, postProcessor, "temp_guard_test.wav");
         }
 
-        // ── Проблема: если StartRecording внутри бросает исключение до TransitionTo,
-        //    state остаётся Recording навсегда (Idle так и не наступает).
-        //    fix/orchestrator-state-finally: try/finally гарантирует возврат в Idle.
+        // ── Issue: if StartRecording throws an exception before TransitionTo,
+        //    the state remains Recording forever (Idle is never reached).
+        //    fix/orchestrator-state-finally: try/finally guarantees return to Idle.
 
         [Fact]
         public void StartRecording_WhenCaptureFails_StateReturnsToIdle()
         {
-            // Arrange — мок бросает исключение при старте
+            // Arrange — mock throws exception on start
             _micMock.Setup(m => m.StartRecording(
                     It.IsAny<string>(), It.IsAny<string>(),
                     It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
@@ -56,7 +56,7 @@ namespace WhisperVoice.Tests
             // Act
             _orchestrator.StartRecording(new RecordingRequest(ProcessingMode.Primary, AudioSource.Microphone));
 
-            // Assert — state обязан вернуться в Idle, не застрять в Recording
+            // Assert — state must return to Idle, must not be stuck in Recording
             _orchestrator.CurrentState.Should().Be(PipelineLifecycleState.Idle,
                 because: "StartRecording must always return state to Idle on any failure");
         }
@@ -64,7 +64,7 @@ namespace WhisperVoice.Tests
         [Fact]
         public void StartRecording_WhenAudioStartReturnsFalse_StateReturnsToIdle()
         {
-            // Arrange — StartRecording возвращает false (устройство недоступно)
+            // Arrange — StartRecording returns false (device unavailable)
             _micMock.Setup(m => m.StartRecording(
                     It.IsAny<string>(), It.IsAny<string>(),
                     It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
@@ -83,17 +83,17 @@ namespace WhisperVoice.Tests
         [Fact]
         public void StartRecording_WhenCalledTwiceConcurrently_OnlyOneSucceeds()
         {
-            // Arrange — первый старт занимает время
+            // Arrange — first start takes time
             _micMock.Setup(m => m.StartRecording(
                     It.IsAny<string>(), It.IsAny<string>(),
                     It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()))
                 .Returns(true);
 
-            // Act — два параллельных вызова
+            // Act — two parallel calls
             System.Threading.Tasks.Parallel.For(0, 5, _ =>
                 _orchestrator.StartRecording(new RecordingRequest(ProcessingMode.Primary, AudioSource.Microphone)));
 
-            // Assert — StartRecording должен вызваться ровно один раз (state lock guard)
+            // Assert — StartRecording must be called exactly once (state lock guard)
             _micMock.Verify(m => m.StartRecording(
                 It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<double>(), It.IsAny<double>(), It.IsAny<bool>()), Times.Once(),
@@ -103,7 +103,7 @@ namespace WhisperVoice.Tests
         [Fact]
         public void Orchestrator_InitialState_IsIdle()
         {
-            // Базовый инвариант — свежий orchestrator всегда Idle
+            // Basic invariant — fresh orchestrator is always Idle
             _orchestrator.CurrentState.Should().Be(PipelineLifecycleState.Idle);
             _orchestrator.IsRecording.Should().BeFalse();
             _orchestrator.IsProcessing.Should().BeFalse();

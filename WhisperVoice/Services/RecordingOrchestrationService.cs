@@ -187,8 +187,8 @@ namespace WhisperVoice.Services
             }
             finally
             {
-                // ── Гарантия: если старт не удался по любой причине (включая
-                //    исключение до TransitionTo) — state обязательно сбрасывается в Idle.
+                // ── Guarantee: if start fails for any reason (including
+                //    an exception before TransitionTo) — state is forcibly reset to Idle.
                 if (!startedSuccessfully)
                 {
                     lock (_stateLock)

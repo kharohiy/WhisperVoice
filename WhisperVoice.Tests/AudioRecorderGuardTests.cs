@@ -13,29 +13,29 @@ namespace WhisperVoice.Tests
     /// </summary>
     public class AudioRecorderGuardTests
     {
-        // ── Проблема 1: StartRecording без проверки IsRecording ────────────────
-        // Если вызвать StartRecording дважды — второй вызов перезаписывает
-        // _capture без Dispose предыдущего → утечка + crash.
+        // ── Issue 1: StartRecording without IsRecording check ────────────────
+        // If StartRecording is called twice, the second call overwrites
+        // _capture without Disposing the previous one → memory leak + crash.
 
         [Fact]
         public void StartRecording_WhenAlreadyRecording_ReturnsFalse()
         {
             // Arrange
             var recorder = new AudioRecorder();
-            // Симулируем что запись уже идёт (без реального устройства)
-            // Тест проверяет поведение guard-условия через публичный IsRecording
-            // Сначала убеждаемся что IsRecording == false по умолчанию
+            // Simulate that recording is already in progress (without real hardware)
+            // The test verifies the guard condition behavior via public IsRecording
+            // First ensure IsRecording == false by default
             Assert.False(recorder.IsRecording);
 
-            // Мы не можем вызвать настоящий StartRecording без железа,
-            // поэтому тестируем через ForceRecordingState (новый internal метод)
+            // We cannot call the real StartRecording without hardware,
+            // so we test via ForceRecordingState (new internal method)
             recorder.ForceRecordingState(true);
             Assert.True(recorder.IsRecording);
 
-            // Act — попытка запустить запись пока уже идёт
+            // Act — attempt to start recording while already recording
             bool result = recorder.StartRecording("fake-device-id", "fake-path.wav");
 
-            // Assert — должен вернуть false, не бросить исключение
+            // Assert — must return false, do not throw exception
             Assert.False(result);
         }
 
@@ -46,7 +46,7 @@ namespace WhisperVoice.Tests
             var recorder = new AudioRecorder();
             Assert.False(recorder.IsRecording);
 
-            // Act & Assert — вызов stop без start не должен бросать
+            // Act & Assert — calling stop without start must not throw
             var ex = Record.Exception(() => recorder.StopRecording());
             Assert.Null(ex);
         }
@@ -60,19 +60,19 @@ namespace WhisperVoice.Tests
             // Act
             var task = recorder.StopRecordingAsync();
 
-            // Assert — задача должна завершиться мгновенно (уже возвращает Task.CompletedTask)
+            // Assert — the task must complete immediately (returns Task.CompletedTask)
             await Task.WhenAny(task, Task.Delay(500));
             Assert.True(task.IsCompleted, "StopRecordingAsync should complete immediately when not recording");
         }
 
-        // ── Проблема 2: двойной Dispose ───────────────────────────────────────
+        // ── Issue 2: Double Dispose ───────────────────────────────────────
         [Fact]
         public void Dispose_CalledTwice_DoesNotThrow()
         {
             // Arrange
             var recorder = new AudioRecorder();
 
-            // Act — двойной Dispose не должен бросать ObjectDisposedException
+            // Act — double Dispose must not throw ObjectDisposedException
             var ex = Record.Exception(() =>
             {
                 recorder.Dispose();
@@ -90,12 +90,12 @@ namespace WhisperVoice.Tests
             var recorder = new AudioRecorder();
             recorder.Dispose();
 
-            // Act — вызов методов после Dispose не должен бросать
+            // Act — calling methods after Dispose must not throw
             var ex = Record.Exception(() => recorder.StopRecording());
             Assert.Null(ex);
         }
 
-        // ── CalculatePeak: уже публичный статический, тестируем граничные случаи
+        // ── CalculatePeak: now public static, testing edge cases
         [Fact]
         public void CalculatePeak_EmptyBuffer_ReturnsZero()
         {
@@ -108,7 +108,7 @@ namespace WhisperVoice.Tests
         public void CalculatePeak_SilentBuffer_ReturnsNearZero()
         {
             var format = new WaveFormat(16000, 16, 1);
-            // 100 байт нулей = тишина
+            // 100 bytes of zeros = silence
             var buffer = new byte[100];
             double peak = AudioRecorder.CalculatePeak(buffer, buffer.Length, format);
             Assert.True(peak < 1.0, $"Silent buffer should return near-zero peak, got {peak}");
@@ -118,11 +118,11 @@ namespace WhisperVoice.Tests
         public void CalculatePeak_MaxAmplitudeBuffer_Returns100()
         {
             var format = new WaveFormat(16000, 16, 1);
-            // Заполняем буфер максимальными значениями Int16
+            // Fill buffer with maximum Int16 values
             var buffer = new byte[200];
             for (int i = 0; i < buffer.Length; i += 4)
             {
-                // Чередуем +32767 и -32768 для максимального AC
+                // Alternate +32767 and -32768 for max AC
                 BitConverter.GetBytes((short)32767).CopyTo(buffer, i);
                 if (i + 2 < buffer.Length)
                     BitConverter.GetBytes((short)-32768).CopyTo(buffer, i + 2);
