@@ -1,10 +1,7 @@
 using System;
 using System.IO;
-using System.Linq;
-using System.Media;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 
 namespace WhisperVoice.Services
 {
@@ -12,30 +9,30 @@ namespace WhisperVoice.Services
 
     public sealed class RecordingStateChangedEventArgs : EventArgs
     {
-        public RecordingState State         { get; }
-        public AudioSource    Source        { get; }
-        public ProcessingMode Mode          { get; }
-        public int            TimerSeconds  { get; }
+        public RecordingState State { get; }
+        public AudioSource Source { get; }
+        public ProcessingMode Mode { get; }
+        public int TimerSeconds { get; }
 
         public RecordingStateChangedEventArgs(RecordingState state, AudioSource source = AudioSource.Microphone, ProcessingMode mode = ProcessingMode.Primary, int timerSeconds = 0)
         {
-            State        = state;
-            Source       = source;
-            Mode         = mode;
+            State = state;
+            Source = source;
+            Mode = mode;
             TimerSeconds = timerSeconds;
         }
     }
 
     public sealed class TranscriptionResultEventArgs : EventArgs
     {
-        public string Text        { get; }
-        public string Lang        { get; }
-        public bool   IsTranslate { get; }
+        public string Text { get; }
+        public string Lang { get; }
+        public bool IsTranslate { get; }
 
         public TranscriptionResultEventArgs(string text, string lang, bool isTranslate)
         {
-            Text        = text;
-            Lang        = lang;
+            Text = text;
+            Lang = lang;
             IsTranslate = isTranslate;
         }
     }
@@ -43,65 +40,52 @@ namespace WhisperVoice.Services
     public sealed class RecordingOrchestrationService : IDisposable
     {
         public event EventHandler<RecordingStateChangedEventArgs>? StateChanged;
-        public event EventHandler<TranscriptionResultEventArgs>?   TranscriptionCompleted;
-        [Obsolete("Use StatusReported event instead.")]
-        public event EventHandler<string>?                         StatusUpdated;
-        public event EventHandler<PipelineStatusReport>?           StatusReported;
-        public event EventHandler<int>?                            RecordingTimerTick;
-        public event EventHandler?                                 MissingModelRequested;
-        public event EventHandler<string>?                         ErrorOccurred;
-        public event EventHandler<VulkanStatus>?                    VulkanStatusChecked;
+        public event EventHandler<TranscriptionResultEventArgs>? TranscriptionCompleted;
+        public event EventHandler<PipelineStatusReport>? StatusReported;
+        public event EventHandler<int>? RecordingTimerTick;
+        public event EventHandler? MissingModelRequested;
+        public event EventHandler<string>? ErrorOccurred;
+        public event EventHandler<VulkanStatus>? VulkanStatusChecked;
 
-        private readonly IAudioCaptureService    _micCapture;
-        private readonly IAudioCaptureService    _loopbackCapture;
-        private readonly IWhisperExecutionService _whisper;
-        private readonly HardwareCheckService   _hardware;
-        private readonly HallucinationFilter    _hallucinationFilter;
-        private readonly TextPostProcessorService _postProcessor;
-        private readonly string                 _tempWavPath;
+        private readonly IAudioCaptureManager _captureManager;
+        private readonly IWhisperInferenceRunner _inferenceRunner;
+        private readonly string _tempWavPath;
 
-        private IAudioCaptureService _activeCapture;
         private enum InternalMode { None, Primary, Translate, Prompt }
         
         private readonly object _stateLock = new();
         private PipelineLifecycleState _state = PipelineLifecycleState.Idle;
         private InternalMode _activeMode = InternalMode.None;
 
-        private string       _currentLang   = "ru";
-        private bool         _currentTranslate;
+        private string _currentLang = "ru";
+        private bool _currentTranslate;
         private CancellationTokenSource? _whisperCts;
         private System.Windows.Threading.DispatcherTimer? _recTimer;
         private int _recSeconds;
 
         public PipelineLifecycleState CurrentState
         {
-            get
-            {
-                lock (_stateLock)
-                {
-                    return _state;
-                }
-            }
+            get { lock (_stateLock) { return _state; } }
         }
 
         public bool IsProcessing => CurrentState != PipelineLifecycleState.Idle && CurrentState != PipelineLifecycleState.Recording;
-        public bool IsRecording  => CurrentState == PipelineLifecycleState.Recording;
-        public IAudioCaptureService MicCapture      => _micCapture;
-        public IAudioCaptureService LoopbackCapture => _loopbackCapture;
+        public bool IsRecording => CurrentState == PipelineLifecycleState.Recording;
 
         public ProcessingMode ActiveMode { get; private set; } = ProcessingMode.Primary;
         public AudioSource ActiveSource { get; private set; } = AudioSource.Microphone;
 
-        public RecordingOrchestrationService(IAudioCaptureService micCapture, IAudioCaptureService loopbackCapture, IWhisperExecutionService whisper, HardwareCheckService hardware, HallucinationFilter hallucinationFilter, TextPostProcessorService postProcessor, string tempWavPath)
+        public RecordingOrchestrationService(
+            IAudioCaptureService micCapture, 
+            IAudioCaptureService loopbackCapture, 
+            IWhisperExecutionService whisper, 
+            HardwareCheckService hardware, 
+            HallucinationFilter hallucinationFilter, 
+            TextPostProcessorService postProcessor, 
+            string tempWavPath)
         {
-            _micCapture          = micCapture;
-            _loopbackCapture     = loopbackCapture;
-            _whisper             = whisper;
-            _hardware            = hardware;
-            _hallucinationFilter = hallucinationFilter;
-            _postProcessor       = postProcessor;
-            _tempWavPath         = tempWavPath;
-            _activeCapture       = micCapture;
+            _captureManager = new AudioCaptureManager(micCapture, loopbackCapture);
+            _inferenceRunner = new WhisperInferenceRunner(whisper, hardware, hallucinationFilter, postProcessor);
+            _tempWavPath = tempWavPath;
         }
 
         private void TransitionTo(PipelineLifecycleState newState, double progressPercentage = -1.0, string message = "", DiagnosticLogger.Level logLevel = DiagnosticLogger.Level.INFO, PipelineError error = PipelineError.None)
@@ -111,27 +95,18 @@ namespace WhisperVoice.Services
                 _state = newState;
             }
             
-            if (newState == PipelineLifecycleState.Failed)
-            {
-                if (AppSettings.Load().SoundNotifications) 
-                    System.Media.SystemSounds.Hand.Play();
-            }
+            if (newState == PipelineLifecycleState.Failed && AppSettings.Load().SoundNotifications)
+                System.Media.SystemSounds.Hand.Play();
 
+            string logMsg = $"Transitioned to {newState}. Msg: {message}";
             switch (logLevel)
             {
-                case DiagnosticLogger.Level.TRACE:
-                    DiagnosticLogger.Instance.Trace("RecordingOrchestrationService", $"Transitioned to {newState}. Msg: {message}");
-                    break;
-                case DiagnosticLogger.Level.INFO:
-                    DiagnosticLogger.Instance.Info("RecordingOrchestrationService", $"Transitioned to {newState}. Msg: {message}");
-                    break;
-                case DiagnosticLogger.Level.WARN:
-                    DiagnosticLogger.Instance.Warn("RecordingOrchestrationService", $"Transitioned to {newState}. Msg: {message}");
-                    break;
-                case DiagnosticLogger.Level.ERROR:
-                    DiagnosticLogger.Instance.Error("RecordingOrchestrationService", $"Transitioned to {newState}. Msg: {message}");
-                    break;
+                case DiagnosticLogger.Level.TRACE: DiagnosticLogger.Instance.Trace("RecordingOrchestrationService", logMsg); break;
+                case DiagnosticLogger.Level.INFO: DiagnosticLogger.Instance.Info("RecordingOrchestrationService", logMsg); break;
+                case DiagnosticLogger.Level.WARN: DiagnosticLogger.Instance.Warn("RecordingOrchestrationService", logMsg); break;
+                case DiagnosticLogger.Level.ERROR: DiagnosticLogger.Instance.Error("RecordingOrchestrationService", logMsg); break;
             }
+
             StatusReported?.Invoke(this, new PipelineStatusReport(newState, progressPercentage, message, logLevel, error));
         }
 
@@ -150,12 +125,7 @@ namespace WhisperVoice.Services
             try
             {
                 var settings = AppSettings.Load();
-                if (string.IsNullOrEmpty(settings.MicId) && request.Source == AudioSource.Microphone)
-                {
-                    TransitionTo(PipelineLifecycleState.Failed, -1.0, "ErrMicUnplugged", DiagnosticLogger.Level.ERROR, PipelineError.MicDisconnected);
-                    ErrorOccurred?.Invoke(this, "ErrMicUnplugged");
-                    return;
-                }
+                
                 if (string.IsNullOrEmpty(settings.LastModelPath) || !File.Exists(settings.LastModelPath))
                 {
                     TransitionTo(PipelineLifecycleState.Failed, -1.0, "ModelMissing", DiagnosticLogger.Level.ERROR, PipelineError.ModelMissing);
@@ -164,19 +134,12 @@ namespace WhisperVoice.Services
                 }
 
                 _currentTranslate = request.Mode == ProcessingMode.Translate || request.Mode == ProcessingMode.Prompt;
-                _currentLang      = request.Mode == ProcessingMode.Primary ? settings.LanguagePrimary : "en";
+                _currentLang = request.Mode == ProcessingMode.Primary ? settings.LanguagePrimary : "en";
 
-                try { if (File.Exists(_tempWavPath)) File.Delete(_tempWavPath); } catch { }
-                _activeCapture = request.Source == AudioSource.Loopback ? _loopbackCapture : _micCapture;
-
-                double silenceTimeout = request.Source == AudioSource.Loopback ? settings.VadSilenceSeconds + 3.0 : settings.VadSilenceSeconds;
-                bool enableVad = !settings.IsPushToTalkEnabled;
-
-                bool started = _activeCapture.StartRecording(settings.MicId, _tempWavPath, settings.VadThreshold, silenceTimeout, enableVad);
-                if (!started)
+                if (!_captureManager.StartRecording(request.Source, settings, _tempWavPath, out var errorType, out var errorMessage))
                 {
-                    TransitionTo(PipelineLifecycleState.Failed, -1.0, "ErrMicUnplugged", DiagnosticLogger.Level.ERROR, PipelineError.MicDisconnected);
-                    ErrorOccurred?.Invoke(this, "ErrMicUnplugged");
+                    TransitionTo(PipelineLifecycleState.Failed, -1.0, errorMessage, DiagnosticLogger.Level.ERROR, errorType);
+                    ErrorOccurred?.Invoke(this, errorMessage);
                     return;
                 }
 
@@ -194,24 +157,24 @@ namespace WhisperVoice.Services
             }
             finally
             {
-                // ── Guarantee: if start fails for any reason (including
-                //    an exception before TransitionTo) — state is forcibly reset to Idle.
                 if (!startedSuccessfully)
                 {
-                    lock (_stateLock)
-                    {
-                        if (_state != PipelineLifecycleState.Idle)
-                            _state = PipelineLifecycleState.Idle;
-                        _activeMode  = InternalMode.None;
-                        ActiveMode   = ProcessingMode.Primary;
-                        ActiveSource = AudioSource.Microphone;
-                    }
-                    _activeCapture = _micCapture;
-                    StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Idle));
+                    ResetToIdle();
                 }
             }
         }
 
+        private void ResetToIdle()
+        {
+            lock (_stateLock)
+            {
+                if (_state != PipelineLifecycleState.Idle) _state = PipelineLifecycleState.Idle;
+                _activeMode = InternalMode.None;
+                ActiveMode = ProcessingMode.Primary;
+                ActiveSource = AudioSource.Microphone;
+            }
+            StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Idle));
+        }
 
         public async Task StopAndProcessAsync(AppSettings settings, Func<string, string> getResource)
         {
@@ -227,58 +190,54 @@ namespace WhisperVoice.Services
             try
             {
                 TransitionTo(PipelineLifecycleState.ProcessingAudio, 10.0, getResource("LblProcessing"));
-                await _activeCapture.StopRecordingAsync();
+                await _captureManager.StopRecordingAsync();
                 StopTimer();
                 StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Processing));
 
-                if (!IsAudioWorthProcessing(_tempWavPath))
+                if (!_captureManager.IsAudioWorthProcessing(_tempWavPath))
                 {
                     TransitionTo(PipelineLifecycleState.Idle, 0.0, "Audio below threshold; skipping processing");
-                    StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Idle));
                     return;
                 }
 
                 if (settings.SoundNotifications) System.Media.SystemSounds.Asterisk.Play();
 
-                var lang      = _currentLang;
-                var translate = _currentTranslate;
-
                 _whisperCts = new CancellationTokenSource();
                 var progress = new Progress<string>(msg => 
                 { 
                     if (!string.IsNullOrWhiteSpace(msg)) 
-                    {
-#pragma warning disable CS0618
-                        StatusUpdated?.Invoke(this, msg);
-#pragma warning restore CS0618
                         StatusReported?.Invoke(this, new PipelineStatusReport(PipelineLifecycleState.RunningInference, -1.0, msg));
-                    } 
                 });
 
-                string? targetProfileId = ActiveMode switch
-                {
-                    ProcessingMode.Primary => settings.PrimaryProfileId,
-                    ProcessingMode.Translate => settings.TranslateProfileId,
-                    ProcessingMode.Prompt => settings.PromptProfileId,
-                    _ => null
-                };
-
-                WhisperProfile? activeProfile = string.IsNullOrEmpty(targetProfileId) 
-                    ? null 
-                    : settings.CustomProfiles?.Find(p => p.Id == targetProfileId);
-
-                string selectedPrompt = activeProfile != null 
-                    ? activeProfile.PromptTags 
-                    : (mode switch
+                var result = await _inferenceRunner.RunPipelineAsync(
+                    ActiveMode, _currentLang, _currentTranslate, settings,
+                    progress,
+                    phase => 
                     {
-                        InternalMode.Translate => settings.PromptTranslate,
-                        InternalMode.Prompt    => LoadDictPrompt(settings),
-                        _                      => string.Empty
-                    });
+                        if (phase == "RunningInference") TransitionTo(PipelineLifecycleState.RunningInference, 30.0, getResource("LblProcessing"));
+                        else if (phase == "FilteringHallucinations") TransitionTo(PipelineLifecycleState.FilteringHallucinations, 80.0, getResource("MsgHallucinationFiltered"));
+                    },
+                    status => VulkanStatusChecked?.Invoke(this, status),
+                    getResource,
+                    _whisperCts.Token
+                );
 
-                double activeTemp = activeProfile != null ? activeProfile.Temperature : settings.Temperature;
+                if (!result.Success)
+                {
+                    TransitionTo(PipelineLifecycleState.Failed, -1.0, result.ErrorMessage, DiagnosticLogger.Level.ERROR, result.ErrorType);
+                    if (result.ErrorType == PipelineError.ModelMissing) MissingModelRequested?.Invoke(this, EventArgs.Empty);
+                    else if (result.ErrorType != PipelineError.RecordingAborted) ErrorOccurred?.Invoke(this, result.ErrorMessage);
+                    return;
+                }
 
-                await RunWhisperPipelineAsync(lang, translate, selectedPrompt, activeTemp, progress, settings, getResource, _whisperCts.Token);
+                if (result.IsHallucinationOrSilence)
+                {
+                    TransitionTo(PipelineLifecycleState.Completed, 100.0, "Silence / Ignored");
+                    return;
+                }
+
+                TransitionTo(PipelineLifecycleState.Completed, 100.0, getResource("MsgWhisperDone"));
+                TranscriptionCompleted?.Invoke(this, new TranscriptionResultEventArgs(result.Text, _currentLang, _currentTranslate));
             }
             catch (Exception ex)
             {
@@ -294,14 +253,7 @@ namespace WhisperVoice.Services
             finally
             {
                 TransitionTo(PipelineLifecycleState.Idle, 0.0, "Pipeline released to Idle");
-                lock (_stateLock)
-                {
-                    _activeMode = InternalMode.None;
-                    ActiveMode = ProcessingMode.Primary;
-                    ActiveSource = AudioSource.Microphone;
-                }
-                _activeCapture = _micCapture;
-                StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Idle));
+                ResetToIdle();
             }
         }
 
@@ -311,169 +263,16 @@ namespace WhisperVoice.Services
         {
             if (isPushToTalk)
             {
-                if (isKeyDown)
-                {
-                    if (!IsRecording && !IsProcessing)
-                        StartRecording(new RecordingRequest(mode, source));
-                }
-                else
-                {
-                    if (IsRecording)
-                        await StopAndProcessAsync(settings, getResource);
-                }
+                if (isKeyDown) { if (!IsRecording && !IsProcessing) StartRecording(new RecordingRequest(mode, source)); }
+                else { if (IsRecording) await StopAndProcessAsync(settings, getResource); }
             }
-            else // Toggle Mode
+            else
             {
-                if (isKeyDown)
+                if (isKeyDown && !IsProcessing)
                 {
-                    if (IsProcessing) return;
-
-                    if (IsRecording)
-                        await StopAndProcessAsync(settings, getResource);
-                    else
-                        StartRecording(new RecordingRequest(mode, source));
+                    if (IsRecording) await StopAndProcessAsync(settings, getResource);
+                    else StartRecording(new RecordingRequest(mode, source));
                 }
-            }
-        }
-
-        private async Task RunWhisperPipelineAsync(string lang, bool isTranslate, string techPrompt, double temperature, IProgress<string> progress, AppSettings settings, Func<string, string> getResource, CancellationToken token)
-        {
-            try
-            {
-                string ramFmt  = getResource("ErrLowRam");
-                var (ramOk, ramMsg) = await _hardware.CheckRamAsync(ramFmt);
-                if (!ramOk)
-                {
-                    TransitionTo(PipelineLifecycleState.Failed, -1.0, ramMsg, DiagnosticLogger.Level.ERROR, PipelineError.LowMemoryFallback);
-                    ErrorOccurred?.Invoke(this, ramMsg);
-                    return;
-                }
-
-                string model = AppSettings.Load().LastModelPath;
-                if (string.IsNullOrEmpty(model) || !File.Exists(model))
-                {
-                    DiagnosticLogger.Instance.Error("RecordingOrchestrationService", "Model file missing before inference: " + model);
-                    TransitionTo(PipelineLifecycleState.Failed, -1.0, "ModelMissing", DiagnosticLogger.Level.ERROR, PipelineError.ModelMissing);
-                    MissingModelRequested?.Invoke(this, EventArgs.Empty);
-                    return;
-                }
-
-                TransitionTo(PipelineLifecycleState.RunningInference, 30.0, getResource("LblProcessing"));
-
-                string? rawResult = await _whisper.RunAsync(
-                    model, lang, isTranslate, techPrompt, progress,
-                    msg => DiagnosticLogger.Instance.Info("RecordingOrchestrationService", msg),
-                    token,
-                    beamSize:           settings.BeamSize,
-                    bestOf:             settings.BestOf,
-                    temperature:        temperature,
-                    noSpeechThreshold:  settings.NoSpeechThreshold,
-                    vulkanStatusCallback: isVulkan =>
-                    {
-                        var status = isVulkan ? VulkanStatus.Active : VulkanStatus.CpuFallback;
-                        _hardware.LastVulkanStatus = status;
-                        VulkanStatusChecked?.Invoke(this, status);
-                        DiagnosticLogger.Instance.Info("HardwareCheck", $"Inference engine acceleration finalized: {(isVulkan ? "VULKAN_GPU_ACTIVE" : "HARDWARE_FALLBACK_TO_CPU")}");
-                    });
-
-                if (rawResult is null)
-                {
-                    TransitionTo(PipelineLifecycleState.Failed, -1.0, "Inference returned null", DiagnosticLogger.Level.WARN);
-                    return;
-                }
-
-                TransitionTo(PipelineLifecycleState.FilteringHallucinations, 80.0, getResource("MsgHallucinationFiltered"));
-
-                if (!_hallucinationFilter.Check(rawResult, out string cleanResult))
-                {
-                    TransitionTo(PipelineLifecycleState.Completed, 100.0, getResource("MsgHallucinationFiltered"));
-                    return;
-                }
-
-                string finalResult = _postProcessor.Process(cleanResult);
-                if (string.IsNullOrWhiteSpace(finalResult) || !finalResult.Any(char.IsLetterOrDigit))
-                {
-                    TransitionTo(PipelineLifecycleState.Completed, 100.0, "Silence / Ignored");
-                    return;
-                }
-
-                TransitionTo(PipelineLifecycleState.Completed, 100.0, getResource("MsgWhisperDone"));
-                TranscriptionCompleted?.Invoke(this, new TranscriptionResultEventArgs(finalResult, lang, isTranslate));
-            }
-            catch (OperationCanceledException)
-            {
-                TransitionTo(PipelineLifecycleState.Failed, -1.0, "RecordingAborted", DiagnosticLogger.Level.INFO, PipelineError.RecordingAborted);
-            }
-            catch (Exception ex)
-            {
-                DiagnosticLogger.Instance.Error("RecordingOrchestrationService", ex, "Pipeline failed");
-                TransitionTo(PipelineLifecycleState.Failed, -1.0, ex.Message, DiagnosticLogger.Level.ERROR, PipelineError.RecordingAborted);
-                ErrorOccurred?.Invoke(this, ex.Message);
-            }
-        }
-
-        private bool IsAudioWorthProcessing(string path)
-        {
-            try
-            {
-                var info = new FileInfo(path);
-                if (!info.Exists || info.Length <= AudioConstants.WavHeaderBytes) return false;
-
-                byte[]? bytes = null;
-                for (int i = 0; i < 3; i++)
-                {
-                    try { bytes = File.ReadAllBytes(path); break; }
-                    catch (Exception ex) { DiagnosticLogger.Instance.Trace("RecordingOrchestrationService", $"Read WAV retry: {ex.Message}"); Thread.Sleep(50); }
-                }
-                if (bytes == null || bytes.Length <= AudioConstants.WavHeaderBytes) return true;
-
-                int sampleCount = (bytes.Length - AudioConstants.WavHeaderBytes) / 2;
-                if (sampleCount < AudioConstants.MinSampleCount) return false;
-
-                int startSample = AudioConstants.EdgeSampleSkip;
-                int endSample   = sampleCount - AudioConstants.EdgeSampleSkip;
-                if (startSample >= endSample) { startSample = sampleCount / 4; endSample = sampleCount - (sampleCount / 4); }
-
-                int validCount = endSample - startSample;
-                if (validCount <= 0) return false;
-
-                long sum = 0;
-                for (int i = startSample; i < endSample; i++) sum += BitConverter.ToInt16(bytes, AudioConstants.WavHeaderBytes + i * 2);
-                short dcOffset = (short)(sum / validCount);
-
-                short maxAc = 0;
-                for (int i = startSample; i < endSample; i++)
-                {
-                    short ac = (short)Math.Abs(BitConverter.ToInt16(bytes, AudioConstants.WavHeaderBytes + i * 2) - dcOffset);
-                    if (ac > maxAc) maxAc = ac;
-                }
-
-                DiagnosticLogger.Instance.Info("RecordingOrchestrationService", $"[PCM Filter] DC Offset: {dcOffset} | True AC Peak: {maxAc}");
-
-                // H3: RMS energy is more robust than Peak for silence detection.
-                // Peak fires on single spikes; RMS averages across all samples.
-                double sumSq = 0;
-                for (int i = startSample; i < endSample; i++)
-                {
-                    double s = BitConverter.ToInt16(bytes, AudioConstants.WavHeaderBytes + i * 2) - dcOffset;
-                    sumSq += s * s;
-                }
-                double rms = Math.Sqrt(sumSq / validCount);
-
-                DiagnosticLogger.Instance.Info("RecordingOrchestrationService", $"[PCM Filter] RMS: {rms:F1}");
-
-                // Loopback: lower RMS threshold (background audio can be quiet)
-                // Mic: higher threshold (ambient noise should not trigger processing)
-                double threshold = _activeCapture == _loopbackCapture
-                    ? AudioConstants.RmsThresholdLoopback
-                    : AudioConstants.RmsThresholdMic;
-
-                return rms > threshold;
-            }
-            catch (Exception ex)
-            {
-                DiagnosticLogger.Instance.Warn("RecordingOrchestrationService", $"[PCM Filter] File error: {ex.Message} -> Fallback to True");
-                return true;
             }
         }
 
@@ -489,19 +288,6 @@ namespace WhisperVoice.Services
 
         private void StopTimer() { _recTimer?.Stop(); _recTimer = null; _recSeconds = 0; }
 
-        private static string LoadDictPrompt(AppSettings settings)
-        {
-            try
-            {
-                string dictDir  = Path.Combine(AppSettings.AppDataDir, "dictionary");
-                string dictPath = Path.Combine(dictDir, "dictionary.txt");
-                if (!File.Exists(dictPath)) return string.Empty;
-                string raw = File.ReadAllText(dictPath).Replace("\r\n", " ").Replace("\n", " ").Replace("\"", "");
-                return raw.Length > 250 ? raw[..250] : raw;
-            }
-            catch (Exception ex) { DiagnosticLogger.Instance.Error("RecordingOrchestrationService", ex, "LoadDictPrompt failed"); return string.Empty; }
-        }
-
         public void Dispose()
         {
             _whisperCts?.Cancel();
@@ -512,8 +298,8 @@ namespace WhisperVoice.Services
 
     public sealed class RecordingRequest
     {
-        public ProcessingMode Mode   { get; }
-        public AudioSource    Source { get; }
+        public ProcessingMode Mode { get; }
+        public AudioSource Source { get; }
         public RecordingRequest(ProcessingMode mode, AudioSource source) { Mode = mode; Source = source; }
     }
 }
