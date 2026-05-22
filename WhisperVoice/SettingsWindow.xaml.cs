@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
+using NAudio.CoreAudioApi;
 
 namespace WhisperVoice
 {
@@ -22,6 +23,8 @@ namespace WhisperVoice
         private AppSettings _settings;
         private WhisperProfile? _editingProfile;
         private bool _isUpdatingProfileUI = false;
+        private AudioRecorder? _testRecorder;
+        private DateTime _lastMicPeakTime = DateTime.MinValue;
 
         private string BaseDir => AppDomain.CurrentDomain.BaseDirectory;
 
@@ -285,6 +288,10 @@ namespace WhisperVoice
             }
             LanguageCombo.SelectedItem = displayName;
 
+            // ── Mic Volume ────────────────────────────────────────────────
+            SldMicVolume.Value = GetMicVolume();
+            if (TxtMicVolume != null) TxtMicVolume.Text = $"{(int)(SldMicVolume.Value * 100)}%";
+
             // ── VAD ───────────────────────────────────────────────────────
             SldVadThreshold.Value = Math.Clamp(_settings.VadThreshold, 1.0, 20.0);
             SldVadSilence.Value = Math.Clamp(_settings.VadSilenceSeconds, 0.5, 5.0);
@@ -371,6 +378,11 @@ namespace WhisperVoice
                 case 2: PanelHotkeys.Visibility = Visibility.Visible; break;
                 case 3: PanelProfiles.Visibility = Visibility.Visible; break;
             }
+
+            if (TabMenu.SelectedIndex != 1)
+            {
+                StopMicTest();
+            }
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -451,6 +463,127 @@ namespace WhisperVoice
             SldBestOf.Value        = 5;
             SldTemperature.Value   = 0.0;
             SldNoSpeechThold.Value = 0.6;
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        // Mic Test
+        // ══════════════════════════════════════════════════════════════════
+        private void BtnTestMic_Click(object sender, RoutedEventArgs e)
+        {
+            if (_testRecorder != null && _testRecorder.IsRecording)
+            {
+                StopMicTest();
+            }
+            else
+            {
+                StartMicTest();
+            }
+        }
+
+        private void StartMicTest()
+        {
+            if (_testRecorder != null) return;
+
+            BtnTestMic.SetResourceReference(System.Windows.Controls.ContentControl.ContentProperty, "BtnTestMicStop");
+            PrgMicLevel.Value = 0;
+            TxtMicPeak.Text = "0%";
+            PrgMicLevel.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(50, 205, 50));
+            _lastMicPeakTime = DateTime.MinValue;
+
+            _testRecorder = new AudioRecorder();
+            _testRecorder.PeakAvailable += TestRecorder_PeakAvailable;
+            
+            string tempFile = Path.Combine(Path.GetTempPath(), "wv_mic_test.wav");
+            
+            bool started = _testRecorder.StartRecording(_settings.MicId, tempFile);
+            if (!started)
+            {
+                StopMicTest();
+                System.Windows.MessageBox.Show(TryGetResource("MsgMicTestFailed", "Failed to start microphone test."), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void StopMicTest()
+        {
+            if (_testRecorder == null) return;
+
+            BtnTestMic.Content = TryGetResource("BtnTestMicStart", "🎙️ Start Test");
+            _testRecorder.PeakAvailable -= TestRecorder_PeakAvailable;
+            _testRecorder.StopRecording();
+            _testRecorder.Dispose();
+            _testRecorder = null;
+            
+            PrgMicLevel.Value = 0;
+            TxtMicPeak.Text = "0%";
+        }
+
+        private void TestRecorder_PeakAvailable(double peak)
+        {
+            Dispatcher.InvokeAsync(() =>
+            {
+                double val = Math.Min(100.0, peak);
+                PrgMicLevel.Value = val;
+                TxtMicPeak.Text = $"{val:F0}%";
+                
+                if (val >= 98.0)
+                {
+                    _lastMicPeakTime = DateTime.UtcNow;
+                    PrgMicLevel.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(244, 67, 54)); // Red
+                }
+                else if ((DateTime.UtcNow - _lastMicPeakTime).TotalMilliseconds > 500)
+                {
+                    PrgMicLevel.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(50, 205, 50)); // LimeGreen
+                }
+            });
+        }
+
+        private void SldMicVolume_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (TxtMicVolume != null)
+                TxtMicVolume.Text = $"{(int)(SldMicVolume.Value * 100)}%";
+                
+            if (!IsLoaded) return;
+            
+            SetMicVolume((float)SldMicVolume.Value);
+        }
+
+        private float GetMicVolume()
+        {
+            try
+            {
+                using var enumerator = new MMDeviceEnumerator();
+                var deviceId = _settings.MicId;
+                
+                MMDevice device;
+                if (string.IsNullOrEmpty(deviceId))
+                    device = enumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications);
+                else
+                    device = enumerator.GetDevice(deviceId);
+                
+                if (device != null)
+                    return device.AudioEndpointVolume.MasterVolumeLevelScalar;
+            }
+            catch { }
+            return 1.0f;
+        }
+
+        private void SetMicVolume(float volumeScalar)
+        {
+            try
+            {
+                using var enumerator = new MMDeviceEnumerator();
+                var deviceId = _settings.MicId;
+                
+                MMDevice device;
+                if (string.IsNullOrEmpty(deviceId))
+                    device = enumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications);
+                else
+                    device = enumerator.GetDevice(deviceId);
+                
+                if (device != null)
+                    device.AudioEndpointVolume.MasterVolumeLevelScalar = volumeScalar;
+            }
+            catch { }
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -575,6 +708,7 @@ namespace WhisperVoice
         // ══════════════════════════════════════════════════════════════════
         private void BtnSaveClose_Click(object sender, RoutedEventArgs e)
         {
+            StopMicTest();
             SaveSettings();
             Close();
         }

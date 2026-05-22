@@ -103,6 +103,45 @@
                 <StackPanel>
                     <!-- VAD -->
                     <TextBlock Text="{DynamicResource SettingsSectionVad}" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,14" Foreground="#333"/>
+                    
+                    <!-- Mic Test -->
+                    <Border Background="#F9FBE7" BorderBrush="#C0CA33" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource SettingsLblMicTest}" FontWeight="SemiBold" Foreground="#558B2F" Margin="0,0,0,8" FontSize="12"/>
+                            
+                            <!-- Signal Level -->
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="40"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="BtnTestMic" Grid.Column="0" Content="{DynamicResource BtnTestMicStart}" MinWidth="120" Padding="12,0" Height="28" Margin="0,0,12,0" Click="BtnTestMic_Click" Style="{StaticResource BtnDefault}" ToolTip="{DynamicResource ToolTipMicTest}"/>
+                                <ProgressBar x:Name="PrgMicLevel" Grid.Column="1" Minimum="0" Maximum="100" Value="0" Height="18" Foreground="#32CD32" Background="#E8E8E8" BorderThickness="0" VerticalAlignment="Center">
+                                    <ProgressBar.Template>
+                                        <ControlTemplate TargetType="ProgressBar">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                                                <Border x:Name="PART_Track">
+                                                    <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" CornerRadius="4" HorizontalAlignment="Left" />
+                                                </Border>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </ProgressBar.Template>
+                                </ProgressBar>
+                                <TextBlock x:Name="TxtMicPeak" Grid.Column="2" Text="0%" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="11" Foreground="#666" FontWeight="Bold"/>
+                            </Grid>
+
+                            <!-- Microphone Volume -->
+                            <StackPanel Margin="0,0,0,4">
+                                <Grid Margin="0,0,0,6">
+                                    <TextBlock Text="{DynamicResource SettingsLblMicVolume}" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="TxtMicVolume" HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#1565C0" VerticalAlignment="Center" Text="100%"/>
+                                </Grid>
+                                <Slider x:Name="SldMicVolume" Minimum="0.0" Maximum="1.0" TickFrequency="0.01" IsSnapToTickEnabled="True" Height="28" ValueChanged="SldMicVolume_ValueChanged" LargeChange="0.1" SmallChange="0.01"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                     <StackPanel Margin="0,0,0,14">
                         <Grid Margin="0,0,0,6">
                             <TextBlock Text="{DynamicResource SettingsLblVadThreshold}" FontSize="12" Foreground="#555" VerticalAlignment="Center"/>

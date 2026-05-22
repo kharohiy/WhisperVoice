@@ -110,6 +110,13 @@ namespace WhisperVoice.Services
             {
                 _state = newState;
             }
+            
+            if (newState == PipelineLifecycleState.Failed)
+            {
+                if (AppSettings.Load().SoundNotifications) 
+                    System.Media.SystemSounds.Hand.Play();
+            }
+
             switch (logLevel)
             {
                 case DiagnosticLogger.Level.TRACE:
@@ -231,7 +238,7 @@ namespace WhisperVoice.Services
                     return;
                 }
 
-                if (settings.SoundNotifications) SystemSounds.Exclamation.Play();
+                if (settings.SoundNotifications) System.Media.SystemSounds.Asterisk.Play();
 
                 var lang      = _currentLang;
                 var translate = _currentTranslate;

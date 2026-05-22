@@ -165,4 +165,9 @@
     <sys:String x:Key="SettingsTabGeneral">General</sys:String>
     <sys:String x:Key="SettingsTabAudio">Audio e IA</sys:String>
     <sys:String x:Key="SettingsTabHotkeys">Atajos</sys:String>
+    <sys:String x:Key="SettingsLblMicTest">Mic Test (VU Meter)</sys:String>
+    <sys:String x:Key="SettingsLblMicVolume">Microphone volume:</sys:String>
+    <sys:String x:Key="BtnTestMicStart">🎙️ Start Test</sys:String>
+    <sys:String x:Key="BtnTestMicStop">🛑 Stop Test</sys:String>
+    <sys:String x:Key="ToolTipMicTest">Start/Stop microphone test</sys:String>
 </ResourceDictionary>

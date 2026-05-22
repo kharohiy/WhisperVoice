@@ -66,6 +66,13 @@
     <sys:String x:Key="BtnSaveCloseText">💾 Сохранить и закрыть</sys:String>
     <sys:String x:Key="BtnSaveCloseTooltip">Сохранить все изменения и закрыть окно</sys:String>
 
+    <!-- ══ SettingsWindow — Mic Test ════════════════════════════════════ -->
+    <sys:String x:Key="SettingsLblMicTest">Тест микрофона (VU-метр)</sys:String>
+    <sys:String x:Key="SettingsLblMicVolume">Громкость микрофона:</sys:String>
+    <sys:String x:Key="BtnTestMicStart">🎙️ Начать тест</sys:String>
+    <sys:String x:Key="BtnTestMicStop">🛑 Остановить тест</sys:String>
+    <sys:String x:Key="ToolTipMicTest">Запуск/остановка теста микрофона</sys:String>
+
 
     <!-- ══ Errors ══════════════════════════════════════════════════ -->
     <sys:String x:Key="ErrMicUnplugged">Микрофон недоступен или отключён. Проверьте подключение.</sys:String>

@@ -66,6 +66,13 @@
     <sys:String x:Key="BtnSaveCloseText">💾 Save and Close</sys:String>
     <sys:String x:Key="BtnSaveCloseTooltip">Save all changes and close</sys:String>
 
+    <!-- ══ SettingsWindow — Mic Test ════════════════════════════════════ -->
+    <sys:String x:Key="SettingsLblMicTest">Mic Test (VU Meter)</sys:String>
+    <sys:String x:Key="SettingsLblMicVolume">Microphone volume:</sys:String>
+    <sys:String x:Key="BtnTestMicStart">🎙️ Start Test</sys:String>
+    <sys:String x:Key="BtnTestMicStop">🛑 Stop Test</sys:String>
+    <sys:String x:Key="ToolTipMicTest">Start/Stop microphone test</sys:String>
+
 
     <!-- ══ Errors ══════════════════════════════════════════════════ -->
     <sys:String x:Key="ErrMicUnplugged">Microphone unavailable or unplugged. Please check your connection.</sys:String>
