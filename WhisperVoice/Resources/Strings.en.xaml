@@ -209,7 +209,10 @@
     <sys:String x:Key="FaqAboutDesc">WhisperVoice is an open-source, local-first dictation tool powered by OpenAI's Whisper models. It ensures complete privacy since your voice is processed directly on your hardware without using the cloud.</sys:String>
     
     <sys:String x:Key="FaqFeaturesTitle">Key Features</sys:String>
-    <sys:String x:Key="FaqFeaturesList">• Offline dictation with high accuracy&#x0a;• Automatic translation to English from any language&#x0a;• Custom AI prompts to format the transcribed text&#x0a;• VAD (Voice Activity Detection) to filter silence and noise</sys:String>
+    <sys:String x:Key="FaqFeaturesList" xml:space="preserve">• Offline dictation with high accuracy
+• Automatic translation to English from any language
+• Custom AI prompts to format the transcribed text
+• VAD (Voice Activity Detection) to filter silence and noise</sys:String>
     
     <sys:String x:Key="FaqHotkeysTitle">Hotkeys &amp; Controls</sys:String>
     
