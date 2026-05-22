@@ -39,23 +39,7 @@ namespace WhisperVoice
         /// Supported values: "en", "ru", "uk", "pl", "de", "es", "fr".
         /// Defaults to the OS UI culture, falling back to "en".
         /// </summary>
-        public string AppInterfaceLanguage { get; set; } =
-            DefaultInterfaceLanguage();
-
-        private static string DefaultInterfaceLanguage()
-        {
-            string culture = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-            return culture switch
-            {
-                "ru" => "ru",
-                "uk" => "uk",
-                "pl" => "pl",
-                "de" => "de",
-                "es" => "es",
-                "fr" => "fr",
-                _ => "en"
-            };
-        }
+        public string AppInterfaceLanguage { get; set; } = "en";
 
         // ── Prompts ────────────────────────────────────────────────────
         /// <summary>Prompt used when HotkeyTranslate fires (translate mode). Empty = no prompt.</summary>
