@@ -1,0 +1,34 @@
+{
+    "name": "whisper_voice_build_rules",
+    "description": "Rules for building and verifying the WhisperVoice WPF application",
+    "triggers": [
+        "modify-code",
+        "run-tests"
+    ],
+    "rules": {
+        "build_command": "dotnet build WhisperVoice.csproj /p:Configuration=Debug",
+        "test_command": "dotnet test WhisperVoice.Tests/WhisperVoice.Tests.csproj --no-build --verbosity minimal",
+        "dependency_check": [
+            "Ensure native binaries (whisper.dll, ggml-base.dll, ggml-vulkan.dll) are correctly copied to the Output directory during target build.",
+            "Do not update .NET runtime version unless explicitly requested by the user."
+        ],
+        "verification": [
+            "Check that newly introduced ViewModels implement INotifyPropertyChanged via standard patterns.",
+            "Verify that asynchronous hotkey hooks do not block the main WPF UI thread.",
+            "MANDATORY: Run 'dotnet test' after every change to a service contract, interface, or state machine.",
+            "MANDATORY: When modifying any class in WhisperVoice/Services/, update or add regression tests in WhisperVoice.Tests/ before marking the task complete.",
+            "MANDATORY: When adding or removing constructor parameters (DI contract change), verify all test fixtures reflect the updated signature."
+        ],
+        "testing_discipline": {
+            "rule": "No service contract mutation is complete without a corresponding test update.",
+            "test_project": "WhisperVoice.Tests/WhisperVoice.Tests.csproj",
+            "coverage_targets": [
+                "Services/RecordingOrchestrationService.cs -> RecordingOrchestratorTests.cs",
+                "Services/ModelConfigService.cs -> ModelConfigServiceTests.cs",
+                "HallucinationFilter.cs -> HallucinationFilterTests.cs",
+                "Services/TextPostProcessorService.cs -> TextPostProcessorTests.cs"
+            ],
+            "pre_commit_hook": "See ARCHITECTURE_WIKI.md Section 4.2 for the bash/PowerShell pre-commit gate script."
+        }
+    }
+}
