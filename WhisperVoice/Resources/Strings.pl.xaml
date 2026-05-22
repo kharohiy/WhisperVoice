@@ -170,4 +170,19 @@
     <sys:String x:Key="BtnTestMicStart">🎙️ Start Test</sys:String>
     <sys:String x:Key="BtnTestMicStop">🛑 Stop Test</sys:String>
     <sys:String x:Key="ToolTipMicTest">Start/Stop microphone test</sys:String>
+    <!-- ══ FirstRunWizard ═══════════════════════════════════════════════ -->
+    <sys:String x:Key="WizardTitle">WhisperVoice Setup</sys:String>
+    <sys:String x:Key="WizardHeader">Welcome to WhisperVoice!</sys:String>
+    <sys:String x:Key="WizardStep1Title">Step 1: Language</sys:String>
+    <sys:String x:Key="WizardStep1Desc">Select the language for the interface and the default language you want to dictate in.</sys:String>
+    <sys:String x:Key="WizardStep2Title">Step 2: Microphone</sys:String>
+    <sys:String x:Key="WizardStep2Desc">Select your microphone and adjust the volume. Speak into the mic to see the signal level.</sys:String>
+    <sys:String x:Key="WizardStep3Title">Step 3: AI Model</sys:String>
+    <sys:String x:Key="WizardStep3Desc">WhisperVoice needs an AI model to transcribe speech. We have analyzed your hardware and recommend a model below.</sys:String>
+    <sys:String x:Key="WizardHardwareTitle">Your Hardware</sys:String>
+    <sys:String x:Key="WizardAdvisorModelRec">Recommended Model: </sys:String>
+    <sys:String x:Key="WizardBtnNext">Next ➔</sys:String>
+    <sys:String x:Key="WizardBtnBack">🡄 Back</sys:String>
+    <sys:String x:Key="WizardBtnFinish">Finish ✔</sys:String>
+
 </ResourceDictionary>

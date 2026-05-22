@@ -162,6 +162,11 @@ namespace WhisperVoice
         /// </summary>
         public bool AutoClipboardCopy { get; set; } = true;
 
+        /// <summary>
+        /// Gets or sets a value indicating whether it's the first run of the application.
+        /// </summary>
+        public bool IsFirstRun { get; set; } = true;
+
         // ── Hotkey mode ────────────────────────────────────────────────────
         /// <summary>
         /// When false (default): Toggle mode — one press starts, next press stops.

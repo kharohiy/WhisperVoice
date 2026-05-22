@@ -1,0 +1,98 @@
+<Window x:Class="WhisperVoice.FirstRunWizardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{DynamicResource WizardTitle}" Height="500" Width="600"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
+        Background="#F5F5F5"
+        Icon="WhisperVoice.ico">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Header -->
+            <RowDefinition Height="*"/>    <!-- Content -->
+            <RowDefinition Height="Auto"/> <!-- Footer -->
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#4CAF50" Padding="20">
+            <TextBlock Text="{DynamicResource WizardHeader}" FontSize="24" FontWeight="Bold" Foreground="White"/>
+        </Border>
+
+        <!-- Content Area -->
+        <Border Grid.Row="1" Padding="20">
+            <Grid>
+                <!-- Step 1: Language -->
+                <StackPanel x:Name="PanelStep1" Visibility="Visible">
+                <TextBlock Text="{DynamicResource WizardStep1Title}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <TextBlock Text="{DynamicResource WizardStep1Desc}" TextWrapping="Wrap" Margin="0,0,0,20"/>
+                
+                <TextBlock Text="{DynamicResource SettingsLblAppLanguage}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <ComboBox x:Name="CmbAppLanguage" Margin="0,0,0,15" SelectionChanged="CmbAppLanguage_SelectionChanged" />
+
+                <TextBlock Text="{DynamicResource SettingsLblModelLanguage}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <ComboBox x:Name="CmbDictationLanguage" Margin="0,0,0,15" />
+            </StackPanel>
+
+            <!-- Step 2: Microphone -->
+            <StackPanel x:Name="PanelStep2" Visibility="Collapsed">
+                <TextBlock Text="{DynamicResource WizardStep2Title}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <TextBlock Text="{DynamicResource WizardStep2Desc}" TextWrapping="Wrap" Margin="0,0,0,20"/>
+
+                <TextBlock Text="{DynamicResource SettingsLblMic}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <ComboBox x:Name="CmbMicrophones" Margin="0,0,0,15" />
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="40"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="BtnTestMic" Grid.Column="0" Content="{DynamicResource BtnTestMicStart}" MinWidth="120" Padding="12,0" Height="28" Margin="0,0,12,0" Click="BtnTestMic_Click" Style="{StaticResource BtnDefault}" />
+                    <ProgressBar x:Name="PrgMicLevel" Grid.Column="1" Minimum="0" Maximum="100" Value="0" Height="18" Foreground="#32CD32" Background="#E8E8E8" BorderThickness="0" VerticalAlignment="Center">
+                        <ProgressBar.Template>
+                            <ControlTemplate TargetType="ProgressBar">
+                                <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                                    <Border x:Name="PART_Track">
+                                        <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" CornerRadius="4" HorizontalAlignment="Left" />
+                                    </Border>
+                                </Border>
+                            </ControlTemplate>
+                        </ProgressBar.Template>
+                    </ProgressBar>
+                    <TextBlock x:Name="TxtMicPeak" Grid.Column="2" Text="0%" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="11" Foreground="#666" FontWeight="Bold"/>
+                </Grid>
+                
+                <TextBlock Text="{DynamicResource SettingsLblMicVolume}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <Slider x:Name="SldMicVolume" Minimum="0.0" Maximum="1.0" TickFrequency="0.01" IsSnapToTickEnabled="True" Height="28" ValueChanged="SldMicVolume_ValueChanged" />
+            </StackPanel>
+
+            <!-- Step 3: Model Advisor -->
+            <StackPanel x:Name="PanelStep3" Visibility="Collapsed">
+                <TextBlock Text="{DynamicResource WizardStep3Title}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <TextBlock Text="{DynamicResource WizardStep3Desc}" TextWrapping="Wrap" Margin="0,0,0,20"/>
+
+                <Border Background="#E8F5E9" BorderBrush="#81C784" BorderThickness="1" CornerRadius="6" Padding="15" Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource WizardHardwareTitle}" FontWeight="Bold" Margin="0,0,0,10"/>
+                        <TextBlock x:Name="TxtHardwareInfo" Text="..." Margin="0,0,0,10" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="TxtRecommendedModel" Text="..." FontWeight="SemiBold" Foreground="#2E7D32" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="BtnBack" Grid.Column="0" Content="{DynamicResource WizardBtnBack}" Width="100" Visibility="Collapsed" Click="BtnBack_Click" Style="{StaticResource BtnDefault}"/>
+                <Button x:Name="BtnNext" Grid.Column="2" Content="{DynamicResource WizardBtnNext}" Width="100" Click="BtnNext_Click" Style="{StaticResource BtnPrimary}"/>
+                <Button x:Name="BtnFinish" Grid.Column="2" Content="{DynamicResource WizardBtnFinish}" Width="100" Visibility="Collapsed" Click="BtnFinish_Click" Style="{StaticResource BtnPrimary}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

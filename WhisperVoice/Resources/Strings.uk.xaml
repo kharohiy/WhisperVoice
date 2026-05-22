@@ -186,4 +186,19 @@
     <sys:String x:Key="SettingsLblProfileTemperature">Температура (Креативність):</sys:String>
     <sys:String x:Key="SettingsLblProfilePromptTags">Контекст для промпта (Через кому):</sys:String>
     <sys:String x:Key="LblNoProfile">Без профілю (Стандарт)</sys:String>
+    <!-- ══ FirstRunWizard ═══════════════════════════════════════════════ -->
+    <sys:String x:Key="WizardTitle">Налаштування WhisperVoice</sys:String>
+    <sys:String x:Key="WizardHeader">Вітаємо у WhisperVoice!</sys:String>
+    <sys:String x:Key="WizardStep1Title">Крок 1: Мова</sys:String>
+    <sys:String x:Key="WizardStep1Desc">Виберіть мову інтерфейсу застосунку та основну мову для диктування.</sys:String>
+    <sys:String x:Key="WizardStep2Title">Крок 2: Мікрофон</sys:String>
+    <sys:String x:Key="WizardStep2Desc">Виберіть мікрофон і налаштуйте гучність. Скажіть що-небудь, щоб перевірити рівень сигналу.</sys:String>
+    <sys:String x:Key="WizardStep3Title">Крок 3: ШІ Модель</sys:String>
+    <sys:String x:Key="WizardStep3Desc">WhisperVoice потрібна ШІ-модель для розпізнавання мови. Ми проаналізували ваше обладнання і рекомендуємо наступну модель.</sys:String>
+    <sys:String x:Key="WizardHardwareTitle">Ваше обладнання</sys:String>
+    <sys:String x:Key="WizardAdvisorModelRec">Рекомендована модель: </sys:String>
+    <sys:String x:Key="WizardBtnNext">Далі ➔</sys:String>
+    <sys:String x:Key="WizardBtnBack">🡄 Назад</sys:String>
+    <sys:String x:Key="WizardBtnFinish">Завершити ✔</sys:String>
+
 </ResourceDictionary>

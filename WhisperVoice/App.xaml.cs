@@ -29,6 +29,15 @@ namespace WhisperVoice
 
             base.OnStartup(e);
 
+            var settings = AppSettings.Current;
+            App.ApplyInterfaceLanguage(settings.AppInterfaceLanguage ?? "en");
+
+            if (settings.IsFirstRun)
+            {
+                var wizard = new FirstRunWizardWindow();
+                wizard.ShowDialog();
+            }
+
             bool isAutoStart = e.Args.Contains("--autostart");
 
             var mainWindow = new MainWindow();
