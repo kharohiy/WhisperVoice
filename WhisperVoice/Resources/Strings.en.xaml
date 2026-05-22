@@ -202,6 +202,6 @@
     <sys:String x:Key="WizardHardwareNote">Note: Transcription speed depends heavily on your GPU's Video RAM (VRAM). Choose a larger model if you have a dedicated GPU.</sys:String>
     <sys:String x:Key="WizardStep4Title">Step 4: Hotkeys &amp; Usage</sys:String>
     <sys:String x:Key="WizardStep4Desc">Here is how you control recording in WhisperVoice.</sys:String>
-    <sys:String x:Key="WizardHotkeysInfo">F8 - Start/Stop primary dictation.&#10;F9 - Start/Stop dictation with automatic translation to English.&#10;F10 - Speak a prompt (instructions for AI).&#10;&#10;By default, keys work in Toggle mode (press once to start, press again to stop). You can change this to Push-to-Talk (hold to speak) in the Advanced Settings.</sys:String>
+    <sys:String x:Key="WizardHotkeysInfo">By default, keys work in Toggle mode (press once to start, press again to stop). You can change this to Push-to-Talk (hold to speak) in the Advanced Settings.</sys:String>
 
 </ResourceDictionary>

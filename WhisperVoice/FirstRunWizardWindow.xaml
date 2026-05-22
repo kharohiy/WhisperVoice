@@ -25,9 +25,9 @@
                 <TextBlock Text="{DynamicResource WizardStep1Desc}" TextWrapping="Wrap" Margin="0,0,0,20"/>
                 
                 <TextBlock Text="{DynamicResource SettingsLblAppLanguage}" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                <ComboBox x:Name="CmbAppLanguage" Margin="0,0,0,15" SelectionChanged="CmbAppLanguage_SelectionChanged" />
+                <ComboBox x:Name="CmbAppLanguage" Margin="0,0,0,20" Padding="5" SelectionChanged="CmbAppLanguage_SelectionChanged" />
 
-                <TextBlock Text="{DynamicResource SettingsLblModelLanguage}" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <TextBlock Text="{DynamicResource SettingsLblLanguage}" FontWeight="SemiBold" Margin="0,0,0,5"/>
                 <ComboBox x:Name="CmbDictationLanguage" Margin="0,0,0,15" />
             </StackPanel>
 
@@ -84,7 +84,29 @@
                 <TextBlock Text="{DynamicResource WizardStep4Desc}" TextWrapping="Wrap" Margin="0,0,0,20"/>
 
                 <Border Background="#E3F2FD" BorderBrush="#90CAF9" BorderThickness="1" CornerRadius="6" Padding="15">
-                    <TextBlock Text="{DynamicResource WizardHotkeysInfo}" TextWrapping="Wrap" LineHeight="24"/>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="F8" FontWeight="Bold" Margin="0,0,15,10"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyPrimary}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="F9" FontWeight="Bold" Margin="0,0,15,10"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyTranslate}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="F10" FontWeight="Bold" Margin="0,0,15,15"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyPrompt}" TextWrapping="Wrap" Margin="0,0,0,15"/>
+
+                        <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Text="{DynamicResource WizardHotkeysInfo}" TextWrapping="Wrap" FontStyle="Italic"/>
+                    </Grid>
                 </Border>
             </StackPanel>
             </Grid>
@@ -92,16 +114,11 @@
 
         <!-- Footer -->
         <Border Grid.Row="2" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="15">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Button x:Name="BtnBack" Grid.Column="0" Content="{DynamicResource WizardBtnBack}" Width="100" Visibility="Collapsed" Click="BtnBack_Click" Style="{StaticResource BtnDefault}"/>
-                <Button x:Name="BtnNext" Grid.Column="2" Content="{DynamicResource WizardBtnNext}" Width="100" Click="BtnNext_Click" Style="{StaticResource BtnPrimary}"/>
-                <Button x:Name="BtnFinish" Grid.Column="2" Content="{DynamicResource WizardBtnFinish}" Width="100" Visibility="Collapsed" Click="BtnFinish_Click" Style="{StaticResource BtnPrimary}"/>
-            </Grid>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="BtnBack" Content="{DynamicResource WizardBtnBack}" MinWidth="100" Padding="10,0" Height="30" Margin="0,0,10,0" Click="BtnBack_Click" Visibility="Collapsed" Style="{StaticResource BtnDefault}"/>
+                <Button x:Name="BtnNext" Content="{DynamicResource WizardBtnNext}" MinWidth="100" Padding="10,0" Height="30" Click="BtnNext_Click" Style="{StaticResource BtnPrimary}"/>
+                <Button x:Name="BtnFinish" Content="{DynamicResource WizardBtnFinish}" MinWidth="100" Padding="10,0" Height="30" Click="BtnFinish_Click" Visibility="Collapsed" Style="{StaticResource BtnPrimary}"/>
+            </StackPanel>
         </Border>
     </Grid>
 </Window>
