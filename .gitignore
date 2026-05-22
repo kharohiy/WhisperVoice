@@ -1,6 +1,5 @@
 # Build folders and VS garbage (recursive)
 .vs/
-.antigravitycli
 [Bb]in/
 [Oo]bj/
 **/bin/
@@ -22,7 +21,6 @@ perplex_conclusion_20_05_Whisper.txt
 WhisperVoice/Output/
 WhisperVoiceIcons/
 
-
 # Ignore ALL heavy dependencies and models (in all folders)
 *.bin
 **/models/
@@ -36,3 +34,34 @@ WhisperVoice/.agent/
 # Internal documentation
 ARCHITECTURE_WIKI.md
 docs/superpowers/specs/
+
+# ─────────────────────────────────────────────
+# AI Agent / CLI tooling — NEVER commit to repo
+# ─────────────────────────────────────────────
+
+# Antigravity CLI workspace
+.antigravitycli/
+.antigravity/
+
+# Agent instruction files (Gemini, Claude, Copilot, Codex, Cursor, etc.)
+GEMINI.md
+CLAUDE.md
+AGENTS.md
+COPILOT.md
+.cursorrules
+.cursorignore
+.aider*
+.continue/
+
+# Development workflow config (internal, not for contributors)
+DEVELOPMENT.md
+
+# AI analysis / brainstorm dumps
+perplexity_*.txt
+perplexity_*.md
+*_analyze_*.txt
+*_analyze_*.md
+
+# Repomix / codebase snapshot tools
+repomix-output.md
+repomix.config.json

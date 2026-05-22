@@ -176,10 +176,41 @@ namespace WhisperVoice
         // ── Whitelist ──────────────────────────────────────────────────────
         public string[] WhitelistedDomains { get; set; } = new[] { "raw.githubusercontent.com", "huggingface.co" };
 
+        // ── Settings versioning ──────────────────────────────────────
+        /// <summary>
+        /// Version of the settings schema.
+        /// Used for detecting when migration is needed on load.
+        /// Version 1: legacy HotkeyRu / HotkeyEn keys.
+        /// Version 2: current schema with HotkeyPrimary / HotkeyTranslate.
+        /// </summary>
+        public int SettingsVersion { get; set; } = 2;
+
         // ── Static helpers ─────────────────────────────────────────────────
 
         private static readonly JsonSerializerOptions _jsonOpts =
             new() { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.Never };
+
+        /// <summary>
+        /// Migrates legacy JSON key names to current schema.
+        /// Idempotent — safe to call on already-current JSON.
+        /// </summary>
+        public static string MigrateJsonIfNeeded(string json)
+        {
+            // V1 → V2: rename hotkey and language keys
+            if (json.Contains("\"HotkeyRu\"") || json.Contains("\"HotkeyEn\"") || json.Contains("\"LanguageF8\""))
+            {
+                DiagnosticLogger.Instance.Info("AppSettings", "Migrating legacy settings keys (V1 → V2)");
+                json = json
+                    .Replace("\"HotkeyRu\"",  "\"HotkeyPrimary\"")
+                    .Replace("\"HotkeyEn\"",  "\"HotkeyTranslate\"")
+                    .Replace("\"LanguageF8\"", "\"LanguagePrimary\"");
+            }
+
+            // V3 migrations would go here...
+
+            return json;
+        }
+
 
         /// <summary>App data directory: exe folder in DEBUG, AppData in RELEASE.</summary>
         public static string AppDataDir
@@ -220,12 +251,8 @@ namespace WhisperVoice
             {
                 try
                 {
-                    string json = File.ReadAllText(SettingsPath);
-
-                    json = json
-                        .Replace("\"HotkeyRu\"", "\"HotkeyPrimary\"")
-                        .Replace("\"HotkeyEn\"", "\"HotkeyTranslate\"")
-                        .Replace("\"LanguageF8\"", "\"LanguagePrimary\"");
+                    string raw  = File.ReadAllText(SettingsPath);
+                    string json = MigrateJsonIfNeeded(raw);
 
                     var loaded = JsonSerializer.Deserialize<AppSettings>(json, _jsonOpts)
                                  ?? new AppSettings();

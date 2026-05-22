@@ -1,8 +1,8 @@
-﻿using NAudio.CoreAudioApi;
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using System;
 using System.Threading.Tasks;
-using WhisperVoice.Services; 
+using WhisperVoice.Services;
 
 namespace WhisperVoice
 {
@@ -19,18 +19,23 @@ namespace WhisperVoice
         private WasapiCapture? _capture;
         private WaveFileWriter? _writer;
         private TaskCompletionSource<bool>? _stopTcs;
+        private bool _disposed = false;
 
-        private DateTime _lastPeakTime = DateTime.MinValue;
+        private DateTime _lastPeakTime    = DateTime.MinValue;
         private DateTime _lastTraceLogTime = DateTime.MinValue; // throttle TRACE logs
-        private const int PeakIntervalMs = 40;
-        private const int TraceLogIntervalMs = 5_000; // log VAD state every 5 s
 
         // VAD state
         private DateTime _recordingStarted = DateTime.MinValue;
-        private DateTime _lastSoundTime = DateTime.MinValue;
-        private bool _vadSilenceFired = false;
+        private DateTime _lastSoundTime    = DateTime.MinValue;
+        private bool _vadSilenceFired      = false;
 
         public bool IsRecording { get; private set; }
+
+        /// <summary>
+        /// FOR TESTING ONLY — forces IsRecording state without real hardware.
+        /// Allows unit tests to verify guard logic without an audio device.
+        /// </summary>
+        internal void ForceRecordingState(bool isRecording) => IsRecording = isRecording;
 
         /// <summary>Fires ~25×/sec with 0-100 peak percentage.</summary>
         public event Action<double>? PeakAvailable;
@@ -44,12 +49,19 @@ namespace WhisperVoice
 
         // VAD settings
         public bool VadEnabled { get; set; } = false;
-        public double VadThreshold { get; set; } = 5.0;
-        public TimeSpan VadSilenceTimeout { get; set; } = TimeSpan.FromSeconds(1.8);
-        public TimeSpan VadGracePeriod { get; set; } = TimeSpan.FromSeconds(1.5);
+        public double VadThreshold { get; set; } = AudioConstants.DefaultVadThreshold;
+        public TimeSpan VadSilenceTimeout { get; set; } = TimeSpan.FromSeconds(AudioConstants.DefaultVadSilenceSeconds);
+        public TimeSpan VadGracePeriod { get; set; } = TimeSpan.FromSeconds(AudioConstants.DefaultVadGracePeriod);
 
         public bool StartRecording(string deviceId, string filePath)
         {
+            // ── Guard: двойной start без предварительного Stop — игнорируем ────
+            if (IsRecording)
+            {
+                Log.Warn(Comp, $"StartRecording called while already recording — ignoring. deviceId={deviceId}");
+                return false;
+            }
+
             Log.Info(Comp, $"StartRecording called  deviceId={deviceId}  filePath={filePath}");
 
             try
@@ -132,7 +144,7 @@ namespace WhisperVoice
             double peak = CalculatePeak(a.Buffer, a.BytesRecorded, _capture.WaveFormat);
 
             var now = DateTime.UtcNow;
-            if ((now - _lastPeakTime).TotalMilliseconds >= PeakIntervalMs)
+            if ((now - _lastPeakTime).TotalMilliseconds >= AudioConstants.PeakIntervalMs)
             {
                 _lastPeakTime = now;
                 PeakAvailable?.Invoke(peak);
@@ -201,7 +213,7 @@ namespace WhisperVoice
         }
         // ─────────────────────────────────────────────────────────────────────
 
-                public static double CalculatePeak(byte[] buffer, int bytesRecorded, WaveFormat format)
+        public static double CalculatePeak(byte[] buffer, int bytesRecorded, WaveFormat format)
         {
             float max = 0f;
             float sum = 0f;
@@ -240,8 +252,13 @@ namespace WhisperVoice
 
             return Math.Min(100.0, Math.Sqrt(max) * 100.0);
         }
+
         public void Dispose()
         {
+            // ── Guard: двойной Dispose — безопасно игнорируем ─────────────────
+            if (_disposed) return;
+            _disposed = true;
+
             StopRecording();
             _writer?.Dispose();
             _capture?.Dispose();

@@ -139,20 +139,19 @@ namespace WhisperVoice.Services
                 ActiveSource = request.Source;
             }
 
+            bool startedSuccessfully = false;
             try
             {
                 var settings = AppSettings.Load();
                 if (string.IsNullOrEmpty(settings.MicId) && request.Source == AudioSource.Microphone)
                 {
                     TransitionTo(PipelineLifecycleState.Failed, -1.0, "ErrMicUnplugged", DiagnosticLogger.Level.ERROR, PipelineError.MicDisconnected);
-                    TransitionTo(PipelineLifecycleState.Idle, 0.0, "");
                     ErrorOccurred?.Invoke(this, "ErrMicUnplugged");
                     return;
                 }
                 if (string.IsNullOrEmpty(settings.LastModelPath) || !File.Exists(settings.LastModelPath))
                 {
                     TransitionTo(PipelineLifecycleState.Failed, -1.0, "ModelMissing", DiagnosticLogger.Level.ERROR, PipelineError.ModelMissing);
-                    TransitionTo(PipelineLifecycleState.Idle, 0.0, "");
                     MissingModelRequested?.Invoke(this, EventArgs.Empty);
                     return;
                 }
@@ -170,24 +169,42 @@ namespace WhisperVoice.Services
                 if (!started)
                 {
                     TransitionTo(PipelineLifecycleState.Failed, -1.0, "ErrMicUnplugged", DiagnosticLogger.Level.ERROR, PipelineError.MicDisconnected);
-                    TransitionTo(PipelineLifecycleState.Idle, 0.0, "");
                     ErrorOccurred?.Invoke(this, "ErrMicUnplugged");
                     return;
                 }
 
-                if (settings.SoundNotifications) SystemSounds.Beep.Play();
+                if (settings.SoundNotifications) System.Media.SystemSounds.Beep.Play();
                 StartTimer();
-                
+
                 TransitionTo(PipelineLifecycleState.Recording, 0.0, "Recording started");
                 StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Recording, request.Source, request.Mode));
+                startedSuccessfully = true;
             }
             catch (Exception ex)
             {
                 TransitionTo(PipelineLifecycleState.Failed, -1.0, ex.Message, DiagnosticLogger.Level.ERROR, PipelineError.RecordingAborted);
-                TransitionTo(PipelineLifecycleState.Idle, 0.0, "");
                 ErrorOccurred?.Invoke(this, ex.Message);
             }
+            finally
+            {
+                // ── Гарантия: если старт не удался по любой причине (включая
+                //    исключение до TransitionTo) — state обязательно сбрасывается в Idle.
+                if (!startedSuccessfully)
+                {
+                    lock (_stateLock)
+                    {
+                        if (_state != PipelineLifecycleState.Idle)
+                            _state = PipelineLifecycleState.Idle;
+                        _activeMode  = InternalMode.None;
+                        ActiveMode   = ProcessingMode.Primary;
+                        ActiveSource = AudioSource.Microphone;
+                    }
+                    _activeCapture = _micCapture;
+                    StateChanged?.Invoke(this, new RecordingStateChangedEventArgs(RecordingState.Idle));
+                }
+            }
         }
+
 
         public async Task StopAndProcessAsync(AppSettings settings, Func<string, string> getResource)
         {
@@ -393,7 +410,7 @@ namespace WhisperVoice.Services
             try
             {
                 var info = new FileInfo(path);
-                if (!info.Exists || info.Length <= 44) return false;
+                if (!info.Exists || info.Length <= AudioConstants.WavHeaderBytes) return false;
 
                 byte[]? bytes = null;
                 for (int i = 0; i < 3; i++)
@@ -401,26 +418,26 @@ namespace WhisperVoice.Services
                     try { bytes = File.ReadAllBytes(path); break; }
                     catch (Exception ex) { DiagnosticLogger.Instance.Trace("RecordingOrchestrationService", $"Read WAV retry: {ex.Message}"); Thread.Sleep(50); }
                 }
-                if (bytes == null || bytes.Length <= 44) return true;
+                if (bytes == null || bytes.Length <= AudioConstants.WavHeaderBytes) return true;
 
-                int sampleCount = (bytes.Length - 44) / 2;
-                if (sampleCount < 6400) return false;
+                int sampleCount = (bytes.Length - AudioConstants.WavHeaderBytes) / 2;
+                if (sampleCount < AudioConstants.MinSampleCount) return false;
 
-                int startSample = 4800;
-                int endSample   = sampleCount - 4800;
+                int startSample = AudioConstants.EdgeSampleSkip;
+                int endSample   = sampleCount - AudioConstants.EdgeSampleSkip;
                 if (startSample >= endSample) { startSample = sampleCount / 4; endSample = sampleCount - (sampleCount / 4); }
 
                 int validCount = endSample - startSample;
                 if (validCount <= 0) return false;
 
                 long sum = 0;
-                for (int i = startSample; i < endSample; i++) sum += BitConverter.ToInt16(bytes, 44 + i * 2);
+                for (int i = startSample; i < endSample; i++) sum += BitConverter.ToInt16(bytes, AudioConstants.WavHeaderBytes + i * 2);
                 short dcOffset = (short)(sum / validCount);
 
                 short maxAc = 0;
                 for (int i = startSample; i < endSample; i++)
                 {
-                    short ac = (short)Math.Abs(BitConverter.ToInt16(bytes, 44 + i * 2) - dcOffset);
+                    short ac = (short)Math.Abs(BitConverter.ToInt16(bytes, AudioConstants.WavHeaderBytes + i * 2) - dcOffset);
                     if (ac > maxAc) maxAc = ac;
                 }
 
@@ -431,7 +448,7 @@ namespace WhisperVoice.Services
                 double sumSq = 0;
                 for (int i = startSample; i < endSample; i++)
                 {
-                    double s = BitConverter.ToInt16(bytes, 44 + i * 2) - dcOffset;
+                    double s = BitConverter.ToInt16(bytes, AudioConstants.WavHeaderBytes + i * 2) - dcOffset;
                     sumSq += s * s;
                 }
                 double rms = Math.Sqrt(sumSq / validCount);
@@ -440,7 +457,11 @@ namespace WhisperVoice.Services
 
                 // Loopback: lower RMS threshold (background audio can be quiet)
                 // Mic: higher threshold (ambient noise should not trigger processing)
-                return _activeCapture == _loopbackCapture ? rms > 80.0 : rms > 300.0;
+                double threshold = _activeCapture == _loopbackCapture
+                    ? AudioConstants.RmsThresholdLoopback
+                    : AudioConstants.RmsThresholdMic;
+
+                return rms > threshold;
             }
             catch (Exception ex)
             {
