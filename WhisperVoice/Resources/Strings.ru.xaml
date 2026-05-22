@@ -209,7 +209,7 @@
     <sys:String x:Key="FaqAboutDesc">WhisperVoice — это локальная open-source программа для голосового ввода на базе моделей OpenAI Whisper. Она работает прямо на вашем ПК, не отправляя аудио в облако, что гарантирует полную конфиденциальность.</sys:String>
     
     <sys:String x:Key="FaqFeaturesTitle">Ключевые возможности</sys:String>
-    <sys:String x:Key="FaqFeaturesList">• Офлайн-диктовка с высокой точностью&#10;• Автоматический перевод на английский с любого языка&#10;• Использование промптов для форматирования текста&#10;• VAD (Voice Activity Detection) — фильтрация тишины и шума</sys:String>
+    <sys:String x:Key="FaqFeaturesList">• Офлайн-диктовка с высокой точностью&#x0a;• Автоматический перевод на английский с любого языка&#x0a;• Использование промптов для форматирования текста&#x0a;• VAD (Voice Activity Detection) — фильтрация тишины и шума</sys:String>
     
     <sys:String x:Key="FaqHotkeysTitle">Управление и Горячие клавиши</sys:String>
     

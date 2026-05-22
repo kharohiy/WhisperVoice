@@ -79,48 +79,50 @@
             </StackPanel>
 
             <!-- Step 4: Hotkeys Info -->
-            <StackPanel x:Name="PanelStep4" Visibility="Collapsed">
-                <TextBlock Text="{DynamicResource WizardStep4Title}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
-                <TextBlock Text="{DynamicResource WizardStep4Desc}" TextWrapping="Wrap" Margin="0,0,0,20"/>
+            <ScrollViewer x:Name="PanelStep4" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource WizardStep4Title}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                    <TextBlock Text="{DynamicResource WizardStep4Desc}" TextWrapping="Wrap" Margin="0,0,0,20"/>
 
-                <Border Background="#E3F2FD" BorderBrush="#90CAF9" BorderThickness="1" CornerRadius="6" Padding="15">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
+                    <Border Background="#E3F2FD" BorderBrush="#90CAF9" BorderThickness="1" CornerRadius="6" Padding="15">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="F7" FontWeight="Bold" Margin="0,0,15,8"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{DynamicResource FaqHotkeyMenu}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="F7" FontWeight="Bold" Margin="0,0,15,8"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{DynamicResource FaqHotkeyMenu}" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+F7" FontWeight="Bold" Margin="0,0,15,8"/>
-                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{DynamicResource FaqHotkeyNotepad}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl+F7" FontWeight="Bold" Margin="0,0,15,8"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{DynamicResource FaqHotkeyNotepad}" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="F8" FontWeight="Bold" Margin="0,0,15,8"/>
-                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyPrimary}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="F8" FontWeight="Bold" Margin="0,0,15,8"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyPrimary}" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="F9" FontWeight="Bold" Margin="0,0,15,8"/>
-                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyTranslate}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="F9" FontWeight="Bold" Margin="0,0,15,8"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyTranslate}" TextWrapping="Wrap" Margin="0,0,0,8"/>
 
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="F10" FontWeight="Bold" Margin="0,0,15,12"/>
-                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyPrompt}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="F10" FontWeight="Bold" Margin="0,0,15,12"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{DynamicResource SettingsTooltipHotkeyPrompt}" TextWrapping="Wrap" Margin="0,0,0,12"/>
 
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Ctrl+" FontWeight="Bold" Foreground="#1565C0" Margin="0,0,15,12"/>
-                        <TextBlock Grid.Row="5" Grid.Column="1" Text="{DynamicResource FaqHotkeyCtrlModifier}" TextWrapping="Wrap" Foreground="#1565C0" Margin="0,0,0,12"/>
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Ctrl+" FontWeight="Bold" Foreground="#1565C0" Margin="0,0,15,12"/>
+                            <TextBlock Grid.Row="5" Grid.Column="1" Text="{DynamicResource FaqHotkeyCtrlModifier}" TextWrapping="Wrap" Foreground="#1565C0" Margin="0,0,0,12"/>
 
-                        <TextBlock Grid.Row="6" Grid.ColumnSpan="2" Text="{DynamicResource WizardHotkeysInfo}" TextWrapping="Wrap" FontStyle="Italic"/>
-                    </Grid>
-                </Border>
-            </StackPanel>
+                            <TextBlock Grid.Row="6" Grid.ColumnSpan="2" Text="{DynamicResource WizardHotkeysInfo}" TextWrapping="Wrap" FontStyle="Italic"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
             </Grid>
         </Border>
 
