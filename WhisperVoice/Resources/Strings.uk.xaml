@@ -201,5 +201,8 @@
     <sys:String x:Key="WizardBtnBack">🡄 Назад</sys:String>
     <sys:String x:Key="WizardBtnFinish">Завершити ✔</sys:String>
     <sys:String x:Key="WizardHardwareNote">Примітка: Швидкість розпізнавання сильно залежить від відеопам'яті (VRAM) вашої відеокарти. Обирайте більші моделі, якщо у вас потужна GPU.</sys:String>
+    <sys:String x:Key="WizardStep4Title">Крок 4: Керування та Гарячі клавіші</sys:String>
+    <sys:String x:Key="WizardStep4Desc">Дізнайтеся, як керувати записом за допомогою гарячих клавіш.</sys:String>
+    <sys:String x:Key="WizardHotkeysInfo">F8 - Почати/Зупинити основне диктування.&#10;F9 - Диктування з автоматичним перекладом англійською.&#10;F10 - Голосовий промпт (інструкції для ШІ).&#10;&#10;За замовчуванням клавіші працюють у режимі перемикання (натиснув: запис пішов, натиснув ще раз: стоп). Ви можете увімкнути режим Push-to-Talk (утримувати для запису) у Розширених налаштуваннях.</sys:String>
 
 </ResourceDictionary>

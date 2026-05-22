@@ -77,6 +77,16 @@
                     </StackPanel>
                 </Border>
             </StackPanel>
+
+            <!-- Step 4: Hotkeys Info -->
+            <StackPanel x:Name="PanelStep4" Visibility="Collapsed">
+                <TextBlock Text="{DynamicResource WizardStep4Title}" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                <TextBlock Text="{DynamicResource WizardStep4Desc}" TextWrapping="Wrap" Margin="0,0,0,20"/>
+
+                <Border Background="#E3F2FD" BorderBrush="#90CAF9" BorderThickness="1" CornerRadius="6" Padding="15">
+                    <TextBlock Text="{DynamicResource WizardHotkeysInfo}" TextWrapping="Wrap" LineHeight="24"/>
+                </Border>
+            </StackPanel>
             </Grid>
         </Border>
 

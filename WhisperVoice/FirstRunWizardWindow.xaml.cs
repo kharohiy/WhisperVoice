@@ -165,14 +165,19 @@ namespace WhisperVoice
             PanelStep1.Visibility = _currentStep == 1 ? Visibility.Visible : Visibility.Collapsed;
             PanelStep2.Visibility = _currentStep == 2 ? Visibility.Visible : Visibility.Collapsed;
             PanelStep3.Visibility = _currentStep == 3 ? Visibility.Visible : Visibility.Collapsed;
+            PanelStep4.Visibility = _currentStep == 4 ? Visibility.Visible : Visibility.Collapsed;
 
             BtnBack.Visibility = _currentStep > 1 ? Visibility.Visible : Visibility.Collapsed;
             
             if (_currentStep == 3)
             {
+                RunModelAdvisor();
+            }
+
+            if (_currentStep == 4)
+            {
                 BtnNext.Visibility = Visibility.Collapsed;
                 BtnFinish.Visibility = Visibility.Visible;
-                RunModelAdvisor();
             }
             else
             {
@@ -196,7 +201,7 @@ namespace WhisperVoice
                 StopMicTest();
             }
 
-            if (_currentStep < 3)
+            if (_currentStep < 4)
             {
                 _currentStep++;
                 UpdateStepVisibility();
