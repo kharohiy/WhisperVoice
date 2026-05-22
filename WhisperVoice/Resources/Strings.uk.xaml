@@ -200,5 +200,6 @@
     <sys:String x:Key="WizardBtnNext">Далі ➔</sys:String>
     <sys:String x:Key="WizardBtnBack">🡄 Назад</sys:String>
     <sys:String x:Key="WizardBtnFinish">Завершити ✔</sys:String>
+    <sys:String x:Key="WizardHardwareNote">Примітка: Швидкість розпізнавання сильно залежить від відеопам'яті (VRAM) вашої відеокарти. Обирайте більші моделі, якщо у вас потужна GPU.</sys:String>
 
 </ResourceDictionary>

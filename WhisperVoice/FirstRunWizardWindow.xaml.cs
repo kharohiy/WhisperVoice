@@ -252,7 +252,7 @@ namespace WhisperVoice
             string? micId = (CmbMicrophones.SelectedItem as ComboBoxItem)?.Tag as string;
             string tempWav = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "whisper_test_wizard.wav");
             
-            _testRecorder.StartRecording(tempWav, micId);
+            _testRecorder.StartRecording(micId ?? "", tempWav);
         }
 
         private void StopMicTest()
@@ -294,21 +294,22 @@ namespace WhisperVoice
             long totalRamMb = 0;
             try { totalRamMb = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 1024 / 1024; } catch { }
 
-            string info = $"RAM: {totalRamMb / 1024} GB Total";
+            string hardwareNote = TryGetResource("WizardHardwareNote", "Note: Transcription speed depends heavily on your GPU's Video RAM (VRAM). Choose a larger model if you have a dedicated GPU.");
+            string info = $"System RAM: {totalRamMb / 1024} GB\n\n{hardwareNote}";
 
             TxtHardwareInfo.Text = info;
 
             string recommended = "ggml-base.bin (Default)";
             if (totalRamMb > 12000)
             {
-                recommended = "ggml-large-v3.bin (Best Quality)";
+                recommended = "ggml-large-v3.bin (Best Quality if >6GB VRAM)";
             }
             else if (totalRamMb > 6000)
             {
-                recommended = "ggml-small.bin (Balanced)";
+                recommended = "ggml-small.bin (Balanced if >3GB VRAM)";
             }
 
-            TxtRecommendedModel.Text = TryGetResource("WizardAdvisorModelRec", "Recommended Model: ") + recommended;
+            TxtRecommendedModel.Text = TryGetResource("WizardAdvisorModelRec", "Recommended Model: ") + "\n" + recommended;
         }
 
         protected override void OnClosed(EventArgs e)

@@ -199,5 +199,6 @@
     <sys:String x:Key="WizardBtnNext">Next ➔</sys:String>
     <sys:String x:Key="WizardBtnBack">🡄 Back</sys:String>
     <sys:String x:Key="WizardBtnFinish">Finish ✔</sys:String>
+    <sys:String x:Key="WizardHardwareNote">Note: Transcription speed depends heavily on your GPU's Video RAM (VRAM). Choose a larger model if you have a dedicated GPU.</sys:String>
 
 </ResourceDictionary>

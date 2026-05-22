@@ -34,8 +34,10 @@ namespace WhisperVoice
 
             if (settings.IsFirstRun)
             {
+                ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
                 var wizard = new FirstRunWizardWindow();
                 wizard.ShowDialog();
+                ShutdownMode = System.Windows.ShutdownMode.OnMainWindowClose;
             }
 
             bool isAutoStart = e.Args.Contains("--autostart");
