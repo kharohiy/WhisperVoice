@@ -30,14 +30,7 @@ namespace WhisperVoice
             base.OnStartup(e);
 
             var settings = AppSettings.Load();
-            
-            if (string.IsNullOrEmpty(settings.AppInterfaceLanguage))
-            {
-                string osLang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-                settings.AppInterfaceLanguage = Array.Exists(SupportedLangs, l => l == osLang) ? osLang : "en";
-            }
-
-            App.ApplyInterfaceLanguage(settings.AppInterfaceLanguage);
+            App.ApplyInterfaceLanguage(settings.AppInterfaceLanguage ?? "en");
 
             if (settings.IsFirstRun)
             {
