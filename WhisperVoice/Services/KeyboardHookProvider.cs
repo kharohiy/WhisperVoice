@@ -6,173 +6,77 @@ using System.Windows.Input;
 
 namespace WhisperVoice.Services
 {
-    // ── Contract Architecture ───────────────────────────────────────────
-    
-    public enum AudioSource { Microphone, Loopback }
-    public enum ProcessingMode { Primary, Translate, Prompt }
-
-    public class HotkeyRequestedEventArgs : EventArgs
+    public interface IKeyboardHookProvider : IDisposable
     {
-        public ProcessingMode Mode { get; }
-        public AudioSource Source { get; }
-
-        public HotkeyRequestedEventArgs(ProcessingMode mode, AudioSource source)
-        {
-            Mode = mode;
-            Source = source;
-        }
+        void RegisterHotkey(string name, string keyString, bool isPushToTalk, Action onDown, Action onUp);
+        void UnregisterAll();
+        bool IsModifierKeyDown(ModifierKeys modifier);
     }
 
-    // ── Orchestration Service ───────────────────────────────────────────
-
-    /// <summary>
-    /// Event-driven hotkey orchestration. Exposes unified events for MainWindow.
-    /// Supports the Hotkey Matrix (Key = Mic, Ctrl+Key = Loopback) across both
-    /// Toggle and Push-to-Talk modes.
-    /// </summary>
-    public sealed class HotkeyOrchestrationService : IDisposable
+    public class KeyboardHookProvider : IKeyboardHookProvider
     {
-        public event EventHandler<HotkeyRequestedEventArgs>? OnRecordRequested;
-        public event EventHandler<HotkeyRequestedEventArgs>? OnRecordStopped;
-        public event EventHandler? OnToggleMenu;
-        public event EventHandler? OnOpenNotepad;
-
         private LowLevelKeyboardHook? _primaryHook;
         private LowLevelKeyboardHook? _translateHook;
         private LowLevelKeyboardHook? _promptHook;
-
-        private ProcessingMode _currentPttMode;
-        private AudioSource _currentPttSource;
 
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
         private const int VK_CONTROL = 0x11;
 
-        public HotkeyOrchestrationService()
+        public bool IsModifierKeyDown(ModifierKeys modifier)
         {
+            if (modifier == ModifierKeys.Control)
+            {
+                return (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+            }
+            return false;
         }
 
-        public void RebindHotkeys(AppSettings settings)
+        public void RegisterHotkey(string name, string keyString, bool isPushToTalk, Action onDown, Action onUp)
         {
-            UnregisterAll();
-
-            // 1. Always-on UI Hotkeys
-            TryRegister("ToggleMenu", settings.HotkeyMenu, (_, _) => OnToggleMenu?.Invoke(this, EventArgs.Empty));
-            TryRegister("OpenNotepad", settings.HotkeyNotepad, (_, _) => OnOpenNotepad?.Invoke(this, EventArgs.Empty));
-
-            // 2. Matrix Registration
-            if (settings.IsPushToTalkEnabled)
+            if (isPushToTalk)
             {
-                // PTT Mode: Hooks for base keys. Modifier (Ctrl) is evaluated dynamically at press.
-                var primaryVk   = HotkeyParser.ParseVk(settings.HotkeyPrimary);
-                var translateVk = HotkeyParser.ParseVk(settings.HotkeyTranslate);
-                var promptVk    = HotkeyParser.ParseVk(settings.HotkeyPrompt);
-
-                if (primaryVk.HasValue)
-                    _primaryHook = SafeCreateHook(primaryVk.Value, ProcessingMode.Primary);
-                
-                if (translateVk.HasValue)
-                    _translateHook = SafeCreateHook(translateVk.Value, ProcessingMode.Translate);
-
-                if (promptVk.HasValue)
-                    _promptHook = SafeCreateHook(promptVk.Value, ProcessingMode.Prompt);
+                var vk = HotkeyParser.ParseVk(keyString);
+                if (vk.HasValue)
+                {
+                    var hook = SafeCreateHook(vk.Value, name, onDown, onUp);
+                    if (hook != null)
+                    {
+                        if (name.Contains("Primary")) _primaryHook = hook;
+                        else if (name.Contains("Translate")) _translateHook = hook;
+                        else if (name.Contains("Prompt")) _promptHook = hook;
+                    }
+                }
             }
             else
             {
-                // Toggle Mode: Explicit NHotkey slots for every matrix combination
-                // Primary
-                TryRegister("PrimaryMic", settings.HotkeyPrimary, (_, _) => HandleToggle(ProcessingMode.Primary, AudioSource.Microphone));
-                TryRegister("PrimaryLoopback", "Ctrl+" + settings.HotkeyPrimary, (_, _) => HandleToggle(ProcessingMode.Primary, AudioSource.Loopback));
-                
-                // Translate
-                TryRegister("TranslateMic", settings.HotkeyTranslate, (_, _) => HandleToggle(ProcessingMode.Translate, AudioSource.Microphone));
-                TryRegister("TranslateLoopback", "Ctrl+" + settings.HotkeyTranslate, (_, _) => HandleToggle(ProcessingMode.Translate, AudioSource.Loopback));
-                
-                // Prompt
-                TryRegister("PromptMic", settings.HotkeyPrompt, (_, _) => HandleToggle(ProcessingMode.Prompt, AudioSource.Microphone));
-                TryRegister("PromptLoopback", "Ctrl+" + settings.HotkeyPrompt, (_, _) => HandleToggle(ProcessingMode.Prompt, AudioSource.Loopback));
+                try
+                {
+                    var (mods, key) = HotkeyParser.ParseNHotkey(keyString);
+                    if (key == Key.None) return;
+                    HotkeyManager.Current.AddOrReplace(name, key, mods, (s, e) => onDown?.Invoke());
+                }
+                catch (Exception ex)
+                {
+                    DiagnosticLogger.Instance.Error("KeyboardHookProvider", ex, $"Failed to register '{name}' ({keyString})");
+                }
             }
         }
 
-        private LowLevelKeyboardHook? SafeCreateHook(uint vk, ProcessingMode mode)
+        private LowLevelKeyboardHook? SafeCreateHook(uint vk, string name, Action onDown, Action onUp)
         {
             try
             {
-                return new LowLevelKeyboardHook(
-                    vk,
-                    onKeyDown: () => HandlePttStart(mode),
-                    onKeyUp:   () => HandlePttStop(mode));
+                return new LowLevelKeyboardHook(vk, onDown, onUp);
             }
             catch (Exception ex)
             {
-                WhisperVoice.DiagnosticLogger.Instance.Error("HotkeyOrchestrationService", ex, $"Failed to install PTT hook for VK {vk}");
+                DiagnosticLogger.Instance.Error("KeyboardHookProvider", ex, $"Failed to install PTT hook for VK {vk} ({name})");
                 return null;
             }
         }
 
-        private AudioSource EvaluateCurrentSource()
-        {
-            bool isCtrlDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
-            return isCtrlDown 
-                ? AudioSource.Loopback 
-                : AudioSource.Microphone;
-        }
-
-        private void HandlePttStart(ProcessingMode mode)
-        {
-            _currentPttMode = mode;
-            _currentPttSource = EvaluateCurrentSource();
-            OnRecordRequested?.Invoke(this, new HotkeyRequestedEventArgs(_currentPttMode, _currentPttSource));
-        }
-
-        private void HandlePttStop(ProcessingMode mode)
-        {
-            // Ensure we only fire stop for the actively held key
-            if (_currentPttMode == mode)
-            {
-                OnRecordStopped?.Invoke(this, new HotkeyRequestedEventArgs(_currentPttMode, _currentPttSource));
-            }
-        }
-
-        private void HandleToggle(ProcessingMode mode, AudioSource source)
-        {
-            OnRecordRequested?.Invoke(this, new HotkeyRequestedEventArgs(mode, source));
-        }
-
-        public void Dispose() => UnregisterAll();
-
-        private static void TryRegister(string name, string keyString, EventHandler<HotkeyEventArgs> handler)
-        {
-            try
-            {
-                var (mods, key) = HotkeyParser.ParseNHotkey(keyString);
-                if (key == Key.None) return;
-                HotkeyManager.Current.AddOrReplace(name, key, mods, handler);
-            }
-            catch (Exception ex)
-            {
-                WhisperVoice.DiagnosticLogger.Instance.Error("HotkeyOrchestrationService", ex, $"Failed to register '{name}' ({keyString})");
-            }
-        }
-
-        /// <summary>
-        /// Registers a hotkey with an explicitly provided modifier set.
-        /// Use this for Ctrl variants to guarantee a distinct WM_HOTKEY ID.
-        /// </summary>
-        private static void TryRegisterExplicit(string name, Key key, ModifierKeys mods, EventHandler<HotkeyEventArgs> handler)
-        {
-            try
-            {
-                if (key == Key.None) return;
-                HotkeyManager.Current.AddOrReplace(name, key, mods, handler);
-            }
-            catch (Exception ex)
-            {
-                WhisperVoice.DiagnosticLogger.Instance.Error("HotkeyOrchestrationService", ex, $"Failed to register explicit '{name}' ({mods}+{key})");
-            }
-        }
-
-        private void UnregisterAll()
+        public void UnregisterAll()
         {
             _primaryHook?.Dispose(); _primaryHook = null;
             _translateHook?.Dispose(); _translateHook = null;
@@ -183,17 +87,19 @@ namespace WhisperVoice.Services
                 "ToggleMenu", "OpenNotepad",
                 "PrimaryMic", "PrimaryLoopback",
                 "TranslateMic", "TranslateLoopback",
-                "PromptMic", "PromptLoopback"
+                "PromptMic", "PromptLoopback",
+                "PrimaryPTT", "TranslatePTT", "PromptPTT"
             };
 
             foreach (var name in names)
             {
                 try { HotkeyManager.Current.Remove(name); }
-                catch { /* key was never registered — safe to ignore */ }
+                catch { /* ignore */ }
             }
         }
-    }
 
+        public void Dispose() => UnregisterAll();
+    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // LowLevelKeyboardHook — WH_KEYBOARD_LL wrapper with key-identity lock
