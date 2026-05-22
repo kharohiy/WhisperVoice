@@ -71,7 +71,7 @@ namespace WhisperVoice
 
         private readonly TextPostProcessorService _postProcessor = new();
 
-        private HotkeyOrchestrationService? _hotkeyOrchestrator;
+        private HotkeyRouter? _hotkeyRouter;
 
         private DateTime _lastAction = DateTime.MinValue;
 
@@ -273,7 +273,7 @@ namespace WhisperVoice
                 _recorder?.Dispose();
                 _microphoneCapture?.Dispose();
                 _loopbackCapture?.Dispose();
-                _hotkeyOrchestrator?.Dispose();
+                _hotkeyRouter?.Dispose();
                 _trayIconService?.Dispose();
                 CleanupTempFiles();
             }
@@ -294,19 +294,20 @@ namespace WhisperVoice
         {
             _settings = AppSettings.Load();
 
-            if (_hotkeyOrchestrator == null)
+            if (_hotkeyRouter == null)
             {
-                _hotkeyOrchestrator = new Services.HotkeyOrchestrationService();
-                _hotkeyOrchestrator.OnRecordRequested += HotkeyOrchestrator_OnRecordRequested;
-                _hotkeyOrchestrator.OnRecordStopped += HotkeyOrchestrator_OnRecordStopped;
-                _hotkeyOrchestrator.OnToggleMenu += (s, e) => { if (!IsSpam()) { if (IsVisible) Hide(); else { Show(); Activate(); } } };
-                _hotkeyOrchestrator.OnOpenNotepad += (s, e) => { if (!IsSpam()) ToggleWindow(_notepad); };
+                var hookProvider = new Services.KeyboardHookProvider();
+                _hotkeyRouter = new Services.HotkeyRouter(hookProvider);
+                _hotkeyRouter.OnRecordRequested += HotkeyRouter_OnRecordRequested;
+                _hotkeyRouter.OnRecordStopped += HotkeyRouter_OnRecordStopped;
+                _hotkeyRouter.OnToggleMenu += (s, e) => { if (!IsSpam()) { if (IsVisible) Hide(); else { Show(); Activate(); } } };
+                _hotkeyRouter.OnOpenNotepad += (s, e) => { if (!IsSpam()) ToggleWindow(_notepad); };
             }
 
-            _hotkeyOrchestrator.RebindHotkeys(_settings);
+            _hotkeyRouter.RebindHotkeys(_settings);
         }
 
-        private void HotkeyOrchestrator_OnRecordRequested(object? sender, Services.HotkeyRequestedEventArgs e)
+        private void HotkeyRouter_OnRecordRequested(object? sender, Services.HotkeyRequestedEventArgs e)
         {
             Dispatcher.InvokeAsync(async () =>
             {
@@ -314,7 +315,7 @@ namespace WhisperVoice
             });
         }
 
-        private void HotkeyOrchestrator_OnRecordStopped(object? sender, Services.HotkeyRequestedEventArgs e)
+        private void HotkeyRouter_OnRecordStopped(object? sender, Services.HotkeyRequestedEventArgs e)
         {
             Dispatcher.InvokeAsync(async () =>
             {
