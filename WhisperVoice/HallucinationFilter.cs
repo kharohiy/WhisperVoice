@@ -103,7 +103,7 @@ namespace WhisperVoice.Services
         /// that appears at least <paramref name="maxRepeats"/> times.
         /// This catches hallucination loops that are not in the static dictionary.
         /// </summary>
-        private static bool HasRepetitiveNgrams(string text, int n = 3, int maxRepeats = 2)
+        private static bool HasRepetitiveNgrams(string text, int n = 3, int maxRepeats = 4)
         {
             var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length < n * maxRepeats) return false;

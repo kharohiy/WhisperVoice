@@ -29,7 +29,7 @@ models/
 # whisper.cpp native libraries in project root
 WhisperVoice/*.dll
 
-WhisperVoice/.agent/
+.agents/
 
 # Internal documentation
 ARCHITECTURE_WIKI.md

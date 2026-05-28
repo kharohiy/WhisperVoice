@@ -144,9 +144,9 @@ namespace WhisperVoice.Tests
         [Fact]
         public void RepetitionDetector_LoopedPhrase_ShouldBeRejected()
         {
-            // "thank you for watching thank you for watching" — classic Whisper silence hallucination
+            // "thank you for watching thank you for watching thank you for watching thank you for watching" — classic Whisper silence hallucination
             var filter = BuildFilterWithNoPatterns();
-            string input = "thank you for watching thank you for watching";
+            string input = "thank you for watching thank you for watching thank you for watching thank you for watching";
 
             bool result = filter.Check(input, out _);
 
@@ -181,7 +181,7 @@ namespace WhisperVoice.Tests
         public void RepetitionDetector_FourWordLoop_ShouldBeRejected()
         {
             var filter = BuildFilterWithNoPatterns();
-            string input = "please like and subscribe please like and subscribe";
+            string input = "please like and subscribe please like and subscribe please like and subscribe please like and subscribe";
 
             bool result = filter.Check(input, out _);
 
